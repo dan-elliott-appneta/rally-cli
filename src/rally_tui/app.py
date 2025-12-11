@@ -18,6 +18,8 @@ from rally_tui.screens import (
     FILTER_ALL,
     FILTER_BACKLOG,
     IterationScreen,
+    ParentOption,
+    ParentScreen,
     PointsScreen,
     QuickTicketData,
     QuickTicketScreen,
@@ -111,6 +113,9 @@ class RallyTUI(App[None]):
         self._iteration_filter: str | None = None  # Iteration name or FILTER_BACKLOG
         self._user_filter_active: bool = False
         self._all_tickets: list = []  # Store all tickets for filtering
+
+        # State for parent selection flow
+        self._pending_state: str | None = None  # State to set after parent selected
 
     def compose(self) -> ComposeResult:
         """Create the application layout."""
@@ -488,7 +493,11 @@ class RallyTUI(App[None]):
             )
 
     def _handle_state_result(self, state: str | None) -> None:
-        """Handle the result from StateScreen."""
+        """Handle the result from StateScreen.
+
+        If transitioning to "In Progress" and ticket has no parent,
+        prompts user to select a parent first.
+        """
         if state is None:
             _log.debug("State update cancelled")
             return
@@ -497,13 +506,88 @@ class RallyTUI(App[None]):
         if not detail.ticket:
             return
 
+        # Check if moving to "In Progress" without a parent
+        if state == "In Progress" and not detail.ticket.parent_id:
+            _log.info(f"Ticket {detail.ticket.formatted_id} needs parent before In Progress")
+            # Store the pending state and show parent selection screen
+            self._pending_state = state
+            parent_options = self._build_parent_options()
+            self.push_screen(
+                ParentScreen(detail.ticket, parent_options),
+                callback=self._handle_parent_result,
+            )
+            return
+
+        self._update_ticket_state(detail.ticket, state)
+
+    def _build_parent_options(self) -> list[ParentOption]:
+        """Build list of ParentOption from user settings and client data."""
+        parent_ids = self._user_settings.parent_options
+        options: list[ParentOption] = []
+
+        for parent_id in parent_ids:
+            feature = self._client.get_feature(parent_id)
+            if feature:
+                options.append(ParentOption(feature[0], feature[1]))
+            else:
+                # Include ID even if we can't get the name
+                options.append(ParentOption(parent_id, f"Feature {parent_id}"))
+
+        return options
+
+    def _handle_parent_result(self, parent_id: str | None) -> None:
+        """Handle the result from ParentScreen.
+
+        If a parent was selected, sets the parent and then updates the state.
+        """
+        if parent_id is None:
+            _log.debug("Parent selection cancelled")
+            self._pending_state = None
+            return
+
+        detail = self.query_one(TicketDetail)
+        if not detail.ticket:
+            self._pending_state = None
+            return
+
         ticket_id = detail.ticket.formatted_id
+        _log.info(f"Setting parent for {ticket_id} to {parent_id}")
+
+        try:
+            # Set the parent
+            updated = self._client.set_parent(detail.ticket, parent_id)
+            if updated:
+                # Update detail and list with parent set
+                detail.ticket = updated
+                ticket_list = self.query_one(TicketList)
+                ticket_list.update_ticket(updated, resort=False)
+                self.notify(f"Parent set to {parent_id}", timeout=2)
+                _log.info(f"Parent set successfully for {ticket_id}")
+
+                # Now update the state if we have a pending state
+                if self._pending_state:
+                    pending = self._pending_state
+                    self._pending_state = None
+                    self._update_ticket_state(updated, pending)
+            else:
+                _log.error(f"Failed to set parent for {ticket_id}")
+                self.notify("Failed to set parent", severity="error", timeout=3)
+                self._pending_state = None
+        except Exception as e:
+            _log.exception(f"Error setting parent for {ticket_id}: {e}")
+            self.notify("Failed to set parent", severity="error", timeout=3)
+            self._pending_state = None
+
+    def _update_ticket_state(self, ticket: "Ticket", state: str) -> None:
+        """Update a ticket's state and refresh the UI."""
+        ticket_id = ticket.formatted_id
         _log.info(f"Updating state for {ticket_id} to {state}")
 
         try:
-            updated = self._client.update_state(detail.ticket, state)
+            updated = self._client.update_state(ticket, state)
             if updated:
                 # Update the detail panel with new ticket data
+                detail = self.query_one(TicketDetail)
                 detail.ticket = updated
                 # Update the ticket in the list
                 ticket_list = self.query_one(TicketList)
