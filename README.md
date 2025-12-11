@@ -11,7 +11,9 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 ## Status
 
-**In Development** - Currently implementing Iteration 1 (project skeleton and static ticket list).
+**Iteration 1 Complete** - Static ticket list with keyboard navigation is working.
+
+Next: Iteration 2 (details panel on right side).
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -59,17 +61,26 @@ rally-tui
 
 ```
 rally-cli/
-├── src/rally_tui/      # Main application code
-│   ├── app.py          # Textual application
-│   ├── models/         # Data models
-│   ├── widgets/        # TUI widgets
-│   ├── services/       # Rally API client
-│   └── screens/        # Application screens
-├── tests/              # Test suite
-└── docs/               # Documentation
-    ├── API.md          # Rally WSAPI reference
-    ├── PLAN.md         # Development roadmap
-    └── ITERATION_1.md  # Current iteration guide
+├── pyproject.toml           # Project config and dependencies
+├── src/rally_tui/           # Main application code
+│   ├── app.py               # Textual application entry point
+│   ├── app.tcss             # CSS stylesheet
+│   ├── models/
+│   │   ├── ticket.py        # Ticket dataclass
+│   │   └── sample_data.py   # Hardcoded test data
+│   ├── widgets/
+│   │   └── ticket_list.py   # TicketList widget
+│   ├── services/            # Rally API client (future)
+│   └── screens/             # Application screens (future)
+├── tests/
+│   ├── conftest.py          # Pytest fixtures
+│   ├── test_ticket_model.py # Model unit tests
+│   ├── test_ticket_list.py  # Widget tests
+│   └── test_snapshots.py    # Visual regression tests
+└── docs/
+    ├── API.md               # Rally WSAPI reference
+    ├── PLAN.md              # Development roadmap
+    └── ITERATION_1.md       # Iteration 1 guide
 ```
 
 ### Running Tests

@@ -36,13 +36,15 @@ pytest -k "navigation"
 
 ```
 tests/
-├── conftest.py              # Shared fixtures
-├── test_ticket_model.py     # Unit tests for Ticket dataclass
-├── test_ticket_list.py      # Widget tests for TicketList
-├── test_snapshots.py        # Visual regression tests
+├── conftest.py              # Shared fixtures (sample_tickets, single_ticket)
+├── test_ticket_model.py     # Unit tests for Ticket dataclass (10 tests)
+├── test_ticket_list.py      # Widget tests for TicketList (11 tests)
+├── test_snapshots.py        # Visual regression tests (4 tests)
 └── snapshots/               # SVG snapshot baselines
     └── test_snapshots/
 ```
+
+**Current Test Count: 25 tests**
 
 ## Unit Tests
 
