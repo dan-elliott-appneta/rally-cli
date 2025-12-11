@@ -57,6 +57,13 @@ TicketListItem {
     height: auto;
 }
 
+.selection-checkbox {
+    width: 4;
+    min-width: 4;
+    max-width: 4;
+    color: $text-muted;
+}
+
 .state-indicator {
     width: 2;
     min-width: 2;
