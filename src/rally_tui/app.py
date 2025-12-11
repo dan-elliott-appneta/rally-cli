@@ -8,6 +8,7 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import Header
 
 from rally_tui.config import RallyConfig
+from rally_tui.screens import DiscussionScreen
 from rally_tui.services import MockRallyClient, RallyClient, RallyClientProtocol
 from rally_tui.widgets import (
     CommandBar,
@@ -29,6 +30,7 @@ class RallyTUI(App[None]):
         Binding("tab", "switch_panel", "Switch Panel", show=False, priority=True),
         Binding("?", "help", "Help", show=False),
         Binding("/", "start_search", "Search", show=False),
+        Binding("d", "open_discussions", "Discussions", show=False),
     ]
 
     def __init__(
@@ -187,6 +189,12 @@ class RallyTUI(App[None]):
             )
         else:
             status_bar.clear_filter_info()
+
+    def action_open_discussions(self) -> None:
+        """Open discussions for the currently selected ticket."""
+        detail = self.query_one(TicketDetail)
+        if detail.ticket:
+            self.push_screen(DiscussionScreen(detail.ticket, self._client))
 
 
 def main() -> None:
