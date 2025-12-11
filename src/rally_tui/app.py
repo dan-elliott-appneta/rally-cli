@@ -119,7 +119,9 @@ class RallyTUI(App[None]):
             current_user=self._client.current_user,
             id="status-bar",
         )
-        tickets = self._client.get_tickets()
+        # Fetch ALL tickets (empty query bypasses default filter)
+        # We'll apply iteration/user filters client-side
+        tickets = self._client.get_tickets(query="")
         self._all_tickets = list(tickets)  # Store all tickets for filtering
         with Horizontal(id="main-container"):
             with Vertical(id="list-container"):
@@ -148,12 +150,19 @@ class RallyTUI(App[None]):
         # Hide search input initially
         self.query_one("#search-input").display = False
 
-        # Set first ticket in detail panel (reuse tickets from TicketList, don't call API again)
-        ticket_list = self.query_one(TicketList)
-        _log.debug(f"Loaded {len(ticket_list._tickets)} tickets")
-        if ticket_list._tickets:
-            detail = self.query_one(TicketDetail)
-            detail.ticket = ticket_list._tickets[0]
+        # Apply default filters when connected (current iteration + current user)
+        if self._connected and self._client.current_iteration:
+            self._iteration_filter = self._client.current_iteration
+            self._user_filter_active = True
+            self._apply_filters()
+            _log.debug(f"Applied default filters: iteration={self._iteration_filter}, user=True")
+        else:
+            # Set first ticket in detail panel
+            ticket_list = self.query_one(TicketList)
+            _log.debug(f"Loaded {len(ticket_list._tickets)} tickets")
+            if ticket_list._tickets:
+                detail = self.query_one(TicketDetail)
+                detail.ticket = ticket_list._tickets[0]
 
         # Focus the ticket list initially
         self.query_one(TicketList).focus()
