@@ -539,3 +539,52 @@ class RallyClient:
             _log.error(f"Error creating ticket: {e}")
 
         return None
+
+    def update_state(self, ticket: Ticket, state: str) -> Ticket | None:
+        """Update a ticket's workflow state.
+
+        Updates ScheduleState for User Stories/Tasks or State for Defects.
+
+        Args:
+            ticket: The ticket to update.
+            state: The new state value (e.g., "In Progress", "Completed").
+
+        Returns:
+            The updated Ticket with new state, or None on failure.
+        """
+        if not ticket.object_id:
+            _log.warning(f"Cannot update state: no object_id for {ticket.formatted_id}")
+            return None
+
+        _log.info(f"Updating state for {ticket.formatted_id} to {state}")
+
+        try:
+            entity_type = self._get_entity_type(ticket.formatted_id)
+
+            # Defects use "State", others use "ScheduleState"
+            state_field = "State" if entity_type == "Defect" else "ScheduleState"
+
+            update_data = {
+                "ObjectID": ticket.object_id,
+                state_field: state,
+            }
+
+            self._rally.update(entity_type, update_data)
+            _log.info(f"State updated successfully for {ticket.formatted_id}")
+
+            return Ticket(
+                formatted_id=ticket.formatted_id,
+                name=ticket.name,
+                ticket_type=ticket.ticket_type,
+                state=state,
+                owner=ticket.owner,
+                description=ticket.description,
+                notes=ticket.notes,
+                iteration=ticket.iteration,
+                points=ticket.points,
+                object_id=ticket.object_id,
+            )
+        except Exception as e:
+            _log.error(f"Error updating state for {ticket.formatted_id}: {e}")
+
+        return None

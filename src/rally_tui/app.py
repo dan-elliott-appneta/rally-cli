@@ -14,6 +14,7 @@ from rally_tui.screens import (
     QuickTicketData,
     QuickTicketScreen,
     SplashScreen,
+    StateScreen,
 )
 from rally_tui.services import MockRallyClient, RallyClient, RallyClientProtocol
 from rally_tui.user_settings import UserSettings
@@ -37,6 +38,7 @@ class RallyTUI(App[None]):
 
     BINDINGS = [
         Binding("w", "quick_ticket", "Workitem"),
+        Binding("s", "set_state", "State"),
         Binding("p", "set_points", "Points"),
         Binding("n", "toggle_notes", "Notes"),
         Binding("d", "open_discussions", "Discuss"),
@@ -304,6 +306,45 @@ class RallyTUI(App[None]):
         except Exception as e:
             _log.exception(f"Error updating points for {ticket_id}: {e}")
             self.notify("Failed to update points", severity="error", timeout=3)
+
+    def action_set_state(self) -> None:
+        """Open the state selection screen for the selected ticket."""
+        detail = self.query_one(TicketDetail)
+        if detail.ticket:
+            self.push_screen(
+                StateScreen(detail.ticket),
+                callback=self._handle_state_result,
+            )
+
+    def _handle_state_result(self, state: str | None) -> None:
+        """Handle the result from StateScreen."""
+        if state is None:
+            _log.debug("State update cancelled")
+            return
+
+        detail = self.query_one(TicketDetail)
+        if not detail.ticket:
+            return
+
+        ticket_id = detail.ticket.formatted_id
+        _log.info(f"Updating state for {ticket_id} to {state}")
+
+        try:
+            updated = self._client.update_state(detail.ticket, state)
+            if updated:
+                # Update the detail panel with new ticket data
+                detail.ticket = updated
+                # Update the ticket in the list
+                ticket_list = self.query_one(TicketList)
+                ticket_list.update_ticket(updated)
+                self.notify(f"State set to {state}", timeout=2)
+                _log.info(f"State updated successfully for {ticket_id}")
+            else:
+                _log.error(f"Failed to update state for {ticket_id}")
+                self.notify("Failed to update state", severity="error", timeout=3)
+        except Exception as e:
+            _log.exception(f"Error updating state for {ticket_id}: {e}")
+            self.notify("Failed to update state", severity="error", timeout=3)
 
     def action_quick_ticket(self) -> None:
         """Open the quick ticket creation screen."""
