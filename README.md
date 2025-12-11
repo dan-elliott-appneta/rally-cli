@@ -34,7 +34,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Connect to Rally API using pyral
 - Environment variable configuration (RALLY_APIKEY, RALLY_WORKSPACE, etc.)
 - Automatic fallback to offline mode with sample data
-- Connection status indicator (Connected/Offline)
+- Connection status indicator (Connected as {username}/Offline)
 - Two-panel layout with ticket list and detail view
 - Tab to switch between panels
 - Context-sensitive keyboard shortcuts
