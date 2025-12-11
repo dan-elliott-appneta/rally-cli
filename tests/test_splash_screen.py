@@ -11,11 +11,11 @@ class TestSplashScreenBasic:
 
     def test_splash_screen_has_ascii_art(self) -> None:
         """SplashScreen should have ASCII art."""
-        from rally_tui.screens.splash_screen import RALLY_CAR_ART
+        from rally_tui.screens.splash_screen import RALLY_TUI_ART
 
-        assert "RALLY" in RALLY_CAR_ART
-        assert "TUI" in RALLY_CAR_ART
-        assert "JUMP" in RALLY_CAR_ART
+        assert "Terminal UI" in RALLY_TUI_ART
+        assert "Rally" in RALLY_TUI_ART
+        assert "Press any key" in RALLY_TUI_ART
 
     async def test_splash_shows_on_startup(self) -> None:
         """Splash screen should show on app startup when enabled."""

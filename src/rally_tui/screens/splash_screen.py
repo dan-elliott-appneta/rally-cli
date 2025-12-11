@@ -1,4 +1,4 @@
-"""Splash screen with ASCII art rally car."""
+"""Splash screen with ASCII art title."""
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -7,43 +7,19 @@ from textual.screen import Screen
 from textual.widgets import Static
 
 
-RALLY_CAR_ART = r"""
-                                         . -^   `--,
-                                        /# =========`-_
-                                       /# (--====___====\
-                                      /#   .- --.  . --..|
-                                     /##   |  * ) (   * ),
-                                     |##   \    /\ \   / |
-                                     |###   ---   \ ---  |
-                                     |####      ___)    #|
-                                     |######           ##|
-                                      \##### ---------- /
-                                       \####           (
-                                        `\###          |
-                                          \###         |
-                                           \##        |
-                                            \###.    .)
-                                             `======/
+RALLY_TUI_ART = r"""
 
-                            ___________
-                           /           \
-          ___________     /   RALLY     \      ___________
-         /           \   /     TUI       \    /           \
-        /  _     _    \_/                 \__/    _     _  \
-       |  | |   | |    |                   |    | |   | |  |
-    ___|  |_|   |_|    |___________________|    |_|   |_|  |___
-   /    \__/     \__/                           \__/   \__/    \
-  /        ___________________________________________          \
- /________/   @@@@@                         @@@@@    \__________\
-              @@@@@                         @@@@@
-               @@@                           @@@
+ ██████╗  █████╗ ██╗     ██╗  ██╗   ██╗    ████████╗██╗   ██╗██╗
+ ██╔══██╗██╔══██╗██║     ██║  ╚██╗ ██╔╝    ╚══██╔══╝██║   ██║██║
+ ██████╔╝███████║██║     ██║   ╚████╔╝        ██║   ██║   ██║██║
+ ██╔══██╗██╔══██║██║     ██║    ╚██╔╝         ██║   ██║   ██║██║
+ ██║  ██║██║  ██║███████╗███████╗██║          ██║   ╚██████╔╝██║
+ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝          ╚═╝    ╚═════╝ ╚═╝
 
 
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       ~     ~     ~     ~  JUMP!  ~     ~     ~     ~     ~     ~
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            Terminal UI for Rally Work Items
 
-                    Press any key to continue...
+                Press any key to continue...
 """
 
 
@@ -59,11 +35,6 @@ class SplashScreen(Screen[None]):
         background: $background;
     }
 
-    #splash-container {
-        width: 100%;
-        height: 100%;
-    }
-
     #splash-art {
         color: $success;
         text-align: center;
@@ -73,7 +44,7 @@ class SplashScreen(Screen[None]):
     def compose(self) -> ComposeResult:
         with Middle():
             with Center():
-                yield Static(RALLY_CAR_ART, id="splash-art")
+                yield Static(RALLY_TUI_ART, id="splash-art")
 
     def on_key(self, event) -> None:
         """Dismiss splash on any key press."""
