@@ -256,23 +256,28 @@ tests/
 
 ---
 
-### Iteration 3: Command Bar (Bottom)
+### Iteration 3: Command Bar (Bottom) ✅ COMPLETE
 
 **Goal**: Context-sensitive command hints at bottom
 
 **Detailed Guide**: See [ITERATION_3.md](./ITERATION_3.md) for step-by-step implementation.
 
 **Tasks**:
-- [ ] Create `CommandBar` widget (extends Static with DEFAULT_CSS)
-- [ ] Define command sets for different contexts (list vs detail)
-- [ ] Update commands based on focused widget using `watch_focused`
-- [ ] Make TicketDetail focusable (`can_focus = True`)
-- [ ] Add Tab key binding to switch focus between panels
-- [ ] Replace Footer with CommandBar in app layout
-- [ ] Write unit tests for CommandBar (8 tests)
-- [ ] Update snapshot tests for command bar contexts (2 tests)
+- [x] Create `CommandBar` widget (extends Static with DEFAULT_CSS)
+- [x] Define command sets for different contexts (list vs detail)
+- [x] Update commands based on focused widget (via action_switch_panel)
+- [x] Make TicketDetail focusable (`can_focus = True`)
+- [x] Add Tab key binding with priority=True to switch focus between panels
+- [x] Add CommandBar to app layout
+- [x] Write unit tests for CommandBar (13 tests)
+- [x] Update snapshot tests for command bar (7 tests updated)
 
-**Deliverable**: Bottom bar shows relevant commands, updates on focus change, Tab switches panels
+**Implementation Notes**:
+- Used `_current_ctx` instead of `_context` to avoid Textual internal conflict
+- Tab binding requires `priority=True` to override default focus cycling
+- 54 total tests passing
+
+**Deliverable**: Bottom bar shows relevant commands, updates on Tab press, Tab switches panels
 
 **Command Contexts**:
 | Context | Commands Shown |

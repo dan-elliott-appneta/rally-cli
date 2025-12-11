@@ -11,9 +11,14 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 ## Status
 
-**Iteration 2 Complete** - Two-panel layout with detail view is working.
+**Iteration 3 Complete** - Command bar with context-sensitive shortcuts.
 
-Next: Iteration 3 (command bar at bottom).
+- Two-panel layout with ticket list and detail view
+- Tab to switch between panels
+- Context-sensitive keyboard shortcuts displayed at bottom
+- 54 tests passing
+
+Next: Iteration 4 (Rally API integration).
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -53,6 +58,7 @@ rally-tui
 | g | Jump to top |
 | G | Jump to bottom |
 | Enter | Select item |
+| Tab | Switch panel |
 | q | Quit |
 
 ## Development
@@ -70,7 +76,8 @@ rally-cli/
 │   │   └── sample_data.py   # Hardcoded test data
 │   ├── widgets/
 │   │   ├── ticket_list.py   # TicketList widget (left panel)
-│   │   └── ticket_detail.py # TicketDetail widget (right panel)
+│   │   ├── ticket_detail.py # TicketDetail widget (right panel)
+│   │   └── command_bar.py   # CommandBar widget (bottom)
 │   ├── services/            # Rally API client (future)
 │   └── screens/             # Application screens (future)
 ├── tests/
@@ -78,12 +85,14 @@ rally-cli/
 │   ├── test_ticket_model.py  # Model unit tests
 │   ├── test_ticket_list.py   # TicketList widget tests
 │   ├── test_ticket_detail.py # TicketDetail widget tests
+│   ├── test_command_bar.py   # CommandBar widget tests
 │   └── test_snapshots.py     # Visual regression tests
 └── docs/
     ├── API.md               # Rally WSAPI reference
     ├── PLAN.md              # Development roadmap
     ├── ITERATION_1.md       # Iteration 1 guide (complete)
-    └── ITERATION_2.md       # Iteration 2 guide (complete)
+    ├── ITERATION_2.md       # Iteration 2 guide (complete)
+    └── ITERATION_3.md       # Iteration 3 guide (complete)
 ```
 
 ### Running Tests
@@ -107,6 +116,7 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 - [PLAN.md](docs/PLAN.md) - Development roadmap and architecture
 - [ITERATION_1.md](docs/ITERATION_1.md) - Iteration 1 implementation guide (complete)
 - [ITERATION_2.md](docs/ITERATION_2.md) - Iteration 2 implementation guide (complete)
+- [ITERATION_3.md](docs/ITERATION_3.md) - Iteration 3 implementation guide (complete)
 
 ## Technology Stack
 
