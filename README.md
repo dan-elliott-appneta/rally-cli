@@ -15,6 +15,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Copy URL**: Press `y` to copy Rally ticket URL to clipboard
 - **Set Points**: Press `p` to set story points on selected ticket
 - **Set State**: Press `s` to change ticket state (Defined, In Progress, Completed, etc.)
+- **Parent Requirement**: Must select a parent Feature before moving to "In Progress" state
 - **Quick Create**: Press `w` to create a new workitem (User Story or Defect)
 - **Toggle Notes**: Press `n` to toggle between description and notes view
 - **Sprint Filter**: Press `i` to filter tickets by iteration/sprint
@@ -26,12 +27,16 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 ## Status
 
-**Iteration 10 Complete** - Iteration & User Filtering.
+**Iteration 11 Complete** - Parent Selection Feature.
 
-- **NEW**: Filter by iteration/sprint with `i` key
-- **NEW**: Toggle "My Items" filter with `u` key to show only your tickets
-- **NEW**: Filter to Backlog (unscheduled items) from iteration picker
-- **NEW**: Status bar shows active filters (Sprint: X, My Items)
+- **NEW**: Ticket must have a parent Feature before moving to "In Progress" state
+- **NEW**: ParentScreen modal for selecting parent (3 configurable options + custom ID entry)
+- **NEW**: Configurable parent options via `~/.config/rally-tui/config.json`
+- **NEW**: Truncated feature titles shown in parent picker
+- Filter by iteration/sprint with `i` key
+- Toggle "My Items" filter with `u` key to show only your tickets
+- Filter to Backlog (unscheduled items) from iteration picker
+- Status bar shows active filters (Sprint: X, My Items)
 - State indicators show workflow progress with colored symbols
 - Tickets sorted by workflow state (earlier states at top)
 - Theme preference persisted to user config file
@@ -56,9 +61,9 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 386 tests passing
+- 435 tests passing
 
-Next: Iteration 11 (Batch Operations / Multi-select).
+Next: Iteration 12 (Batch Operations / Multi-select).
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -153,9 +158,12 @@ Settings are stored in `~/.config/rally-tui/config.json`:
 {
   "theme": "dark",
   "theme_name": "catppuccin-mocha",
-  "log_level": "INFO"
+  "log_level": "INFO",
+  "parent_options": ["F59625", "F59627", "F59628"]
 }
 ```
+
+The `parent_options` array contains the Feature IDs shown when selecting a parent for a ticket.
 
 Available themes: `textual-dark`, `textual-light`, `catppuccin-mocha`, `catppuccin-latte`, `nord`, `gruvbox`, `dracula`, `tokyo-night`, `monokai`, `flexoki`, `solarized-light`
 
@@ -187,6 +195,7 @@ rally-cli/
 │   │   ├── points_screen.py      # PointsScreen (set story points)
 │   │   ├── state_screen.py       # StateScreen (change ticket state)
 │   │   ├── iteration_screen.py   # IterationScreen (filter by sprint)
+│   │   ├── parent_screen.py      # ParentScreen (select parent Feature)
 │   │   └── quick_ticket_screen.py # QuickTicketScreen (create tickets)
 │   ├── widgets/
 │   │   ├── ticket_list.py   # TicketList widget (left panel, state sorting)
@@ -213,6 +222,7 @@ rally-cli/
 │   ├── test_points_screen.py     # PointsScreen tests
 │   ├── test_state_screen.py      # StateScreen tests
 │   ├── test_iteration_screen.py  # IterationScreen tests
+│   ├── test_parent_screen.py     # ParentScreen tests
 │   ├── test_quick_ticket_screen.py # QuickTicketScreen tests
 │   ├── test_filter_integration.py # Filter integration tests
 │   ├── test_status_bar.py        # StatusBar widget tests
