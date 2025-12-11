@@ -29,3 +29,24 @@ class TestAppSnapshots:
         from rally_tui.app import RallyTUI
 
         assert snap_compare(RallyTUI(), terminal_size=(60, 15))
+
+    def test_two_panel_defect_view(self, snap_compare) -> None:
+        """Snapshot showing defect details in the right panel."""
+        from rally_tui.app import RallyTUI
+
+        # Navigate to first defect (DE456) at index 2
+        assert snap_compare(RallyTUI(), press=["j", "j"])
+
+    def test_unassigned_ticket(self, snap_compare) -> None:
+        """Snapshot showing ticket with no owner (Unassigned)."""
+        from rally_tui.app import RallyTUI
+
+        # Navigate to DE457 which has no owner (index 5)
+        assert snap_compare(RallyTUI(), press=["j", "j", "j", "j", "j"])
+
+    def test_unscheduled_ticket(self, snap_compare) -> None:
+        """Snapshot showing ticket with no iteration (Unscheduled)."""
+        from rally_tui.app import RallyTUI
+
+        # Navigate to US1237 which has no iteration (last item)
+        assert snap_compare(RallyTUI(), press=["G"])
