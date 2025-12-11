@@ -134,22 +134,22 @@ def test_ticket_list(snap_compare):
 
 ## Iterative Build Plan
 
-### Iteration 1: Project Skeleton & Static List
+### Iteration 1: Project Skeleton & Static List - COMPLETE
 
 **Goal**: Display a hardcoded list of tickets, navigate with keyboard
 
 **Detailed Guide**: See [ITERATION_1.md](./ITERATION_1.md) for step-by-step implementation.
 
 **Tasks**:
-- [ ] Initialize project structure (src layout) and pyproject.toml
-- [ ] Create `Ticket` dataclass model with type prefix detection
-- [ ] Create sample data module with 8 hardcoded tickets
-- [ ] Build `TicketList` widget extending Textual's ListView
-- [ ] Implement vim navigation (j/k/g/G) and arrow keys
-- [ ] Add visual highlight and ticket-type color coding (US=green, DE=red, TA=yellow, TC=blue)
-- [ ] Create CSS stylesheet for styling
-- [ ] Write unit tests for model and widget
-- [ ] Write snapshot tests for visual regression
+- [x] Initialize project structure (src layout) and pyproject.toml
+- [x] Create `Ticket` dataclass model with type prefix detection
+- [x] Create sample data module with 8 hardcoded tickets
+- [x] Build `TicketList` widget extending Textual's ListView
+- [x] Implement vim navigation (j/k/g/G) and arrow keys
+- [x] Add visual highlight and ticket-type color coding (US=green, DE=red, TA=yellow, TC=blue)
+- [x] Create CSS stylesheet for styling
+- [x] Write unit tests for model and widget
+- [x] Write snapshot tests for visual regression
 
 **Deliverable**: App displays static ticket list, full keyboard navigation works
 
@@ -193,34 +193,52 @@ tests/
 
 ### Iteration 2: Details Panel (Right Side)
 
-**Goal**: Show ticket details when a ticket is selected
+**Goal**: Show ticket details when a ticket is selected in a two-panel layout
+
+**Detailed Guide**: See [ITERATION_2.md](./ITERATION_2.md) for step-by-step implementation.
 
 **Tasks**:
-- [ ] Create `TicketDetail` widget
-- [ ] Implement reactive binding: list selection → detail update
-- [ ] Display ticket fields (ID, Name, State, Owner, Description)
+- [ ] Create `TicketDetail` widget (extends VerticalScroll)
+- [ ] Add `description` field to Ticket model
+- [ ] Update sample data with descriptions
+- [ ] Implement two-panel layout with Horizontal container
+- [ ] Use reactive property for ticket updates (`watch_ticket`)
+- [ ] Display ticket fields (ID, Name, Type, State, Owner, Description)
 - [ ] Handle empty state (no selection)
-- [ ] Add scrolling for long descriptions
+- [ ] Update CSS for two-panel layout (35% / 1fr split)
+- [ ] Write unit tests for TicketDetail widget
+- [ ] Update snapshot tests for new layout
 
-**Deliverable**: Selecting a ticket updates the right panel
+**Deliverable**: Two-panel layout where selecting a ticket updates the right panel
 
 **Test Coverage**:
-- Snapshot: Details panel shows correct ticket
-- Snapshot: Empty state when no tickets
-- Unit: Selection change emits correct message
+- Unit: Detail shows first ticket on mount
+- Unit: Detail updates on navigation
+- Unit: Detail shows ticket name, state, owner, description
+- Unit: "Unassigned" shown when owner is None
+- Snapshot: Two-panel layout with detail visible
+- Snapshot: Detail after navigation
+- Snapshot: Defect type in detail panel
 
-```python
-# Reactive message for selection changes
-class TicketSelected(Message):
-    def __init__(self, ticket: Ticket):
-        self.ticket = ticket
-        super().__init__()
-
-# In TicketDetail
-def on_ticket_selected(self, message: TicketSelected):
-    self.ticket = message.ticket
-    self.refresh()
+**Key Files**:
 ```
+src/rally_tui/
+├── app.py              # Horizontal container, on_mount
+├── app.tcss            # Two-panel CSS layout
+├── models/
+│   ├── ticket.py       # Add description field
+│   └── sample_data.py  # Add descriptions
+└── widgets/
+    ├── __init__.py     # Export TicketDetail
+    └── ticket_detail.py # New widget
+tests/
+└── test_ticket_detail.py
+```
+
+**Key Concepts**:
+- Horizontal container for side-by-side layout
+- Reactive properties with `watch_` methods
+- CSS fractional units (`1fr`) for flexible sizing
 
 ---
 
