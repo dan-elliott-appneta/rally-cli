@@ -19,6 +19,7 @@ class UserSettings:
 
     # Defaults
     DEFAULT_THEME = "dark"
+    DEFAULT_THEME_NAME = "textual-dark"
 
     def __init__(self) -> None:
         """Initialize user settings, loading from file if exists."""
@@ -52,6 +53,17 @@ class UserSettings:
         if value not in ("dark", "light"):
             raise ValueError("Theme must be 'dark' or 'light'")
         self._settings["theme"] = value
+        self._save()
+
+    @property
+    def theme_name(self) -> str:
+        """Get the current theme name (e.g., 'catppuccin-mocha')."""
+        return self._settings.get("theme_name", self.DEFAULT_THEME_NAME)
+
+    @theme_name.setter
+    def theme_name(self, value: str) -> None:
+        """Set and persist the theme name."""
+        self._settings["theme_name"] = value
         self._save()
 
     def get(self, key: str, default: Any = None) -> Any:

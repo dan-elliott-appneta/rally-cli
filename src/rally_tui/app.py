@@ -96,8 +96,12 @@ class RallyTUI(App[None]):
 
     def on_mount(self) -> None:
         """Initialize the app state."""
-        # Apply saved theme
-        self.dark = self._user_settings.theme == "dark"
+        # Apply saved theme name (e.g., catppuccin-mocha)
+        saved_theme = self._user_settings.theme_name
+        if saved_theme in self.available_themes:
+            self.theme = saved_theme
+        else:
+            self.dark = self._user_settings.theme == "dark"
 
         # Set panel titles
         self.query_one("#ticket-list").border_title = "Tickets"
@@ -219,6 +223,10 @@ class RallyTUI(App[None]):
         """Toggle between dark and light theme and persist setting."""
         self.dark = not self.dark
         self._user_settings.theme = "dark" if self.dark else "light"
+
+    def watch_theme(self, theme: str) -> None:
+        """Persist theme when changed via command palette."""
+        self._user_settings.theme_name = theme
 
     def action_copy_ticket_url(self) -> None:
         """Copy the selected ticket's Rally URL to clipboard."""

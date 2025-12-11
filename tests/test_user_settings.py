@@ -139,6 +139,54 @@ class TestUserSettingsGeneric:
         assert settings.get("key") == "value"
 
 
+class TestUserSettingsThemeName:
+    """Tests for theme_name property (full Textual theme names)."""
+
+    def test_default_theme_name(self, tmp_path: Path, monkeypatch) -> None:
+        """Default theme_name should be textual-dark."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        assert settings.theme_name == "textual-dark"
+
+    def test_set_theme_name_catppuccin(self, tmp_path: Path, monkeypatch) -> None:
+        """Should be able to set theme_name to catppuccin-mocha."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.theme_name = "catppuccin-mocha"
+        assert settings.theme_name == "catppuccin-mocha"
+
+    def test_theme_name_persists_to_file(self, tmp_path: Path, monkeypatch) -> None:
+        """theme_name should persist to config file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        settings = UserSettings()
+        settings.theme_name = "nord"
+
+        # Read file directly
+        with config_file.open() as f:
+            data = json.load(f)
+        assert data["theme_name"] == "nord"
+
+    def test_theme_name_loads_from_file(self, tmp_path: Path, monkeypatch) -> None:
+        """theme_name should load from config file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        # Write config file
+        with config_file.open("w") as f:
+            json.dump({"theme_name": "dracula"}, f)
+
+        settings = UserSettings()
+        assert settings.theme_name == "dracula"
+
+
 class TestUserSettingsErrorHandling:
     """Tests for error handling."""
 
