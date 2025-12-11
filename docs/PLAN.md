@@ -808,9 +808,45 @@ tests/
 
 ---
 
+### Iteration 10: Iteration & User Filtering
+
+**Goal**: Navigate between iterations and toggle user filter
+
+**Detailed Guide**: See [ITERATION_10.md](./ITERATION_10.md) for step-by-step implementation.
+
+**Tasks**:
+- [ ] Create `Iteration` model with name, dates, is_current
+- [ ] Add `get_iterations()` method to RallyClientProtocol
+- [ ] Create `IterationScreen` modal for iteration selection
+- [ ] Add `i` key binding to open iteration picker
+- [ ] Add `u` key binding to toggle My/All tickets filter
+- [ ] Add `[` and `]` keys for quick iteration navigation
+- [ ] Update StatusBar to show current iteration and user filter
+- [ ] Add Backlog view (unscheduled items)
+- [ ] Update MockRallyClient with sample iterations
+- [ ] Write tests for all new functionality
+
+**Deliverable**: User can switch iterations, toggle between My/All tickets, view backlog
+
+**Key Bindings**:
+| Key | Action |
+|-----|--------|
+| `i` | Open iteration picker |
+| `u` | Toggle My/All tickets |
+| `[` | Previous iteration |
+| `]` | Next iteration |
+
+**Test Coverage**:
+- Unit: Iteration model
+- Unit: IterationScreen selection
+- Unit: StatusBar filter display
+- Integration: Filter state management
+- Snapshot: Iteration picker, status bar with filters
+
+---
+
 ### Future Iterations
 
-- **Iteration 10**: Iteration/Release scoping and filtering
 - **Iteration 11**: Bulk operations (multi-select with Space)
 - **Iteration 12**: Attachment viewing/adding
 - **Iteration 13**: Custom fields support
