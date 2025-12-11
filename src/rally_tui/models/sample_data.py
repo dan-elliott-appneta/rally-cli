@@ -1,5 +1,8 @@
 """Sample ticket data for development and testing."""
 
+from datetime import datetime
+
+from .discussion import Discussion
 from .ticket import Ticket
 
 SAMPLE_TICKETS: list[Ticket] = [
@@ -12,6 +15,7 @@ SAMPLE_TICKETS: list[Ticket] = [
         description="As a user, I want to log in with my email and password so that I can access my account securely.",
         iteration="Sprint 5",
         points=3,
+        object_id="100001",
     ),
     Ticket(
         formatted_id="US1235",
@@ -22,6 +26,7 @@ SAMPLE_TICKETS: list[Ticket] = [
         description="As a user, I want to reset my password via email so that I can regain access if I forget it.",
         iteration="Sprint 6",
         points=5,
+        object_id="100002",
     ),
     Ticket(
         formatted_id="DE456",
@@ -32,6 +37,7 @@ SAMPLE_TICKETS: list[Ticket] = [
         description="NullPointerException thrown when user clicks checkout with an empty cart. Stack trace attached.",
         iteration="Sprint 5",
         points=2,
+        object_id="100003",
     ),
     Ticket(
         formatted_id="US1236",
@@ -42,6 +48,7 @@ SAMPLE_TICKETS: list[Ticket] = [
         description="Add a clearly visible logout button in the navigation bar for authenticated users.",
         iteration="Sprint 4",
         points=1,
+        object_id="100004",
     ),
     Ticket(
         formatted_id="TA789",
@@ -52,6 +59,7 @@ SAMPLE_TICKETS: list[Ticket] = [
         description="Create comprehensive unit tests for the authentication module including login, logout, and session management.",
         iteration="Sprint 5",
         points=None,  # Tasks often don't have points
+        object_id="100005",
     ),
     Ticket(
         formatted_id="DE457",
@@ -62,6 +70,7 @@ SAMPLE_TICKETS: list[Ticket] = [
         description="Memory usage grows unbounded when processing multiple images. Heap dump analysis needed.",
         iteration=None,  # Unscheduled
         points=None,
+        object_id="100006",
     ),
     Ticket(
         formatted_id="TC101",
@@ -72,6 +81,7 @@ SAMPLE_TICKETS: list[Ticket] = [
         description="Test that users can successfully log in with valid email/password combinations.",
         iteration="Sprint 5",
         points=None,
+        object_id="100007",
     ),
     Ticket(
         formatted_id="US1237",
@@ -82,5 +92,58 @@ SAMPLE_TICKETS: list[Ticket] = [
         description="Allow users to switch between light and dark themes via a toggle in settings.",
         iteration=None,  # Backlog
         points=8,
+        object_id="100008",
     ),
 ]
+
+
+SAMPLE_DISCUSSIONS: dict[str, list[Discussion]] = {
+    "US1234": [
+        Discussion(
+            object_id="200001",
+            text="I've started working on the login form. Will have a PR ready by end of day.",
+            user="John Smith",
+            created_at=datetime(2024, 1, 15, 10, 30),
+            artifact_id="US1234",
+        ),
+        Discussion(
+            object_id="200002",
+            text="Looks good! Don't forget to add input validation for the email field.",
+            user="Jane Doe",
+            created_at=datetime(2024, 1, 15, 14, 45),
+            artifact_id="US1234",
+        ),
+        Discussion(
+            object_id="200003",
+            text="Good point. I've added email format validation and password strength checks.",
+            user="John Smith",
+            created_at=datetime(2024, 1, 16, 9, 15),
+            artifact_id="US1234",
+        ),
+    ],
+    "DE456": [
+        Discussion(
+            object_id="200004",
+            text="I can reproduce this. It happens when the cart is empty and user clicks checkout.",
+            user="Bob Wilson",
+            created_at=datetime(2024, 1, 14, 11, 0),
+            artifact_id="DE456",
+        ),
+        Discussion(
+            object_id="200005",
+            text="The issue is in CartService.getTotal() - it doesn't check for null items array.",
+            user="Bob Wilson",
+            created_at=datetime(2024, 1, 14, 15, 30),
+            artifact_id="DE456",
+        ),
+    ],
+    "US1236": [
+        Discussion(
+            object_id="200006",
+            text="Completed the logout button. It's now visible in the top-right corner of the navbar.",
+            user="Alice Chen",
+            created_at=datetime(2024, 1, 10, 16, 0),
+            artifact_id="US1236",
+        ),
+    ],
+}

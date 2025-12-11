@@ -22,6 +22,7 @@ class Ticket:
     description: str = ""
     iteration: str | None = None
     points: int | None = None
+    object_id: str | None = None  # Rally ObjectID for API calls
 
     @property
     def display_text(self) -> str:
