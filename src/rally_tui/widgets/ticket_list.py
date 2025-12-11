@@ -55,7 +55,7 @@ STATE_COLORS: dict[str, str] = {
     "Completed": "green",
     "Done": "green",
     "Closed": "green",
-    "Accepted": "bright_green",
+    "Accepted": "bold green",
 }
 
 # Symbols for each state indicator
