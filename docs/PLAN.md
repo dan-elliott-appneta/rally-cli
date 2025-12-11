@@ -2,7 +2,7 @@
 
 ## Overview
 
-A Python TUI (Text User Interface) application for interacting with Rally (Broadcom) via the WSAPI. The interface features a three-panel layout: ticket list (left), ticket details (right), and context-sensitive command bar (bottom).
+A Python TUI (Text User Interface) application for interacting with Rally (Broadcom) via the WSAPI. The interface features a two-panel layout: ticket list (left), ticket details (right), with a Footer showing keyboard shortcuts.
 
 ## Goals
 
@@ -42,7 +42,6 @@ rally-cli/
 │       │   ├── __init__.py
 │       │   ├── ticket_list.py  # Left panel - state sorting, filtering
 │       │   ├── ticket_detail.py # Right panel - ticket details view
-│       │   ├── command_bar.py  # Bottom panel - context commands
 │       │   ├── status_bar.py   # Top bar - workspace/project/status
 │       │   └── search_input.py # Search input for filtering
 │       ├── models/
@@ -66,13 +65,12 @@ rally-cli/
 │           ├── protocol.py     # RallyClientProtocol interface
 │           ├── rally_client.py # Real Rally API client (pyral)
 │           └── mock_client.py  # Mock client for testing/offline
-├── tests/                      # 321 tests
+├── tests/                      # 306 tests
 │   ├── conftest.py             # Fixtures, mock Rally client
 │   ├── test_ticket_model.py
 │   ├── test_discussion_model.py
 │   ├── test_ticket_list.py
 │   ├── test_ticket_detail.py
-│   ├── test_command_bar.py
 │   ├── test_status_bar.py
 │   ├── test_search_input.py
 │   ├── test_splash_screen.py

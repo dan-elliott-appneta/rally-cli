@@ -41,7 +41,6 @@ tests/
 ├── test_discussion_model.py       # Unit tests for Discussion dataclass
 ├── test_ticket_list.py            # Widget tests for TicketList (state sorting, filtering)
 ├── test_ticket_detail.py          # Widget tests for TicketDetail
-├── test_command_bar.py            # Widget tests for CommandBar
 ├── test_status_bar.py             # Widget tests for StatusBar
 ├── test_search_input.py           # Widget tests for SearchInput
 ├── test_splash_screen.py          # Screen tests for SplashScreen
@@ -61,7 +60,7 @@ tests/
     └── test_snapshots/
 ```
 
-**Current Test Count: 321 tests**
+**Current Test Count: 306 tests**
 
 ## Unit Tests
 
