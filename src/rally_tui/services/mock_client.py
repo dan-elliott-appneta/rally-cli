@@ -1,9 +1,58 @@
 """Mock Rally client for testing."""
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
-from rally_tui.models import Discussion, Ticket
+from rally_tui.models import Discussion, Iteration, Ticket
 from rally_tui.models.sample_data import SAMPLE_DISCUSSIONS, SAMPLE_TICKETS
+
+
+def _generate_sample_iterations() -> list[Iteration]:
+    """Generate sample iterations around today's date."""
+    today = date.today()
+    # Find the Monday of current week as sprint start approximation
+    days_since_monday = today.weekday()
+    current_start = today - timedelta(days=days_since_monday)
+
+    iterations = []
+    # Previous iteration (2 weeks ago)
+    prev_start = current_start - timedelta(days=14)
+    prev_end = prev_start + timedelta(days=13)
+    iterations.append(
+        Iteration(
+            object_id="iter_prev",
+            name="Sprint 25",
+            start_date=prev_start,
+            end_date=prev_end,
+            state="Accepted",
+        )
+    )
+
+    # Current iteration
+    current_end = current_start + timedelta(days=13)
+    iterations.append(
+        Iteration(
+            object_id="iter_current",
+            name="Sprint 26",
+            start_date=current_start,
+            end_date=current_end,
+            state="Committed",
+        )
+    )
+
+    # Next iteration
+    next_start = current_end + timedelta(days=1)
+    next_end = next_start + timedelta(days=13)
+    iterations.append(
+        Iteration(
+            object_id="iter_next",
+            name="Sprint 27",
+            start_date=next_start,
+            end_date=next_end,
+            state="Planning",
+        )
+    )
+
+    return iterations
 
 
 class MockRallyClient:
@@ -18,6 +67,7 @@ class MockRallyClient:
         self,
         tickets: list[Ticket] | None = None,
         discussions: dict[str, list[Discussion]] | None = None,
+        iterations: list[Iteration] | None = None,
         workspace: str = "My Workspace",
         project: str = "My Project",
         current_user: str | None = None,
@@ -28,6 +78,7 @@ class MockRallyClient:
         Args:
             tickets: List of tickets to use. Defaults to SAMPLE_TICKETS.
             discussions: Dict mapping formatted_id to discussions. Defaults to SAMPLE_DISCUSSIONS.
+            iterations: List of iterations to use. Defaults to generated sample iterations.
             workspace: Workspace name to report.
             project: Project name to report.
             current_user: Current user's display name.
@@ -37,6 +88,7 @@ class MockRallyClient:
         self._discussions: dict[str, list[Discussion]] = (
             discussions if discussions is not None else dict(SAMPLE_DISCUSSIONS)
         )
+        self._iterations = iterations if iterations is not None else _generate_sample_iterations()
         self._workspace = workspace
         self._project = project
         self._current_user = current_user
@@ -237,3 +289,18 @@ class MockRallyClient:
                 self._tickets[i] = updated
                 return updated
         return None
+
+    def get_iterations(self, count: int = 5) -> list[Iteration]:
+        """Fetch recent iterations (sprints).
+
+        Args:
+            count: Maximum number of iterations to return.
+
+        Returns:
+            List of iterations, sorted by start date (most recent first).
+        """
+        # Sort by start date descending (most recent first)
+        sorted_iters = sorted(
+            self._iterations, key=lambda i: i.start_date, reverse=True
+        )
+        return sorted_iters[:count]
