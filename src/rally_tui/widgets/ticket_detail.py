@@ -1,5 +1,7 @@
 """Ticket detail widget for displaying full ticket information."""
 
+from typing import Literal
+
 from textual.app import ComposeResult
 from textual.containers import VerticalScroll
 from textual.reactive import reactive
@@ -8,17 +10,21 @@ from textual.widgets import Static
 from rally_tui.models import Ticket
 from rally_tui.utils import html_to_text
 
+ContentView = Literal["description", "notes"]
+
 
 class TicketDetail(VerticalScroll):
     """Displays detailed information about a selected ticket.
 
     This widget shows all fields of a ticket in a scrollable view.
     It updates reactively when the ticket property changes.
+    Supports toggling between description and notes view.
     """
 
     can_focus = True  # Allow this widget to receive focus via Tab
 
     ticket: reactive[Ticket | None] = reactive(None)
+    content_view: reactive[ContentView] = reactive("description")
 
     def compose(self) -> ComposeResult:
         """Create the detail view structure."""
@@ -34,6 +40,11 @@ class TicketDetail(VerticalScroll):
             self._show_empty_state()
         else:
             self._show_ticket(ticket)
+
+    def watch_content_view(self, view: ContentView) -> None:
+        """Update content display when view changes."""
+        if self.ticket:
+            self._update_content_section(self.ticket)
 
     def _show_empty_state(self) -> None:
         """Display placeholder when no ticket selected."""
@@ -66,8 +77,23 @@ class TicketDetail(VerticalScroll):
         )
         self.query_one("#detail-metadata", Static).update(metadata)
 
-        # Description (convert HTML to plain text)
-        self.query_one("#detail-description-label", Static).update("\nDescription:")
-        description = ticket.description or "No description available."
-        description = html_to_text(description) or "No description available."
-        self.query_one("#detail-description", Static).update(description)
+        # Content section (description or notes)
+        self._update_content_section(ticket)
+
+    def _update_content_section(self, ticket: Ticket) -> None:
+        """Update the content section based on current view."""
+        if self.content_view == "description":
+            label = "\nDescription:"
+            content = ticket.description or "No description available."
+            content = html_to_text(content) or "No description available."
+        else:
+            label = "\nNotes:"
+            content = ticket.notes or "No notes available."
+            content = html_to_text(content) or "No notes available."
+
+        self.query_one("#detail-description-label", Static).update(label)
+        self.query_one("#detail-description", Static).update(content)
+
+    def toggle_content_view(self) -> None:
+        """Toggle between description and notes view."""
+        self.content_view = "notes" if self.content_view == "description" else "description"
