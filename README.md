@@ -28,11 +28,17 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 ## Status
 
-**Iteration 12 Complete** - Configuration View.
+**Iteration 12 Complete** - Bulk Operations / Multi-Select.
 
-- **NEW**: Press `F2` to open ConfigScreen for editing settings
-- **NEW**: Configure theme, log level, and parent options from the TUI
-- **NEW**: Settings saved immediately with Ctrl+S or Save button
+- **NEW**: Multi-select tickets with `Space` key (toggle selection)
+- **NEW**: Select all tickets with `Ctrl+A` (toggle select all/deselect all)
+- **NEW**: Press `m` to open bulk actions menu on selected tickets
+- **NEW**: Bulk operations: Set Parent, Set State, Set Iteration, Set Points
+- **NEW**: Status bar shows selection count when tickets selected
+- **NEW**: Checkbox indicators in ticket list for selected items
+- Press `F2` to open ConfigScreen for editing settings
+- Configure theme, log level, and parent options from the TUI
+- Settings saved immediately with Ctrl+S or Save button
 - Ticket must have a parent Feature before moving to "In Progress" state
 - ParentScreen modal for selecting parent (3 configurable options + custom ID entry)
 - Configurable parent options via `~/.config/rally-tui/config.json`
@@ -64,9 +70,9 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 459 tests passing
+- 495 tests passing
 
-Next: Iteration 13 (Batch Operations / Multi-select).
+Next: Iteration 13 (Attachments).
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -136,6 +142,9 @@ rally-tui
 | k / ↑ | list | Move up |
 | g | list | Jump to top |
 | G | list | Jump to bottom |
+| Space | list | Toggle selection on current ticket |
+| Ctrl+A | list | Select all / Deselect all tickets |
+| m | list | Open bulk actions menu |
 | / | list | Search/filter tickets |
 | Enter | list/search | Select item (or confirm search) |
 | Esc | any | Clear filter / Go back |
@@ -148,6 +157,7 @@ rally-tui
 | d | list/detail | Open discussions |
 | i | list/detail | Filter by iteration/sprint |
 | u | list/detail | Toggle My Items filter |
+| o | list | Cycle sort mode (State/Recent/Owner) |
 | w | list/detail | New workitem |
 | F2 | any | Open settings |
 | c | discussion | Add comment |
@@ -201,6 +211,7 @@ rally-cli/
 │   │   ├── iteration_screen.py   # IterationScreen (filter by sprint)
 │   │   ├── parent_screen.py      # ParentScreen (select parent Feature)
 │   │   ├── config_screen.py      # ConfigScreen (edit settings)
+│   │   ├── bulk_actions_screen.py # BulkActionsScreen (multi-select operations)
 │   │   └── quick_ticket_screen.py # QuickTicketScreen (create tickets)
 │   ├── widgets/
 │   │   ├── ticket_list.py   # TicketList widget (left panel, state sorting)
@@ -229,6 +240,7 @@ rally-cli/
 │   ├── test_iteration_screen.py  # IterationScreen tests
 │   ├── test_parent_screen.py     # ParentScreen tests
 │   ├── test_config_screen.py     # ConfigScreen tests
+│   ├── test_bulk_actions_screen.py # BulkActionsScreen tests
 │   ├── test_quick_ticket_screen.py # QuickTicketScreen tests
 │   ├── test_filter_integration.py # Filter integration tests
 │   ├── test_status_bar.py        # StatusBar widget tests
@@ -274,6 +286,7 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 - [ITERATION_6.md](docs/ITERATION_6.md) - Iteration 6 implementation guide (complete)
 - [ITERATION_8.md](docs/ITERATION_8.md) - Iteration 8 implementation guide (Discussions & Comments)
 - [ITERATION_10.md](docs/ITERATION_10.md) - Iteration 10 implementation guide (Iteration & User Filtering)
+- [ITERATION_12.md](docs/ITERATION_12.md) - Iteration 12 implementation guide (Bulk Operations)
 
 ## Technology Stack
 
