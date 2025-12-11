@@ -138,34 +138,56 @@ def test_ticket_list(snap_compare):
 
 **Goal**: Display a hardcoded list of tickets, navigate with keyboard
 
-**Tasks**:
-- [ ] Initialize project with pyproject.toml
-- [ ] Set up Textual app skeleton
-- [ ] Create `TicketList` widget with hardcoded data
-- [ ] Implement j/k and arrow key navigation
-- [ ] Add visual selection indicator (highlight row)
-- [ ] Write first snapshot test
+**Detailed Guide**: See [ITERATION_1.md](./ITERATION_1.md) for step-by-step implementation.
 
-**Deliverable**: App displays static ticket list, arrow keys move selection
+**Tasks**:
+- [ ] Initialize project structure (src layout) and pyproject.toml
+- [ ] Create `Ticket` dataclass model with type prefix detection
+- [ ] Create sample data module with 8 hardcoded tickets
+- [ ] Build `TicketList` widget extending Textual's ListView
+- [ ] Implement vim navigation (j/k/g/G) and arrow keys
+- [ ] Add visual highlight and ticket-type color coding (US=green, DE=red, TA=yellow, TC=blue)
+- [ ] Create CSS stylesheet for styling
+- [ ] Write unit tests for model and widget
+- [ ] Write snapshot tests for visual regression
+
+**Deliverable**: App displays static ticket list, full keyboard navigation works
 
 **Test Coverage**:
+- Unit: Ticket model (display_text, type_prefix, immutability, equality)
+- Unit: Widget navigation (j/k, arrows, g/G jump to top/bottom)
+- Unit: TicketHighlighted message posted on cursor move
 - Snapshot: Initial render with first item selected
-- Snapshot: Selection moved to third item
-- Unit: Key bindings trigger selection change
+- Snapshot: Selection moved down twice
+- Snapshot: Selection at bottom (G key)
+- Snapshot: Different terminal size (60x15)
 
-```python
-# Iteration 1 - Minimal TicketList widget
-class TicketList(Widget):
-    BINDINGS = [
-        ("j", "cursor_down", "Down"),
-        ("k", "cursor_up", "Up"),
-    ]
-
-    def __init__(self):
-        super().__init__()
-        self.tickets = [...]  # Hardcoded for now
-        self.selected_index = 0
+**Key Files Created**:
 ```
+src/rally_tui/
+├── app.py              # Main RallyTUI application
+├── app.tcss            # CSS stylesheet
+├── models/
+│   ├── ticket.py       # Ticket dataclass
+│   └── sample_data.py  # 8 hardcoded tickets
+└── widgets/
+    └── ticket_list.py  # TicketList widget (extends ListView)
+tests/
+├── conftest.py         # Fixtures
+├── test_ticket_model.py
+├── test_ticket_list.py
+└── test_snapshots.py
+```
+
+**Key Bindings**:
+| Key | Action |
+|-----|--------|
+| j / ↓ | Move down |
+| k / ↑ | Move up |
+| g | Jump to top |
+| G | Jump to bottom |
+| Enter | Select (logs only in Iteration 1) |
+| q | Quit |
 
 ---
 
