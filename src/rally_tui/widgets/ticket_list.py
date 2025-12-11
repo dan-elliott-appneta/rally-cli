@@ -237,6 +237,9 @@ class TicketList(ListView):
         self.clear()
         for ticket in sorted_tickets:
             self.append(TicketListItem(ticket))
+        # Select first item if list is not empty
+        if sorted_tickets:
+            self.index = 0
 
     def filter_tickets(self, query: str) -> None:
         """Filter the ticket list by query.

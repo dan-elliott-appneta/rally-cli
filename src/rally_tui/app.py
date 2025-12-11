@@ -162,12 +162,16 @@ class RallyTUI(App[None]):
         # Focus the ticket list initially
         self.query_one(TicketList).focus()
 
-        # Show splash screen first, then load tickets
+        # Show splash screen first, then load tickets async
+        # If no splash (test mode), load synchronously for predictable test behavior
         if self._show_splash:
             self.push_screen(SplashScreen())
-
-        # Start loading tickets (will dismiss splash when done)
-        self.run_worker(self._load_initial_tickets, thread=True, exclusive=True)
+            # Start loading tickets async (will dismiss splash when done)
+            self.run_worker(self._load_initial_tickets, thread=True, exclusive=True)
+        else:
+            # Synchronous load for tests
+            self._all_tickets = self._load_initial_tickets()
+            self._on_initial_tickets_loaded_sync()
 
         _log.info("Rally TUI started successfully")
 
@@ -240,19 +244,30 @@ class RallyTUI(App[None]):
             return []
 
     def _on_initial_tickets_loaded(self) -> None:
-        """Called when initial tickets are loaded - update UI and dismiss splash."""
+        """Called when initial tickets are loaded async - update UI and dismiss splash."""
         ticket_list = self.query_one(TicketList)
         ticket_list.set_tickets(self._all_tickets)
         _log.debug(f"Loaded {len(self._all_tickets)} tickets")
 
-        # Set first ticket in detail panel
-        if self._all_tickets:
+        # Set first ticket in detail panel (from sorted list)
+        if ticket_list.selected_ticket:
             detail = self.query_one(TicketDetail)
-            detail.ticket = self._all_tickets[0]
+            detail.ticket = ticket_list.selected_ticket
 
         # Dismiss splash screen if showing
         if self._show_splash and len(self.screen_stack) > 1:
             self.pop_screen()
+
+    def _on_initial_tickets_loaded_sync(self) -> None:
+        """Called when initial tickets are loaded sync (no splash) - update UI."""
+        ticket_list = self.query_one(TicketList)
+        ticket_list.set_tickets(self._all_tickets)
+        _log.debug(f"Loaded {len(self._all_tickets)} tickets (sync)")
+
+        # Set first ticket in detail panel (from sorted list)
+        if ticket_list.selected_ticket:
+            detail = self.query_one(TicketDetail)
+            detail.ticket = ticket_list.selected_ticket
 
     def _on_filtered_tickets_loaded(self, tickets: list) -> None:
         """Called when filtered tickets are loaded from server."""
@@ -303,8 +318,12 @@ class RallyTUI(App[None]):
         self, event: TicketList.TicketHighlighted
     ) -> None:
         """Update detail panel when ticket highlight changes."""
-        detail = self.query_one(TicketDetail)
-        detail.ticket = event.ticket
+        try:
+            detail = self.query_one(TicketDetail)
+            detail.ticket = event.ticket
+        except Exception:
+            # TicketDetail may not exist during initial setup
+            pass
 
     def on_ticket_list_ticket_selected(
         self, event: TicketList.TicketSelected
@@ -570,16 +589,15 @@ class RallyTUI(App[None]):
 
     def _apply_filters(self) -> None:
         """Apply iteration and user filters to the ticket list."""
-        # If connected to real Rally and all tickets aren't loaded yet,
-        # fetch from server since _all_tickets only has initial iteration data
-        if self._connected and not self._all_tickets_loaded and self._iteration_filter:
-            _log.debug("All tickets not loaded yet, fetching for filter change...")
+        # When connected to Rally, always fetch from server when changing iteration filter
+        # This ensures Rally does the matching (avoids string mismatch issues)
+        if self._connected and self._iteration_filter:
+            _log.debug(f"Fetching from server for iteration filter: {self._iteration_filter}")
             self.notify("Loading tickets...", timeout=1)
-            # Fetch with the new filter - run in background
             self.run_worker(self._fetch_filtered_tickets, thread=True)
             return
 
-        # Start with all tickets
+        # For offline mode or no iteration filter, filter locally
         filtered = list(self._all_tickets)
 
         # Apply iteration filter
