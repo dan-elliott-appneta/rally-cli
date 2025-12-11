@@ -6,7 +6,7 @@ from textual.containers import Horizontal
 from textual.widgets import Header
 
 from rally_tui.models.sample_data import SAMPLE_TICKETS
-from rally_tui.widgets import CommandBar, TicketDetail, TicketList
+from rally_tui.widgets import CommandBar, StatusBar, TicketDetail, TicketList
 
 
 class RallyTUI(App[None]):
@@ -24,6 +24,11 @@ class RallyTUI(App[None]):
     def compose(self) -> ComposeResult:
         """Create the application layout."""
         yield Header()
+        yield StatusBar(
+            workspace="My Workspace",
+            project="My Project",
+            id="status-bar",
+        )
         with Horizontal(id="main-container"):
             yield TicketList(SAMPLE_TICKETS, id="ticket-list")
             yield TicketDetail(id="ticket-detail")
