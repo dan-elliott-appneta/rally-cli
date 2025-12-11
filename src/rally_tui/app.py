@@ -41,7 +41,6 @@ class RallyTUI(App[None]):
         Binding("n", "toggle_notes", "Notes"),
         Binding("d", "open_discussions", "Discuss"),
         Binding("/", "start_search", "Search"),
-        Binding("ctrl+p", "command_palette", "Palette"),
         Binding("q", "quit", "Quit"),
         Binding("tab", "switch_panel", "Switch Panel", show=False, priority=True),
         Binding("t", "toggle_theme", "Theme", show=False),
