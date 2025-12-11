@@ -1,0 +1,58 @@
+/* Rally TUI Stylesheet */
+
+/* Main application layout */
+Screen {
+    layout: vertical;
+}
+
+/* Ticket list styling */
+#ticket-list {
+    height: 1fr;
+    border: solid $primary;
+    border-title-color: $text;
+    border-title-style: bold;
+}
+
+#ticket-list:focus {
+    border: double $accent;
+}
+
+/* Individual list items */
+TicketListItem {
+    padding: 0 1;
+}
+
+TicketListItem > Label {
+    width: 100%;
+}
+
+/* Highlighted (cursor) item */
+TicketListItem.-highlight {
+    background: $accent 30%;
+}
+
+TicketListItem.-highlight > Label {
+    text-style: bold;
+}
+
+/* Color coding by ticket type */
+.ticket-us {
+    color: $success;
+}
+
+.ticket-de {
+    color: $error;
+}
+
+.ticket-ta {
+    color: $warning;
+}
+
+.ticket-tc {
+    color: $primary;
+}
+
+/* Footer styling */
+Footer {
+    background: $surface;
+}
