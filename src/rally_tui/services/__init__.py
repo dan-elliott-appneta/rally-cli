@@ -1,7 +1,7 @@
 """Rally TUI Services - Data access layer."""
 
 from .mock_client import MockRallyClient
-from .protocol import RallyClientProtocol
+from .protocol import BulkResult, RallyClientProtocol
 from .rally_client import RallyClient
 
-__all__ = ["MockRallyClient", "RallyClient", "RallyClientProtocol"]
+__all__ = ["BulkResult", "MockRallyClient", "RallyClient", "RallyClientProtocol"]
