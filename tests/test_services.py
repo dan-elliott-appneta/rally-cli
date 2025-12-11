@@ -423,3 +423,166 @@ class TestMockRallyClientFeatures:
         client = MockRallyClient()
         assert hasattr(client, "set_parent")
         assert callable(client.set_parent)
+
+
+class TestMockRallyClientBulkOperations:
+    """Tests for MockRallyClient bulk operations."""
+
+    def test_bulk_set_parent_updates_tickets(self) -> None:
+        """bulk_set_parent should update multiple tickets."""
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+            Ticket("US3", "Story 3", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+
+        result = client.bulk_set_parent(tickets, "F59625")
+
+        assert result.success_count == 3
+        assert result.failed_count == 0
+        assert len(result.updated_tickets) == 3
+        assert all(t.parent_id == "F59625" for t in result.updated_tickets)
+
+    def test_bulk_set_parent_skips_tickets_with_parent(self) -> None:
+        """bulk_set_parent should skip tickets that already have a parent."""
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined", parent_id="F59627"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),  # No parent
+        ]
+        client = MockRallyClient(tickets=tickets)
+
+        result = client.bulk_set_parent(tickets, "F59625")
+
+        # Only US2 should be updated
+        assert result.success_count == 1
+        assert result.failed_count == 0
+        assert len(result.updated_tickets) == 1
+        assert result.updated_tickets[0].formatted_id == "US2"
+
+    def test_bulk_set_parent_all_have_parents(self) -> None:
+        """bulk_set_parent should return 0 success when all have parents."""
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined", parent_id="F111"),
+            Ticket("US2", "Story 2", "UserStory", "Defined", parent_id="F222"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+
+        result = client.bulk_set_parent(tickets, "F59625")
+
+        assert result.success_count == 0
+        assert result.failed_count == 0
+        assert len(result.updated_tickets) == 0
+
+    def test_bulk_update_state_updates_tickets(self) -> None:
+        """bulk_update_state should update multiple tickets."""
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+
+        result = client.bulk_update_state(tickets, "Completed")
+
+        assert result.success_count == 2
+        assert result.failed_count == 0
+        assert len(result.updated_tickets) == 2
+        assert all(t.state == "Completed" for t in result.updated_tickets)
+
+    def test_bulk_update_state_preserves_other_fields(self) -> None:
+        """bulk_update_state should preserve other ticket fields."""
+        ticket = Ticket(
+            "US1", "Story 1", "UserStory", "Defined",
+            owner="John", points=5, iteration="Sprint 1"
+        )
+        client = MockRallyClient(tickets=[ticket])
+
+        result = client.bulk_update_state([ticket], "In-Progress")
+
+        updated = result.updated_tickets[0]
+        assert updated.state == "In-Progress"
+        assert updated.owner == "John"
+        assert updated.points == 5
+        assert updated.iteration == "Sprint 1"
+
+    def test_bulk_set_iteration_updates_tickets(self) -> None:
+        """bulk_set_iteration should update multiple tickets."""
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+
+        result = client.bulk_set_iteration(tickets, "Sprint 5")
+
+        assert result.success_count == 2
+        assert result.failed_count == 0
+        assert all(t.iteration == "Sprint 5" for t in result.updated_tickets)
+
+    def test_bulk_set_iteration_to_backlog(self) -> None:
+        """bulk_set_iteration with None should move to backlog."""
+        ticket = Ticket("US1", "Story 1", "UserStory", "Defined", iteration="Sprint 1")
+        client = MockRallyClient(tickets=[ticket])
+
+        result = client.bulk_set_iteration([ticket], None)
+
+        assert result.success_count == 1
+        assert result.updated_tickets[0].iteration is None
+
+    def test_bulk_update_points_updates_tickets(self) -> None:
+        """bulk_update_points should update multiple tickets."""
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+
+        result = client.bulk_update_points(tickets, 5)
+
+        assert result.success_count == 2
+        assert result.failed_count == 0
+        assert all(t.points == 5 for t in result.updated_tickets)
+
+    def test_bulk_update_points_decimal_values(self) -> None:
+        """bulk_update_points should handle decimal values."""
+        ticket = Ticket("US1", "Story 1", "UserStory", "Defined")
+        client = MockRallyClient(tickets=[ticket])
+
+        result = client.bulk_update_points([ticket], 0.5)
+
+        assert result.updated_tickets[0].points == 0.5
+
+    def test_bulk_operation_not_found(self) -> None:
+        """Bulk operations should handle missing tickets gracefully."""
+        ticket = Ticket("US999", "Not in list", "UserStory", "Defined")
+        client = MockRallyClient(tickets=[])  # Empty list
+
+        result = client.bulk_update_state([ticket], "Completed")
+
+        assert result.success_count == 0
+        assert result.failed_count == 1
+        assert len(result.errors) == 1
+
+    def test_has_bulk_set_parent_method(self) -> None:
+        """MockRallyClient should have bulk_set_parent method."""
+        client = MockRallyClient()
+        assert hasattr(client, "bulk_set_parent")
+        assert callable(client.bulk_set_parent)
+
+    def test_has_bulk_update_state_method(self) -> None:
+        """MockRallyClient should have bulk_update_state method."""
+        client = MockRallyClient()
+        assert hasattr(client, "bulk_update_state")
+        assert callable(client.bulk_update_state)
+
+    def test_has_bulk_set_iteration_method(self) -> None:
+        """MockRallyClient should have bulk_set_iteration method."""
+        client = MockRallyClient()
+        assert hasattr(client, "bulk_set_iteration")
+        assert callable(client.bulk_set_iteration)
+
+    def test_has_bulk_update_points_method(self) -> None:
+        """MockRallyClient should have bulk_update_points method."""
+        client = MockRallyClient()
+        assert hasattr(client, "bulk_update_points")
+        assert callable(client.bulk_update_points)

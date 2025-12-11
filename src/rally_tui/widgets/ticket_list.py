@@ -331,10 +331,15 @@ class TicketList(ListView):
         self.post_message(self.SelectionChanged(len(self._selected_ids), set(self._selected_ids)))
 
     def action_select_all(self) -> None:
-        """Select all visible tickets (Ctrl+A)."""
-        self._selected_ids = {t.formatted_id for t in self._tickets}
-        self._update_all_selection_display()
-        self.post_message(self.SelectionChanged(len(self._selected_ids), set(self._selected_ids)))
+        """Select all visible tickets, or deselect all if all are selected (Ctrl+A)."""
+        if len(self._selected_ids) == len(self._tickets) and len(self._tickets) > 0:
+            # All selected, deselect all
+            self.clear_selection()
+        else:
+            # Select all
+            self._selected_ids = {t.formatted_id for t in self._tickets}
+            self._update_all_selection_display()
+            self.post_message(self.SelectionChanged(len(self._selected_ids), set(self._selected_ids)))
 
     def clear_selection(self) -> None:
         """Clear all selections."""
