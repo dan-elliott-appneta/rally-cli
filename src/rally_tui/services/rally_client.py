@@ -1,14 +1,12 @@
 """Rally API client implementation."""
 
-from typing import TYPE_CHECKING, Any
+from datetime import datetime
+from typing import Any
 
 from pyral import Rally
 
 from rally_tui.config import RallyConfig
-from rally_tui.models import Ticket
-
-if TYPE_CHECKING:
-    pass
+from rally_tui.models import Discussion, Ticket
 
 
 class RallyClient:
@@ -158,7 +156,7 @@ class RallyClient:
             try:
                 response = self._rally.get(
                     entity_type,
-                    fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Iteration,PlanEstimate",
+                    fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Iteration,PlanEstimate,ObjectID",
                     query=effective_query,
                     pagesize=200,
                 )
@@ -185,7 +183,7 @@ class RallyClient:
         try:
             response = self._rally.get(
                 entity_type,
-                fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Iteration,PlanEstimate",
+                fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Iteration,PlanEstimate,ObjectID",
                 query=f'FormattedID = "{formatted_id}"',
             )
 
@@ -245,6 +243,11 @@ class RallyClient:
         # Get description, handle None
         description = getattr(item, "Description", "") or ""
 
+        # Get ObjectID for discussion queries
+        object_id = None
+        if hasattr(item, "ObjectID") and item.ObjectID:
+            object_id = str(item.ObjectID)
+
         return Ticket(
             formatted_id=item.FormattedID,
             name=item.Name,
@@ -254,6 +257,7 @@ class RallyClient:
             description=description,
             iteration=iteration,
             points=points,
+            object_id=object_id,
         )
 
     def _get_entity_type(self, formatted_id: str) -> str:
@@ -278,3 +282,110 @@ class RallyClient:
             "TC": "TestCase",
         }
         return prefix_map.get(prefix.upper(), "HierarchicalRequirement")
+
+    def get_discussions(self, ticket: Ticket) -> list[Discussion]:
+        """Fetch discussion posts for a ticket.
+
+        Uses Rally's ConversationPost entity to get comments linked to the artifact.
+
+        Args:
+            ticket: The ticket to fetch discussions for.
+
+        Returns:
+            List of discussions, ordered by creation date (oldest first).
+        """
+        if not ticket.object_id:
+            return []
+
+        discussions: list[Discussion] = []
+
+        try:
+            # Query ConversationPost linked to this artifact
+            response = self._rally.get(
+                "ConversationPost",
+                fetch="ObjectID,Text,User,CreationDate,Artifact",
+                query=f'(Artifact.ObjectID = "{ticket.object_id}")',
+                order="CreationDate",
+                pagesize=200,
+            )
+
+            for post in response:
+                discussions.append(self._to_discussion(post, ticket.formatted_id))
+        except Exception:
+            pass
+
+        return discussions
+
+    def _to_discussion(self, post: Any, artifact_id: str) -> Discussion:
+        """Convert a Rally ConversationPost to our Discussion model.
+
+        Args:
+            post: The pyral ConversationPost object.
+            artifact_id: The formatted ID of the parent ticket.
+
+        Returns:
+            A Discussion instance.
+        """
+        # Extract user name
+        user = "Unknown"
+        if hasattr(post, "User") and post.User:
+            user = (
+                getattr(post.User, "DisplayName", None)
+                or getattr(post.User, "_refObjectName", None)
+                or "Unknown"
+            )
+
+        # Parse creation date
+        created_at = datetime.now()
+        if hasattr(post, "CreationDate") and post.CreationDate:
+            try:
+                # Rally returns ISO format: 2024-01-15T10:30:00.000Z
+                date_str = post.CreationDate
+                if isinstance(date_str, str):
+                    created_at = datetime.fromisoformat(
+                        date_str.replace("Z", "+00:00")
+                    )
+            except (ValueError, TypeError):
+                pass
+
+        return Discussion(
+            object_id=str(post.ObjectID),
+            text=getattr(post, "Text", "") or "",
+            user=user,
+            created_at=created_at,
+            artifact_id=artifact_id,
+        )
+
+    def add_comment(self, ticket: Ticket, text: str) -> Discussion | None:
+        """Add a comment to a ticket's discussion.
+
+        Creates a ConversationPost linked to the artifact.
+
+        Args:
+            ticket: The ticket to comment on.
+            text: The comment text.
+
+        Returns:
+            The created Discussion, or None on failure.
+        """
+        if not ticket.object_id:
+            return None
+
+        try:
+            # Get entity type for the ref
+            entity_type = self._get_entity_type(ticket.formatted_id)
+
+            # Create the conversation post
+            post_data = {
+                "Text": text,
+                "Artifact": f"/{entity_type.lower()}/{ticket.object_id}",
+            }
+
+            created = self._rally.create("ConversationPost", post_data)
+
+            if created:
+                return self._to_discussion(created, ticket.formatted_id)
+        except Exception:
+            pass
+
+        return None

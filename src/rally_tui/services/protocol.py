@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from rally_tui.models import Ticket
+from rally_tui.models import Discussion, Ticket
 
 
 class RallyClientProtocol(Protocol):
@@ -51,5 +51,28 @@ class RallyClientProtocol(Protocol):
 
         Returns:
             The ticket if found, None otherwise.
+        """
+        ...
+
+    def get_discussions(self, ticket: Ticket) -> list[Discussion]:
+        """Fetch discussion posts for a ticket.
+
+        Args:
+            ticket: The ticket to fetch discussions for.
+
+        Returns:
+            List of discussions, ordered by creation date (oldest first).
+        """
+        ...
+
+    def add_comment(self, ticket: Ticket, text: str) -> Discussion | None:
+        """Add a comment to a ticket's discussion.
+
+        Args:
+            ticket: The ticket to comment on.
+            text: The comment text.
+
+        Returns:
+            The created Discussion, or None on failure.
         """
         ...
