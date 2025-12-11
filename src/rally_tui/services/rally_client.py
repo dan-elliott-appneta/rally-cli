@@ -38,6 +38,52 @@ class RallyClient:
         self._workspace = config.workspace or self._rally.getWorkspace().Name
         self._project = config.project or self._rally.getProject().Name
 
+        # Get current user from API
+        self._current_user = self._fetch_current_user()
+
+        # Get current iteration from API
+        self._current_iteration = self._fetch_current_iteration()
+
+    def _fetch_current_user(self) -> str | None:
+        """Fetch the current user's display name from the API.
+
+        Returns:
+            The current user's display name, or None if not available.
+        """
+        try:
+            user = self._rally.getUserInfo()
+            if user:
+                # getUserInfo returns a list with the current user
+                return user[0].DisplayName
+        except Exception:
+            pass
+        return None
+
+    def _fetch_current_iteration(self) -> str | None:
+        """Fetch the current iteration name from the API.
+
+        Queries for iterations where today falls between StartDate and EndDate.
+
+        Returns:
+            The current iteration name, or None if not found.
+        """
+        from datetime import datetime, timezone
+
+        try:
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            response = self._rally.get(
+                "Iteration",
+                fetch="Name,StartDate,EndDate",
+                query=f'(StartDate <= "{today}") AND (EndDate >= "{today}")',
+                order="StartDate desc",
+                pagesize=1,
+            )
+            for iteration in response:
+                return iteration.Name
+        except Exception:
+            pass
+        return None
+
     @property
     def workspace(self) -> str:
         """Get the workspace name."""
@@ -48,19 +94,57 @@ class RallyClient:
         """Get the project name."""
         return self._project
 
+    @property
+    def current_user(self) -> str | None:
+        """Get the current user's display name."""
+        return self._current_user
+
+    @property
+    def current_iteration(self) -> str | None:
+        """Get the current iteration name."""
+        return self._current_iteration
+
+    def _build_default_query(self) -> str | None:
+        """Build the default query for current user and iteration.
+
+        Returns:
+            A Rally query string filtering by current user and iteration,
+            or None if neither is available.
+        """
+        conditions = []
+
+        if self._current_iteration:
+            conditions.append(f'(Iteration.Name = "{self._current_iteration}")')
+
+        if self._current_user:
+            conditions.append(f'(Owner.DisplayName = "{self._current_user}")')
+
+        if not conditions:
+            return None
+
+        if len(conditions) == 1:
+            return conditions[0]
+
+        return f"({conditions[0]} AND {conditions[1]})"
+
     def get_tickets(self, query: str | None = None) -> list[Ticket]:
         """Fetch tickets from Rally.
 
         Fetches User Stories, Defects, and Tasks from the configured
-        workspace/project.
+        workspace/project. By default, filters to tickets in the current
+        iteration owned by the current user.
 
         Args:
-            query: Optional Rally query string for filtering.
+            query: Optional Rally query string for filtering. If provided,
+                   overrides the default filter.
 
         Returns:
             List of tickets matching the query.
         """
         tickets: list[Ticket] = []
+
+        # Use provided query or build default filter
+        effective_query = query if query is not None else self._build_default_query()
 
         # Fetch different artifact types
         for entity_type in ["HierarchicalRequirement", "Defect", "Task"]:
@@ -68,7 +152,7 @@ class RallyClient:
                 response = self._rally.get(
                     entity_type,
                     fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Iteration,PlanEstimate",
-                    query=query,
+                    query=effective_query,
                     pagesize=200,
                 )
 

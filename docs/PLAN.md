@@ -453,12 +453,15 @@ tests/
 - [x] Update app to accept config and fall back gracefully
 - [x] Write tests for RallyClient mapping and configuration
 - [x] Update documentation
+- [x] Add default filter for current iteration and current user
 
 **Implementation Notes**:
 - RallyConfig loads from RALLY_* environment variables
 - RallyClient maps HierarchicalRequirement → UserStory, handles nested objects
 - App falls back to MockRallyClient on connection failure
-- 134 total tests passing (100 from Iteration 5 + 34 new)
+- **Default filter**: When connected, tickets are filtered to show only items in the current iteration owned by the API key's user
+- RallyClient fetches current user via `getUserInfo()` and current iteration via date-range query
+- 177 total tests passing (161 from Iteration 7 + 16 new default filter tests)
 
 **Deliverable**: App connects to Rally when configured, falls back to mock data when offline
 
@@ -467,6 +470,8 @@ tests/
 - Unit: Entity-to-Ticket mapping (all field types)
 - Unit: Prefix-to-entity-type detection
 - Unit: StatusBar connection status display
+- Unit: Current user and iteration fetching
+- Unit: Default query building (both, either, or neither user/iteration)
 - Integration: App with and without configuration
 
 **Key Files**:
@@ -490,6 +495,9 @@ tests/
 - Graceful fallback to MockRallyClient when not configured
 - pyral entity mapping (HierarchicalRequirement → UserStory, etc.)
 - Connection status indicator in StatusBar
+- Default query: `(Iteration.Name = "current") AND (Owner.DisplayName = "user")`
+- `current_user` property from `getUserInfo()` API
+- `current_iteration` property from date-range query on Iteration entity
 
 ---
 

@@ -22,6 +22,16 @@ class RallyClientProtocol(Protocol):
         """Get the current project name."""
         ...
 
+    @property
+    def current_user(self) -> str | None:
+        """Get the current user's display name."""
+        ...
+
+    @property
+    def current_iteration(self) -> str | None:
+        """Get the current iteration name."""
+        ...
+
     def get_tickets(self, query: str | None = None) -> list[Ticket]:
         """Fetch tickets, optionally filtered by query.
 

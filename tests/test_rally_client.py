@@ -245,6 +245,8 @@ class TestRallyClientConnection:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="API Workspace")
             mock_instance.getProject.return_value = MockRallyEntity(Name="API Project")
+            mock_instance.getUserInfo.return_value = []
+            mock_instance.get.return_value = iter([])
             mock_rally.return_value = mock_instance
 
             config = RallyConfig(
@@ -263,6 +265,8 @@ class TestRallyClientConnection:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="API Workspace")
             mock_instance.getProject.return_value = MockRallyEntity(Name="API Project")
+            mock_instance.getUserInfo.return_value = []
+            mock_instance.get.return_value = iter([])
             mock_rally.return_value = mock_instance
 
             config = RallyConfig(apikey="test_key")
@@ -270,3 +274,186 @@ class TestRallyClientConnection:
 
             assert client.workspace == "API Workspace"
             assert client.project == "API Project"
+
+
+class TestRallyClientCurrentUserAndIteration:
+    """Tests for current user and iteration fetching."""
+
+    def test_current_user_from_api(self) -> None:
+        """Current user is fetched from API."""
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.getUserInfo.return_value = [
+                MockRallyEntity(DisplayName="John Doe")
+            ]
+            mock_instance.get.return_value = iter([])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            assert client.current_user == "John Doe"
+
+    def test_current_user_none_when_not_available(self) -> None:
+        """Current user is None when API returns empty."""
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.getUserInfo.return_value = []
+            mock_instance.get.return_value = iter([])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            assert client.current_user is None
+
+    def test_current_user_none_on_exception(self) -> None:
+        """Current user is None when API throws exception."""
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.getUserInfo.side_effect = Exception("API error")
+            mock_instance.get.return_value = iter([])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            assert client.current_user is None
+
+    def test_current_iteration_from_api(self) -> None:
+        """Current iteration is fetched from API."""
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.getUserInfo.return_value = []
+            mock_instance.get.return_value = iter([
+                MockRallyEntity(Name="Sprint 5")
+            ])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            assert client.current_iteration == "Sprint 5"
+
+    def test_current_iteration_none_when_not_found(self) -> None:
+        """Current iteration is None when no iteration matches."""
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.getUserInfo.return_value = []
+            mock_instance.get.return_value = iter([])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            assert client.current_iteration is None
+
+    def test_current_iteration_none_on_exception(self) -> None:
+        """Current iteration is None when API throws exception."""
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.getUserInfo.return_value = []
+            mock_instance.get.side_effect = Exception("API error")
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            assert client.current_iteration is None
+
+
+class TestRallyClientDefaultQuery:
+    """Tests for default query building."""
+
+    def test_build_default_query_both_user_and_iteration(self) -> None:
+        """Query includes both user and iteration when available."""
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.getUserInfo.return_value = [
+                MockRallyEntity(DisplayName="John Doe")
+            ]
+            mock_instance.get.return_value = iter([
+                MockRallyEntity(Name="Sprint 5")
+            ])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            query = client._build_default_query()
+            assert query is not None
+            assert 'Iteration.Name = "Sprint 5"' in query
+            assert 'Owner.DisplayName = "John Doe"' in query
+            assert "AND" in query
+
+    def test_build_default_query_only_iteration(self) -> None:
+        """Query includes only iteration when user not available."""
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.getUserInfo.return_value = []
+            mock_instance.get.return_value = iter([
+                MockRallyEntity(Name="Sprint 5")
+            ])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            query = client._build_default_query()
+            assert query is not None
+            assert 'Iteration.Name = "Sprint 5"' in query
+            assert "Owner" not in query
+            assert "AND" not in query
+
+    def test_build_default_query_only_user(self) -> None:
+        """Query includes only user when iteration not available."""
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.getUserInfo.return_value = [
+                MockRallyEntity(DisplayName="John Doe")
+            ]
+            mock_instance.get.return_value = iter([])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            query = client._build_default_query()
+            assert query is not None
+            assert 'Owner.DisplayName = "John Doe"' in query
+            assert "Iteration" not in query
+            assert "AND" not in query
+
+    def test_build_default_query_none_when_neither_available(self) -> None:
+        """Query is None when neither user nor iteration available."""
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.getUserInfo.return_value = []
+            mock_instance.get.return_value = iter([])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            query = client._build_default_query()
+            assert query is None

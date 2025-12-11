@@ -17,6 +17,8 @@ class MockRallyClient:
         tickets: list[Ticket] | None = None,
         workspace: str = "My Workspace",
         project: str = "My Project",
+        current_user: str | None = None,
+        current_iteration: str | None = None,
     ) -> None:
         """Initialize the mock client.
 
@@ -24,10 +26,14 @@ class MockRallyClient:
             tickets: List of tickets to use. Defaults to SAMPLE_TICKETS.
             workspace: Workspace name to report.
             project: Project name to report.
+            current_user: Current user's display name.
+            current_iteration: Current iteration name.
         """
         self._tickets = tickets if tickets is not None else list(SAMPLE_TICKETS)
         self._workspace = workspace
         self._project = project
+        self._current_user = current_user
+        self._current_iteration = current_iteration
 
     @property
     def workspace(self) -> str:
@@ -38,6 +44,16 @@ class MockRallyClient:
     def project(self) -> str:
         """Get the project name."""
         return self._project
+
+    @property
+    def current_user(self) -> str | None:
+        """Get the current user's display name."""
+        return self._current_user
+
+    @property
+    def current_iteration(self) -> str | None:
+        """Get the current iteration name."""
+        return self._current_iteration
 
     def get_tickets(self, query: str | None = None) -> list[Ticket]:
         """Fetch tickets, optionally filtered by query.

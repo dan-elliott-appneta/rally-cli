@@ -114,6 +114,26 @@ class TestMockRallyClient:
         assert client.get_tickets() == []
         assert client.get_ticket("US1234") is None
 
+    def test_default_current_user_none(self) -> None:
+        """Default current_user should be None."""
+        client = MockRallyClient()
+        assert client.current_user is None
+
+    def test_default_current_iteration_none(self) -> None:
+        """Default current_iteration should be None."""
+        client = MockRallyClient()
+        assert client.current_iteration is None
+
+    def test_custom_current_user(self) -> None:
+        """Client should accept custom current_user."""
+        client = MockRallyClient(current_user="John Doe")
+        assert client.current_user == "John Doe"
+
+    def test_custom_current_iteration(self) -> None:
+        """Client should accept custom current_iteration."""
+        client = MockRallyClient(current_iteration="Sprint 5")
+        assert client.current_iteration == "Sprint 5"
+
 
 class TestMockRallyClientProtocol:
     """Tests to verify MockRallyClient implements RallyClientProtocol."""
@@ -129,6 +149,16 @@ class TestMockRallyClientProtocol:
         client = MockRallyClient()
         assert hasattr(client, "project")
         assert isinstance(client.project, str)
+
+    def test_has_current_user_property(self) -> None:
+        """MockRallyClient has current_user property."""
+        client = MockRallyClient()
+        assert hasattr(client, "current_user")
+
+    def test_has_current_iteration_property(self) -> None:
+        """MockRallyClient has current_iteration property."""
+        client = MockRallyClient()
+        assert hasattr(client, "current_iteration")
 
     def test_has_get_tickets_method(self) -> None:
         """MockRallyClient has get_tickets method."""
