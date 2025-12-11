@@ -17,7 +17,7 @@ class RallyTUI(App[None]):
 
     BINDINGS = [
         Binding("q", "quit", "Quit"),
-        Binding("tab", "switch_panel", "Switch Panel", show=False),
+        Binding("tab", "switch_panel", "Switch Panel", show=False, priority=True),
         Binding("?", "help", "Help", show=False),
     ]
 
