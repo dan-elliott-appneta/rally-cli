@@ -52,6 +52,14 @@ class TicketList(ListView):
             self.ticket = ticket
             super().__init__()
 
+    class FilterApplied(Message):
+        """Posted when filter is applied."""
+
+        def __init__(self, filtered: int, total: int) -> None:
+            self.filtered = filtered
+            self.total = total
+            super().__init__()
+
     def __init__(
         self,
         tickets: list[Ticket] | None = None,
@@ -68,6 +76,8 @@ class TicketList(ListView):
         """
         super().__init__(id=id, classes=classes)
         self._tickets = tickets or []
+        self._all_tickets = list(self._tickets)
+        self._filter_query = ""
 
     def compose(self) -> ComposeResult:
         """Create list items for each ticket."""
@@ -106,6 +116,63 @@ class TicketList(ListView):
     def set_tickets(self, tickets: list[Ticket]) -> None:
         """Replace the ticket list with new data."""
         self._tickets = tickets
+        self._all_tickets = list(tickets)
+        self._filter_query = ""
         self.clear()
         for ticket in tickets:
             self.append(TicketListItem(ticket))
+
+    def filter_tickets(self, query: str) -> None:
+        """Filter the ticket list by query.
+
+        Args:
+            query: Search query (case-insensitive, matches ID, title, owner, state).
+                   Empty string shows all tickets.
+        """
+        self._filter_query = query
+
+        if not query:
+            filtered = self._all_tickets
+        else:
+            query_lower = query.lower()
+            filtered = [
+                t for t in self._all_tickets if self._matches_query(t, query_lower)
+            ]
+
+        self._tickets = filtered
+        self.clear()
+        for ticket in filtered:
+            self.append(TicketListItem(ticket))
+
+        self.post_message(self.FilterApplied(len(filtered), len(self._all_tickets)))
+
+    def _matches_query(self, ticket: Ticket, query: str) -> bool:
+        """Check if ticket matches search query."""
+        searchable = " ".join(
+            [
+                ticket.formatted_id.lower(),
+                ticket.name.lower(),
+                (ticket.owner or "").lower(),
+                (ticket.state or "").lower(),
+            ]
+        )
+        return query in searchable
+
+    def clear_filter(self) -> None:
+        """Clear filter and show all tickets."""
+        self.filter_tickets("")
+
+    @property
+    def filter_query(self) -> str:
+        """Get current filter query."""
+        return self._filter_query
+
+    @property
+    def total_count(self) -> int:
+        """Get total ticket count (unfiltered)."""
+        return len(self._all_tickets)
+
+    @property
+    def filtered_count(self) -> int:
+        """Get filtered ticket count."""
+        return len(self._tickets)
