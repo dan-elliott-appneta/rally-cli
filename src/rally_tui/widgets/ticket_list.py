@@ -33,7 +33,7 @@ STATE_ORDER: dict[str, int] = {
     "Accepted": 50,
 }
 
-# Colors for each state (first letter indicator)
+# Colors for each state indicator
 STATE_COLORS: dict[str, str] = {
     # Idea/Backlog - gray
     "Idea": "gray",
@@ -56,8 +56,32 @@ STATE_COLORS: dict[str, str] = {
     "Accepted": "bright_green",
 }
 
+# Symbols for each state indicator
+STATE_SYMBOLS: dict[str, str] = {
+    # Idea/Backlog/Defined - period (not started)
+    "Idea": ".",
+    "Submitted": ".",
+    "Backlog": ".",
+    "Defined": ".",
+    "Ready": ".",
+    "Groomed": ".",
+    # Open/In Progress - plus (active work)
+    "Open": "+",
+    "In Progress": "+",
+    "In Development": "+",
+    "In Review": "+",
+    "In Test": "+",
+    # Completed/Done - dash (done)
+    "Completed": "-",
+    "Done": "-",
+    "Closed": "-",
+    # Accepted - checkmark (verified)
+    "Accepted": "✓",
+}
+
 DEFAULT_STATE_ORDER = 99  # Unknown states go at the bottom
 DEFAULT_STATE_COLOR = "white"
+DEFAULT_STATE_SYMBOL = "?"
 
 
 def get_state_order(state: str | None) -> int:
@@ -72,6 +96,13 @@ def get_state_color(state: str | None) -> str:
     if not state:
         return DEFAULT_STATE_COLOR
     return STATE_COLORS.get(state, DEFAULT_STATE_COLOR)
+
+
+def get_state_symbol(state: str | None) -> str:
+    """Get symbol for a state indicator."""
+    if not state:
+        return DEFAULT_STATE_SYMBOL
+    return STATE_SYMBOLS.get(state, DEFAULT_STATE_SYMBOL)
 
 
 def sort_tickets_by_state(tickets: list[Ticket]) -> list[Ticket]:
@@ -90,11 +121,11 @@ class TicketListItem(ListItem):
         """Create the ticket display with state indicator."""
         type_class = f"ticket-{self.ticket.type_prefix.lower()}"
         state_color = get_state_color(self.ticket.state)
-        state_letter = (self.ticket.state or "?")[0].upper()
+        state_symbol = get_state_symbol(self.ticket.state)
 
         with Horizontal(classes="ticket-row"):
             yield Label(
-                f"[{state_color}]{state_letter}[/]",
+                f"[{state_color}]{state_symbol}[/]",
                 classes="state-indicator",
             )
             yield Label(
