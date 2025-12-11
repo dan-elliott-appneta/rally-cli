@@ -47,6 +47,9 @@ rally-cli/
 │       │   ├── __init__.py
 │       │   ├── ticket.py       # Ticket data models (decoupled from pyral)
 │       │   └── sample_data.py  # Sample tickets for offline mode
+│       ├── utils/
+│       │   ├── __init__.py
+│       │   └── html_to_text.py # HTML to plain text converter
 │       └── services/
 │           ├── __init__.py
 │           ├── protocol.py     # RallyClientProtocol interface
@@ -63,6 +66,7 @@ rally-cli/
 │   ├── test_services.py
 │   ├── test_config.py
 │   ├── test_rally_client.py
+│   ├── test_html_to_text.py    # HTML conversion tests
 │   ├── test_snapshots.py
 │   └── __snapshots__/          # SVG snapshots for visual tests
 └── docs/
@@ -454,14 +458,16 @@ tests/
 - [x] Write tests for RallyClient mapping and configuration
 - [x] Update documentation
 - [x] Add default filter for current iteration and current user
+- [x] Add HTML-to-text conversion for ticket descriptions
 
 **Implementation Notes**:
 - RallyConfig loads from RALLY_* environment variables
 - RallyClient maps HierarchicalRequirement → UserStory, handles nested objects
 - App falls back to MockRallyClient on connection failure
 - **Default filter**: When connected, tickets are filtered to show only items in the current iteration owned by the API key's user
-- RallyClient fetches current user via `getUserInfo()` and current iteration via date-range query
-- 177 total tests passing (161 from Iteration 7 + 16 new default filter tests)
+- RallyClient fetches current user via User entity query, current iteration via date-range query
+- **HTML conversion**: Rally descriptions are HTML - converted to readable plain text for terminal display
+- 200 total tests passing
 
 **Deliverable**: App connects to Rally when configured, falls back to mock data when offline
 
@@ -472,6 +478,7 @@ tests/
 - Unit: StatusBar connection status display
 - Unit: Current user and iteration fetching
 - Unit: Default query building (both, either, or neither user/iteration)
+- Unit: HTML-to-text conversion (23 tests) - tags, entities, whitespace, Rally examples
 - Integration: App with and without configuration
 
 **Key Files**:
@@ -481,13 +488,18 @@ src/rally_tui/
 ├── services/
 │   ├── rally_client.py     # Real Rally API client
 │   └── __init__.py         # Export RallyClient
+├── utils/
+│   ├── __init__.py         # Export html_to_text
+│   └── html_to_text.py     # HTML to plain text converter
 ├── widgets/
-│   └── status_bar.py       # Add connected parameter
+│   ├── status_bar.py       # Add connected parameter
+│   └── ticket_detail.py    # Uses html_to_text for descriptions
 └── app.py                  # Accept config, show status
 
 tests/
 ├── test_rally_client.py    # Mapping and detection tests
-└── test_config.py          # Configuration tests
+├── test_config.py          # Configuration tests
+└── test_html_to_text.py    # HTML conversion tests (23 tests)
 ```
 
 **Key Concepts**:
@@ -495,9 +507,10 @@ tests/
 - Graceful fallback to MockRallyClient when not configured
 - pyral entity mapping (HierarchicalRequirement → UserStory, etc.)
 - Connection status indicator in StatusBar
-- Default query: `(Iteration.Name = "current") AND (Owner.DisplayName = "user")`
-- `current_user` property from `getUserInfo()` API
+- Default query: `((Iteration.Name = "current") AND (Owner.DisplayName = "user"))`
+- `current_user` property from User entity query (returns API key owner)
 - `current_iteration` property from date-range query on Iteration entity
+- HTML-to-text conversion using Python's built-in `html.parser` module
 
 ---
 
