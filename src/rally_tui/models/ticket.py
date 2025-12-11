@@ -19,6 +19,9 @@ class Ticket:
     ticket_type: TicketType
     state: str
     owner: str | None = None
+    description: str = ""
+    iteration: str | None = None
+    points: int | None = None
 
     @property
     def display_text(self) -> str:
