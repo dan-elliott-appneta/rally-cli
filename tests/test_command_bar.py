@@ -103,9 +103,10 @@ class TestCommandBarUnit:
     """Unit tests for CommandBar widget in isolation."""
 
     def test_contexts_dict_has_list_and_detail(self) -> None:
-        """CONTEXTS should have both 'list' and 'detail' keys."""
+        """CONTEXTS should have 'list', 'detail', and 'search' keys."""
         assert "list" in CommandBar.CONTEXTS
         assert "detail" in CommandBar.CONTEXTS
+        assert "search" in CommandBar.CONTEXTS
 
     def test_list_context_has_navigation_commands(self) -> None:
         """List context should include navigation keys."""
@@ -151,3 +152,17 @@ class TestCommandBarUnit:
         assert bar.context == "unknown"
         # The CONTEXTS.get() returns empty string for unknown keys
         assert CommandBar.CONTEXTS.get("unknown", "") == ""
+
+    def test_list_context_has_search_key(self) -> None:
+        """List context should include search key."""
+        list_commands = CommandBar.CONTEXTS["list"]
+        assert "Search" in list_commands
+        # The / is escaped as \\[/\\] for rich markup
+        assert "[/]" in list_commands or "\\[/\\]" in list_commands
+
+    def test_search_context_has_instructions(self) -> None:
+        """Search context should have Enter, Esc, and type instruction."""
+        search_commands = CommandBar.CONTEXTS["search"]
+        assert "Enter" in search_commands
+        assert "Esc" in search_commands
+        assert "filter" in search_commands.lower()
