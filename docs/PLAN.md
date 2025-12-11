@@ -428,39 +428,57 @@ tests/
 
 ---
 
-### Iteration 6: Real Rally Integration
+### Iteration 6: Real Rally Integration ✅ COMPLETE
 
-**Goal**: Connect to actual Rally API
+**Goal**: Connect to actual Rally API with proper configuration and error handling
+
+**Detailed Guide**: See [ITERATION_6.md](./ITERATION_6.md) for step-by-step implementation.
 
 **Tasks**:
-- [ ] Implement `RallyClient` using pyral
-- [ ] Configuration loading (API key, workspace, project)
-- [ ] Map pyral responses to internal `Ticket` model
-- [ ] Add loading states to widgets
-- [ ] Handle API errors gracefully
-- [ ] Add connection status indicator
+- [x] Add configuration with pydantic-settings (RallyConfig)
+- [x] Implement `RallyClient` using pyral
+- [x] Map pyral responses to internal `Ticket` model
+- [x] Update StatusBar with connection status (Connected/Offline)
+- [x] Update app to accept config and fall back gracefully
+- [x] Write tests for RallyClient mapping and configuration
+- [x] Update documentation
 
-**Deliverable**: App fetches and displays real Rally data
+**Implementation Notes**:
+- RallyConfig loads from RALLY_* environment variables
+- RallyClient maps HierarchicalRequirement → UserStory, handles nested objects
+- App falls back to MockRallyClient on connection failure
+- 134 total tests passing (100 from Iteration 5 + 34 new)
+
+**Deliverable**: App connects to Rally when configured, falls back to mock data when offline
 
 **Test Coverage**:
-- Unit: pyral response → Ticket mapping
-- Integration: Full flow with mock (no real API in tests)
+- Unit: RallyConfig default values and environment loading
+- Unit: Entity-to-Ticket mapping (all field types)
+- Unit: Prefix-to-entity-type detection
+- Unit: StatusBar connection status display
+- Integration: App with and without configuration
 
-```python
-# services/rally_client.py
-class RallyClient:
-    def __init__(self, config: RallyConfig):
-        self._rally = Rally(
-            config.server,
-            apikey=config.api_key,
-            workspace=config.workspace,
-            project=config.project
-        )
-
-    def get_tickets(self, query: str | None = None) -> list[Ticket]:
-        response = self._rally.get('Artifact', fetch=True, query=query)
-        return [self._to_ticket(item) for item in response]
+**Key Files**:
 ```
+src/rally_tui/
+├── config.py               # RallyConfig with pydantic-settings
+├── services/
+│   ├── rally_client.py     # Real Rally API client
+│   └── __init__.py         # Export RallyClient
+├── widgets/
+│   └── status_bar.py       # Add connected parameter
+└── app.py                  # Accept config, show status
+
+tests/
+├── test_rally_client.py    # Mapping and detection tests
+└── test_config.py          # Configuration tests
+```
+
+**Key Concepts**:
+- pydantic-settings for environment variable loading with RALLY_ prefix
+- Graceful fallback to MockRallyClient when not configured
+- pyral entity mapping (HierarchicalRequirement → UserStory, etc.)
+- Connection status indicator in StatusBar
 
 ---
 

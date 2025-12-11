@@ -11,18 +11,18 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 ## Status
 
-**Iteration 5 Complete** - Service layer and dependency injection.
+**Iteration 6 Complete** - Real Rally API integration.
 
+- Connect to Rally API using pyral
+- Environment variable configuration (RALLY_APIKEY, RALLY_WORKSPACE, etc.)
+- Automatic fallback to offline mode with sample data
+- Connection status indicator (Connected/Offline)
 - Two-panel layout with ticket list and detail view
-- Status bar showing workspace/project info
-- Panel titles ("Tickets", "Details")
 - Tab to switch between panels
-- Context-sensitive keyboard shortcuts displayed at bottom
-- Injectable RallyClientProtocol for testability
-- MockRallyClient with configurable ticket data
-- 100 tests passing
+- Context-sensitive keyboard shortcuts
+- 134 tests passing
 
-Next: Iteration 6 (Real Rally Integration).
+Next: Iteration 7 (Search & Filtering).
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -48,10 +48,33 @@ pip install -e ".[dev]"
 
 ## Usage
 
+### Running with Rally API
+
 ```bash
+# Set environment variables
+export RALLY_APIKEY=your_api_key_here
+export RALLY_WORKSPACE="Your Workspace"
+export RALLY_PROJECT="Your Project"
+
 # Run the TUI
 rally-tui
 ```
+
+### Running in Offline Mode
+
+```bash
+# Without RALLY_APIKEY, the app runs with sample data
+rally-tui
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `RALLY_SERVER` | Rally server hostname | `rally1.rallydev.com` |
+| `RALLY_APIKEY` | Rally API key (required for API access) | (none) |
+| `RALLY_WORKSPACE` | Workspace name | (from API) |
+| `RALLY_PROJECT` | Project name | (from API) |
 
 ### Keyboard Navigation
 
@@ -83,8 +106,10 @@ rally-cli/
 │   │   ├── ticket_detail.py # TicketDetail widget (right panel)
 │   │   ├── command_bar.py   # CommandBar widget (bottom)
 │   │   └── status_bar.py    # StatusBar widget (top)
+│   ├── config.py            # Configuration (pydantic-settings)
 │   ├── services/            # Rally API client layer
 │   │   ├── protocol.py      # RallyClientProtocol interface
+│   │   ├── rally_client.py  # Real Rally API client
 │   │   └── mock_client.py   # MockRallyClient for testing
 │   └── screens/             # Application screens (future)
 ├── tests/
@@ -95,6 +120,8 @@ rally-cli/
 │   ├── test_command_bar.py   # CommandBar widget tests
 │   ├── test_status_bar.py    # StatusBar widget tests
 │   ├── test_services.py      # Service layer tests
+│   ├── test_config.py        # Configuration tests
+│   ├── test_rally_client.py  # RallyClient tests
 │   └── test_snapshots.py     # Visual regression tests
 └── docs/
     ├── API.md               # Rally WSAPI reference
@@ -129,6 +156,7 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 - [ITERATION_3.md](docs/ITERATION_3.md) - Iteration 3 implementation guide (complete)
 - [ITERATION_4.md](docs/ITERATION_4.md) - Iteration 4 implementation guide (complete)
 - [ITERATION_5.md](docs/ITERATION_5.md) - Iteration 5 implementation guide (complete)
+- [ITERATION_6.md](docs/ITERATION_6.md) - Iteration 6 implementation guide (complete)
 
 ## Technology Stack
 
