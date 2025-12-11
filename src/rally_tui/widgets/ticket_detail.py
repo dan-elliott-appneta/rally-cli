@@ -6,6 +6,7 @@ from textual.reactive import reactive
 from textual.widgets import Static
 
 from rally_tui.models import Ticket
+from rally_tui.utils import html_to_text
 
 
 class TicketDetail(VerticalScroll):
@@ -65,7 +66,8 @@ class TicketDetail(VerticalScroll):
         )
         self.query_one("#detail-metadata", Static).update(metadata)
 
-        # Description
+        # Description (convert HTML to plain text)
         self.query_one("#detail-description-label", Static).update("\nDescription:")
         description = ticket.description or "No description available."
+        description = html_to_text(description) or "No description available."
         self.query_one("#detail-description", Static).update(description)

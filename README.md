@@ -27,7 +27,8 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Tab to switch between panels
 - Context-sensitive keyboard shortcuts
 - Default filter to current iteration and current user when connected
-- 177 tests passing
+- HTML descriptions converted to readable plain text
+- 200 tests passing
 
 Next: Iteration 8 (CRUD Operations).
 
@@ -117,6 +118,8 @@ rally-cli/
 │   │   ├── status_bar.py    # StatusBar widget (top)
 │   │   └── search_input.py  # SearchInput widget (search mode)
 │   ├── config.py            # Configuration (pydantic-settings)
+│   ├── utils/               # Utility functions
+│   │   └── html_to_text.py  # HTML to plain text converter
 │   └── services/            # Rally API client layer
 │       ├── protocol.py      # RallyClientProtocol interface
 │       ├── rally_client.py  # Real Rally API client
@@ -132,6 +135,7 @@ rally-cli/
 │   ├── test_services.py      # Service layer tests
 │   ├── test_config.py        # Configuration tests
 │   ├── test_rally_client.py  # RallyClient tests
+│   ├── test_html_to_text.py  # HTML conversion tests
 │   └── test_snapshots.py     # Visual regression tests
 └── docs/
     ├── API.md               # Rally WSAPI reference
