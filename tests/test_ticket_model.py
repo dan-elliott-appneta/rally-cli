@@ -59,6 +59,16 @@ class TestTicket:
         ticket = Ticket("US1", "Test", "UserStory", "Open", "John Doe")
         assert ticket.owner == "John Doe"
 
+    def test_ticket_optional_parent_id(self) -> None:
+        """Parent ID should be optional and default to None."""
+        ticket = Ticket("US1", "Test", "UserStory", "Open")
+        assert ticket.parent_id is None
+
+    def test_ticket_with_parent_id(self) -> None:
+        """Parent ID should be stored when provided."""
+        ticket = Ticket("US1", "Test", "UserStory", "Open", parent_id="F59625")
+        assert ticket.parent_id == "F59625"
+
 
 class TestTicketRallyUrl:
     """Tests for the rally_url method."""
