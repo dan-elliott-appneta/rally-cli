@@ -39,7 +39,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Tab to switch between panels
 - Context-sensitive keyboard shortcuts
 - Default filter to current iteration and current user when connected
-- 257 tests passing
+- 263 tests passing
 
 Next: Iteration 9 (CRUD Operations).
 
@@ -108,6 +108,7 @@ rally-tui
 | Esc | any | Clear filter / Go back |
 | Tab | list/detail | Switch panel |
 | t | any | Toggle dark/light theme |
+| y | list/detail | Copy ticket URL to clipboard |
 | d | list/detail | Open discussions |
 | c | discussion | Add comment |
 | Ctrl+S | comment | Submit comment |
