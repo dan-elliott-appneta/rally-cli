@@ -11,16 +11,18 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 ## Status
 
-**Iteration 4 Complete** - Layout polish and status bar.
+**Iteration 5 Complete** - Service layer and dependency injection.
 
 - Two-panel layout with ticket list and detail view
 - Status bar showing workspace/project info
 - Panel titles ("Tickets", "Details")
 - Tab to switch between panels
 - Context-sensitive keyboard shortcuts displayed at bottom
-- 73 tests passing
+- Injectable RallyClientProtocol for testability
+- MockRallyClient with configurable ticket data
+- 100 tests passing
 
-Next: Iteration 5 (Ticket Data Model & Mock Service).
+Next: Iteration 6 (Real Rally Integration).
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -81,7 +83,9 @@ rally-cli/
 │   │   ├── ticket_detail.py # TicketDetail widget (right panel)
 │   │   ├── command_bar.py   # CommandBar widget (bottom)
 │   │   └── status_bar.py    # StatusBar widget (top)
-│   ├── services/            # Rally API client (future)
+│   ├── services/            # Rally API client layer
+│   │   ├── protocol.py      # RallyClientProtocol interface
+│   │   └── mock_client.py   # MockRallyClient for testing
 │   └── screens/             # Application screens (future)
 ├── tests/
 │   ├── conftest.py          # Pytest fixtures
@@ -90,6 +94,7 @@ rally-cli/
 │   ├── test_ticket_detail.py # TicketDetail widget tests
 │   ├── test_command_bar.py   # CommandBar widget tests
 │   ├── test_status_bar.py    # StatusBar widget tests
+│   ├── test_services.py      # Service layer tests
 │   └── test_snapshots.py     # Visual regression tests
 └── docs/
     ├── API.md               # Rally WSAPI reference
@@ -123,6 +128,7 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 - [ITERATION_2.md](docs/ITERATION_2.md) - Iteration 2 implementation guide (complete)
 - [ITERATION_3.md](docs/ITERATION_3.md) - Iteration 3 implementation guide (complete)
 - [ITERATION_4.md](docs/ITERATION_4.md) - Iteration 4 implementation guide (complete)
+- [ITERATION_5.md](docs/ITERATION_5.md) - Iteration 5 implementation guide (complete)
 
 ## Technology Stack
 
