@@ -18,16 +18,28 @@ Screen {
     height: 1fr;
 }
 
-/* Ticket list styling - left panel */
-#ticket-list {
+/* List container - holds ticket list and search input */
+#list-container {
     width: 35%;
     min-width: 25;
     max-width: 50;
     height: 100%;
+}
+
+/* Ticket list styling - left panel */
+#ticket-list {
+    height: 1fr;
     border: solid $primary;
     border-title-color: $text;
     border-title-style: bold;
     border-title-align: center;
+}
+
+/* Search input - below ticket list */
+#search-input {
+    height: 1;
+    background: $surface;
+    border-top: solid $primary;
 }
 
 #ticket-list:focus {
