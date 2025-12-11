@@ -23,6 +23,7 @@ STATE_ORDER: dict[str, int] = {
     # Open/Active states
     "Open": 20,
     "In Progress": 30,
+    "In-Progress": 30,  # Rally variant with hyphen
     "In Development": 31,
     "In Review": 32,
     "In Test": 33,
@@ -46,6 +47,7 @@ STATE_COLORS: dict[str, str] = {
     # Open - yellow/orange
     "Open": "orange",
     "In Progress": "yellow",
+    "In-Progress": "yellow",  # Rally variant with hyphen
     "In Development": "yellow",
     "In Review": "cyan",
     "In Test": "magenta",
@@ -68,6 +70,7 @@ STATE_SYMBOLS: dict[str, str] = {
     # Open/In Progress - plus (active work)
     "Open": "+",
     "In Progress": "+",
+    "In-Progress": "+",  # Rally variant with hyphen
     "In Development": "+",
     "In Review": "+",
     "In Test": "+",
