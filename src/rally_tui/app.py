@@ -205,6 +205,11 @@ class RallyTUI(App[None]):
                 self._all_tickets_loaded = True
                 _log.info(f"Background load complete: {len(self._all_tickets)} total tickets")
 
+        elif event.worker.name == "_fetch_filtered_tickets":
+            # Filtered tickets fetched - update UI directly
+            tickets = event.worker.result
+            self._on_filtered_tickets_loaded(tickets)
+
     def _load_all_tickets(self) -> list:
         """Load all tickets in background thread."""
         _log.debug("Loading all tickets in background...")
@@ -213,6 +218,25 @@ class RallyTUI(App[None]):
             return list(all_tickets)
         except Exception as e:
             _log.error(f"Failed to load all tickets: {e}")
+            return []
+
+    def _fetch_filtered_tickets(self) -> list:
+        """Fetch tickets with current filter from server."""
+        _log.debug(f"Fetching tickets for iteration filter: {self._iteration_filter}")
+        try:
+            # Build query for the selected iteration
+            if self._iteration_filter == FILTER_BACKLOG:
+                # Backlog = no iteration assigned
+                query = '(Iteration = null)'
+            elif self._iteration_filter:
+                query = f'(Iteration.Name = "{self._iteration_filter}")'
+            else:
+                query = ""
+
+            tickets = self._client.get_tickets(query=query)
+            return list(tickets)
+        except Exception as e:
+            _log.error(f"Failed to fetch filtered tickets: {e}")
             return []
 
     def _on_initial_tickets_loaded(self) -> None:
@@ -229,6 +253,51 @@ class RallyTUI(App[None]):
         # Dismiss splash screen if showing
         if self._show_splash and len(self.screen_stack) > 1:
             self.pop_screen()
+
+    def _on_filtered_tickets_loaded(self, tickets: list) -> None:
+        """Called when filtered tickets are loaded from server."""
+        # Apply user filter if active
+        if self._user_filter_active and self._client.current_user:
+            tickets = [t for t in tickets if t.owner == self._client.current_user]
+
+        # Update the ticket list
+        ticket_list = self.query_one(TicketList)
+        ticket_list.set_tickets(tickets)
+
+        # Update status bar
+        status_bar = self.query_one(StatusBar)
+        if self._iteration_filter == FILTER_BACKLOG:
+            status_bar.set_iteration_filter("Backlog")
+        elif self._iteration_filter:
+            status_bar.set_iteration_filter(self._iteration_filter)
+        else:
+            status_bar.set_iteration_filter(None)
+        status_bar.set_user_filter(self._user_filter_active)
+
+        # Update detail panel
+        if tickets:
+            detail = self.query_one(TicketDetail)
+            if detail.ticket not in tickets:
+                detail.ticket = tickets[0]
+        else:
+            detail = self.query_one(TicketDetail)
+            detail.ticket = None
+
+        # Show notification
+        filter_desc = []
+        if self._iteration_filter == FILTER_BACKLOG:
+            filter_desc.append("Backlog")
+        elif self._iteration_filter:
+            filter_desc.append(self._iteration_filter)
+        if self._user_filter_active:
+            filter_desc.append("My Items")
+
+        if filter_desc:
+            self.notify(f"Filter: {', '.join(filter_desc)} ({len(tickets)} items)", timeout=2)
+        else:
+            self.notify(f"Showing all items ({len(tickets)})", timeout=2)
+
+        _log.info(f"Filtered tickets loaded: {len(tickets)} items")
 
     def on_ticket_list_ticket_highlighted(
         self, event: TicketList.TicketHighlighted
@@ -501,10 +570,14 @@ class RallyTUI(App[None]):
 
     def _apply_filters(self) -> None:
         """Apply iteration and user filters to the ticket list."""
-        # If all tickets aren't loaded yet, notify user
-        if not self._all_tickets_loaded:
-            _log.debug("All tickets not yet loaded")
-            self.notify("Loading all tickets...", timeout=1)
+        # If connected to real Rally and all tickets aren't loaded yet,
+        # fetch from server since _all_tickets only has initial iteration data
+        if self._connected and not self._all_tickets_loaded and self._iteration_filter:
+            _log.debug("All tickets not loaded yet, fetching for filter change...")
+            self.notify("Loading tickets...", timeout=1)
+            # Fetch with the new filter - run in background
+            self.run_worker(self._fetch_filtered_tickets, thread=True)
+            return
 
         # Start with all tickets
         filtered = list(self._all_tickets)
