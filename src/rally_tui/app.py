@@ -14,6 +14,9 @@ from rally_tui import __version__
 from rally_tui.config import RallyConfig
 from rally_tui.screens import (
     DiscussionScreen,
+    FILTER_ALL,
+    FILTER_BACKLOG,
+    IterationScreen,
     PointsScreen,
     QuickTicketData,
     QuickTicketScreen,
@@ -46,6 +49,8 @@ class RallyTUI(App[None]):
         Binding("p", "set_points", "Points"),
         Binding("n", "toggle_notes", "Notes"),
         Binding("d", "open_discussions", "Discuss"),
+        Binding("i", "iteration_filter", "Sprint"),
+        Binding("u", "toggle_user_filter", "My Items"),
         Binding("/", "start_search", "Search"),
         Binding("q", "quit", "Quit"),
         Binding("tab", "switch_panel", "Switch Panel", show=False, priority=True),
@@ -99,6 +104,11 @@ class RallyTUI(App[None]):
             self._client = MockRallyClient()
             self._connected = False
 
+        # Filter state
+        self._iteration_filter: str | None = None  # Iteration name or FILTER_BACKLOG
+        self._user_filter_active: bool = False
+        self._all_tickets: list = []  # Store all tickets for filtering
+
     def compose(self) -> ComposeResult:
         """Create the application layout."""
         yield Header()
@@ -110,6 +120,7 @@ class RallyTUI(App[None]):
             id="status-bar",
         )
         tickets = self._client.get_tickets()
+        self._all_tickets = list(tickets)  # Store all tickets for filtering
         with Horizontal(id="main-container"):
             with Vertical(id="list-container"):
                 yield TicketList(tickets, id="ticket-list")
@@ -388,6 +399,97 @@ class RallyTUI(App[None]):
         except Exception as e:
             _log.exception(f"Error creating ticket: {e}")
             self.notify("Failed to create ticket", severity="error", timeout=3)
+
+    def action_iteration_filter(self) -> None:
+        """Open the iteration filter screen."""
+        iterations = self._client.get_iterations()
+        self.push_screen(
+            IterationScreen(iterations, current_filter=self._iteration_filter),
+            callback=self._handle_iteration_filter_result,
+        )
+
+    def _handle_iteration_filter_result(self, result: str | None) -> None:
+        """Handle the result from IterationScreen."""
+        if result is None:
+            _log.debug("Iteration filter cancelled")
+            return
+
+        # Update iteration filter state
+        if result == FILTER_ALL:
+            self._iteration_filter = None
+            _log.info("Iteration filter cleared (showing all)")
+        elif result == FILTER_BACKLOG:
+            self._iteration_filter = FILTER_BACKLOG
+            _log.info("Iteration filter set to Backlog")
+        else:
+            self._iteration_filter = result
+            _log.info(f"Iteration filter set to: {result}")
+
+        self._apply_filters()
+
+    def action_toggle_user_filter(self) -> None:
+        """Toggle the user filter (My Items)."""
+        self._user_filter_active = not self._user_filter_active
+        _log.info(f"User filter {'enabled' if self._user_filter_active else 'disabled'}")
+        self._apply_filters()
+
+    def _apply_filters(self) -> None:
+        """Apply iteration and user filters to the ticket list."""
+        # Start with all tickets
+        filtered = list(self._all_tickets)
+
+        # Apply iteration filter
+        if self._iteration_filter == FILTER_BACKLOG:
+            # Show only tickets with no iteration (backlog)
+            filtered = [t for t in filtered if not t.iteration]
+        elif self._iteration_filter:
+            # Show only tickets in the specified iteration
+            filtered = [t for t in filtered if t.iteration == self._iteration_filter]
+
+        # Apply user filter
+        if self._user_filter_active and self._client.current_user:
+            filtered = [t for t in filtered if t.owner == self._client.current_user]
+
+        # Update the ticket list
+        ticket_list = self.query_one(TicketList)
+        ticket_list.set_tickets(filtered)
+
+        # Update status bar
+        status_bar = self.query_one(StatusBar)
+
+        # Set iteration filter display
+        if self._iteration_filter == FILTER_BACKLOG:
+            status_bar.set_iteration_filter("Backlog")
+        elif self._iteration_filter:
+            status_bar.set_iteration_filter(self._iteration_filter)
+        else:
+            status_bar.set_iteration_filter(None)
+
+        # Set user filter display
+        status_bar.set_user_filter(self._user_filter_active)
+
+        # Update detail panel
+        if filtered:
+            detail = self.query_one(TicketDetail)
+            if detail.ticket not in filtered:
+                detail.ticket = filtered[0]
+        else:
+            detail = self.query_one(TicketDetail)
+            detail.ticket = None
+
+        # Show notification
+        filter_desc = []
+        if self._iteration_filter == FILTER_BACKLOG:
+            filter_desc.append("Backlog")
+        elif self._iteration_filter:
+            filter_desc.append(self._iteration_filter)
+        if self._user_filter_active:
+            filter_desc.append("My Items")
+
+        if filter_desc:
+            self.notify(f"Filter: {', '.join(filter_desc)} ({len(filtered)} items)", timeout=2)
+        else:
+            self.notify(f"Showing all items ({len(filtered)})", timeout=2)
 
 
 def main() -> None:
