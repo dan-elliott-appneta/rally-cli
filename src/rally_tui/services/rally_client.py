@@ -390,14 +390,14 @@ class RallyClient:
 
         return None
 
-    def update_points(self, ticket: Ticket, points: int) -> Ticket | None:
+    def update_points(self, ticket: Ticket, points: float) -> Ticket | None:
         """Update a ticket's story points.
 
         Updates PlanEstimate on User Stories and Defects.
 
         Args:
             ticket: The ticket to update.
-            points: The new story points value.
+            points: The new story points value (supports decimals like 0.5).
 
         Returns:
             The updated Ticket with new points, or None on failure.
@@ -416,7 +416,8 @@ class RallyClient:
 
             self._rally.update(entity_type, update_data)
 
-            # Return updated ticket
+            # Return updated ticket (convert to int if whole number)
+            stored_points = int(points) if points == int(points) else points
             return Ticket(
                 formatted_id=ticket.formatted_id,
                 name=ticket.name,
@@ -425,7 +426,7 @@ class RallyClient:
                 owner=ticket.owner,
                 description=ticket.description,
                 iteration=ticket.iteration,
-                points=points,
+                points=stored_points,
                 object_id=ticket.object_id,
             )
         except Exception:

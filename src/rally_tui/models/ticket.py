@@ -21,7 +21,7 @@ class Ticket:
     owner: str | None = None
     description: str = ""
     iteration: str | None = None
-    points: int | None = None
+    points: int | float | None = None
     object_id: str | None = None  # Rally ObjectID for API calls
 
     @property

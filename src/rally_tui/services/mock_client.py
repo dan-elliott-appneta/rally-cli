@@ -134,17 +134,19 @@ class MockRallyClient:
 
         return discussion
 
-    def update_points(self, ticket: Ticket, points: int) -> Ticket | None:
+    def update_points(self, ticket: Ticket, points: float) -> Ticket | None:
         """Update a ticket's story points.
 
         Args:
             ticket: The ticket to update.
-            points: The new story points value.
+            points: The new story points value (supports decimals like 0.5).
 
         Returns:
             The updated Ticket with new points, or None on failure.
         """
         # Find and update the ticket in our list
+        # Convert to int if whole number for cleaner display
+        stored_points = int(points) if points == int(points) else points
         for i, t in enumerate(self._tickets):
             if t.formatted_id == ticket.formatted_id:
                 updated = Ticket(
@@ -155,7 +157,7 @@ class MockRallyClient:
                     owner=t.owner,
                     description=t.description,
                     iteration=t.iteration,
-                    points=points,
+                    points=stored_points,
                     object_id=t.object_id,
                 )
                 self._tickets[i] = updated

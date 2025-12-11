@@ -142,7 +142,7 @@ class TestPointsScreenSubmission:
 
         received_points = []
 
-        def callback(points: int | None) -> None:
+        def callback(points: float | None) -> None:
             received_points.append(points)
 
         app = RallyTUI(show_splash=False)
@@ -161,6 +161,37 @@ class TestPointsScreenSubmission:
             assert len(received_points) == 1
             assert received_points[0] == 13
 
+    async def test_enter_submits_decimal_points(self) -> None:
+        """Pressing Enter should submit decimal points value."""
+        ticket = Ticket(
+            formatted_id="US1234",
+            name="Test ticket",
+            ticket_type="UserStory",
+            state="In Progress",
+            object_id="12345",
+        )
+
+        received_points = []
+
+        def callback(points: float | None) -> None:
+            received_points.append(points)
+
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            await app.push_screen(PointsScreen(ticket), callback=callback)
+
+            # Type decimal points
+            input_widget = app.screen.query_one("#points-input", Input)
+            input_widget.value = "0.5"
+            await pilot.pause()
+
+            # Submit with Enter
+            await pilot.press("enter")
+            await pilot.pause()
+
+            assert len(received_points) == 1
+            assert received_points[0] == 0.5
+
     async def test_escape_returns_none(self) -> None:
         """Pressing Escape should return None."""
         ticket = Ticket(
@@ -172,7 +203,7 @@ class TestPointsScreenSubmission:
 
         received_points = []
 
-        def callback(points: int | None) -> None:
+        def callback(points: float | None) -> None:
             received_points.append(points)
 
         app = RallyTUI(show_splash=False)
@@ -199,7 +230,7 @@ class TestPointsScreenSubmission:
 
         received_points = []
 
-        def callback(points: int | None) -> None:
+        def callback(points: float | None) -> None:
             received_points.append(points)
 
         app = RallyTUI(show_splash=False)
