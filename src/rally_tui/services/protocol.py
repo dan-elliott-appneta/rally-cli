@@ -135,3 +135,26 @@ class RallyClientProtocol(Protocol):
             List of iterations, sorted by start date (newest first).
         """
         ...
+
+    def get_feature(self, formatted_id: str) -> tuple[str, str] | None:
+        """Fetch a Feature's name by its formatted ID.
+
+        Args:
+            formatted_id: The Feature's formatted ID (e.g., "F59625").
+
+        Returns:
+            Tuple of (formatted_id, name) if found, None otherwise.
+        """
+        ...
+
+    def set_parent(self, ticket: Ticket, parent_id: str) -> Ticket | None:
+        """Set a ticket's parent Feature.
+
+        Args:
+            ticket: The ticket to update.
+            parent_id: The parent Feature's formatted ID (e.g., "F59625").
+
+        Returns:
+            The updated Ticket with parent_id set, or None on failure.
+        """
+        ...
