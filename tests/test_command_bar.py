@@ -32,9 +32,9 @@ class TestCommandBarWidget:
             assert command_bar.context == "list"
             # Verify the list context has expected commands
             list_commands = CommandBar.CONTEXTS["list"]
-            assert "j/k" in list_commands
-            assert "Navigate" in list_commands
-            assert "Tab" in list_commands
+            assert "Create" in list_commands
+            assert "Points" in list_commands
+            assert "Notes" in list_commands
 
     async def test_context_changes_on_tab(self) -> None:
         """Pressing Tab should change context to 'detail'."""
@@ -58,25 +58,26 @@ class TestCommandBarWidget:
             await pilot.press("tab")
             assert command_bar.context == "list"
 
-    async def test_detail_context_shows_fewer_commands(self) -> None:
-        """Detail context should show fewer commands than list context."""
+    async def test_detail_context_shows_similar_commands(self) -> None:
+        """Detail context should show similar commands to list context."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             command_bar = app.query_one(CommandBar)
 
-            # Verify list context has navigation commands
+            # Verify list context has action commands
             assert command_bar.context == "list"
             list_commands = CommandBar.CONTEXTS["list"]
-            assert "j/k" in list_commands
+            assert "Create" in list_commands
 
             await pilot.press("tab")
 
-            # Verify detail context doesn't have navigation commands
+            # Verify detail context has same action commands
             assert command_bar.context == "detail"
             detail_commands = CommandBar.CONTEXTS["detail"]
-            assert "j/k" not in detail_commands
-            assert "g/G" not in detail_commands
-            # But should still have Tab and quit
+            assert "Create" in detail_commands
+            assert "Points" in detail_commands
+            assert "Notes" in detail_commands
+            # Should have Tab and quit
             assert "Tab" in detail_commands
             assert "q" in detail_commands
 
@@ -108,23 +109,25 @@ class TestCommandBarUnit:
         assert "detail" in CommandBar.CONTEXTS
         assert "search" in CommandBar.CONTEXTS
 
-    def test_list_context_has_navigation_commands(self) -> None:
-        """List context should include navigation keys."""
+    def test_list_context_has_action_commands(self) -> None:
+        """List context should include action keys."""
         list_commands = CommandBar.CONTEXTS["list"]
-        assert "j/k" in list_commands
-        assert "g/G" in list_commands
-        assert "Enter" in list_commands
-        assert "Tab" in list_commands
-        assert "q" in list_commands
+        assert "[c] Create" in list_commands
+        assert "[p] Points" in list_commands
+        assert "[n] Notes" in list_commands
+        assert "[d] Discuss" in list_commands
+        assert "Search" in list_commands
+        assert "[q] Quit" in list_commands
 
-    def test_detail_context_has_minimal_commands(self) -> None:
-        """Detail context should only have Tab and quit."""
+    def test_detail_context_has_action_commands(self) -> None:
+        """Detail context should have action commands and Tab."""
         detail_commands = CommandBar.CONTEXTS["detail"]
-        assert "Tab" in detail_commands
-        assert "q" in detail_commands
-        # Should NOT have list-specific commands
-        assert "j/k" not in detail_commands
-        assert "g/G" not in detail_commands
+        assert "[c] Create" in detail_commands
+        assert "[p] Points" in detail_commands
+        assert "[n] Notes" in detail_commands
+        assert "[d] Discuss" in detail_commands
+        assert "[Tab] Switch" in detail_commands
+        assert "[q] Quit" in detail_commands
 
     def test_set_context_updates_internal_state(self) -> None:
         """set_context should update the internal context."""
