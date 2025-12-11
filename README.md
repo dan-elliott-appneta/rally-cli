@@ -103,6 +103,7 @@ rally-tui
 
 | Key | Context | Action |
 |-----|---------|--------|
+| Ctrl+P | any | Open command palette |
 | j / ↓ | list | Move down |
 | k / ↑ | list | Move up |
 | g | list | Jump to top |
