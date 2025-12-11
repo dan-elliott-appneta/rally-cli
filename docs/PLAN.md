@@ -374,41 +374,57 @@ tests/
 
 ---
 
-### Iteration 5: Ticket Data Model & Mock Service
+### Iteration 5: Service Layer & Dependency Injection ✅ COMPLETE
 
-**Goal**: Clean data layer with testable mock
+**Goal**: Clean service layer with dependency injection for testability
+
+**Detailed Guide**: See [ITERATION_5.md](./ITERATION_5.md) for step-by-step implementation.
 
 **Tasks**:
-- [ ] Define `Ticket` dataclass with all needed fields
-- [ ] Create `RallyClientProtocol` (abstract interface)
-- [ ] Implement `MockRallyClient` with fixture data
-- [ ] Wire mock client into app for testing
-- [ ] Add factory fixtures for test data generation
+- [x] Create `RallyClientProtocol` (Protocol class for structural subtyping)
+- [x] Implement `MockRallyClient` with fixture data
+- [x] Create services module with proper exports
+- [x] Modify `RallyTUI` to accept injectable client
+- [x] Add factory fixtures for test data generation
+- [x] Write service layer tests
+- [x] Update existing tests if needed
 
-**Deliverable**: App uses injectable client, tests use mock
+**Implementation Notes**:
+- MockRallyClient defaults to SAMPLE_TICKETS for backward compatibility
+- RallyClientProtocol uses Python's `Protocol` for structural subtyping
+- Client injection pattern: `RallyTUI(client=optional_client)`
+- 100 total tests passing (73 from Iteration 4 + 27 new service tests)
+
+**Deliverable**: App uses injectable client, tests can inject custom clients
 
 **Test Coverage**:
-- Unit: Mock client returns expected data
-- Integration: App renders mock data correctly
+- Unit: MockRallyClient.get_tickets() returns all tickets
+- Unit: MockRallyClient.get_tickets(query) filters correctly
+- Unit: MockRallyClient.get_ticket(id) returns correct ticket
+- Unit: MockRallyClient workspace/project properties
+- Integration: RallyTUI renders with injected client
+- Integration: StatusBar shows client's workspace/project
 
-```python
-# models/ticket.py
-@dataclass
-class Ticket:
-    formatted_id: str
-    name: str
-    type: Literal["UserStory", "Defect", "Task"]
-    state: str
-    owner: str | None
-    description: str
-    story_points: int | None
-    iteration: str | None
-
-# services/rally_client.py
-class RallyClientProtocol(Protocol):
-    def get_tickets(self, query: str | None = None) -> list[Ticket]: ...
-    def get_ticket(self, formatted_id: str) -> Ticket | None: ...
+**Key Files**:
 ```
+src/rally_tui/services/
+├── __init__.py         # Module exports
+├── protocol.py         # RallyClientProtocol definition
+└── mock_client.py      # MockRallyClient implementation
+
+src/rally_tui/
+└── app.py              # Accept client parameter
+
+tests/
+├── conftest.py         # Add factory fixtures
+└── test_services.py    # Service layer tests
+```
+
+**Key Concepts**:
+- Python `Protocol` for structural subtyping (duck typing with type hints)
+- Dependency injection pattern for testability
+- Factory fixtures in pytest for test data generation
+- Default to MockRallyClient with SAMPLE_TICKETS for backward compatibility
 
 ---
 
