@@ -586,25 +586,31 @@ tests/
 
 ---
 
-### Iteration 8: Discussions & Comments
+### Iteration 8: Discussions & Comments ✅ COMPLETE
 
 **Goal**: View ticket discussions and add comments from TUI
 
 **Detailed Guide**: See [ITERATION_8.md](./ITERATION_8.md) for step-by-step implementation.
 
 **Tasks**:
-- [ ] Create `Discussion` model for conversation posts
-- [ ] Add `get_discussions(ticket_id)` to RallyClientProtocol
-- [ ] Implement Rally API call to fetch ConversationPost entities
-- [ ] Create `DiscussionView` widget (scrollable list of comments)
-- [ ] Add `d` key binding to open discussions from ticket detail
-- [ ] Display comment author, timestamp, and text (HTML converted)
-- [ ] Create `CommentInput` widget for adding new comments
-- [ ] Add `c` key binding in discussion view to compose comment
-- [ ] Implement Rally API call to create ConversationPost
-- [ ] Update MockRallyClient with discussion support
-- [ ] Add discussions context to CommandBar
-- [ ] Write tests for discussion functionality
+- [x] Create `Discussion` model for conversation posts
+- [x] Add `get_discussions(ticket)` and `add_comment()` to RallyClientProtocol
+- [x] Implement Rally API calls for ConversationPost entities
+- [x] Create `DiscussionScreen` (Textual Screen with scrollable comments)
+- [x] Add `d` key binding to open discussions from ticket list/detail
+- [x] Display comment author, timestamp, and text (HTML converted)
+- [x] Create `CommentScreen` for adding new comments
+- [x] Add `c` key binding in discussion view to compose comment
+- [x] Implement `add_comment()` in RallyClient (creates ConversationPost)
+- [x] Update MockRallyClient with discussion support
+- [x] Add discussions and comment contexts to CommandBar
+- [x] Write 39 tests for discussion functionality (10 model + 13 client + 16 screen)
+
+**Implementation Notes**:
+- DiscussionScreen uses Textual's Screen class for modal-like navigation
+- Discussion model includes formatted_date and display_header properties
+- HTML text converted to plain text using existing html_to_text utility
+- 239 total tests passing
 
 **Deliverable**: User can press `d` to view ticket discussions, `c` to add a comment
 
@@ -645,35 +651,40 @@ tests/
 ```
 src/rally_tui/
 ├── models/
-│   └── discussion.py       # Discussion dataclass
+│   ├── discussion.py       # Discussion dataclass
+│   └── sample_data.py      # SAMPLE_DISCUSSIONS for offline mode
+├── screens/
+│   ├── discussion_screen.py  # DiscussionScreen + DiscussionItem
+│   └── comment_screen.py     # CommentScreen with TextArea
 ├── services/
 │   ├── protocol.py         # Add get_discussions, add_comment
 │   ├── rally_client.py     # Implement discussion API calls
 │   └── mock_client.py      # Mock discussion data
 └── widgets/
-    ├── discussion_view.py  # DiscussionView widget
-    └── comment_input.py    # CommentInput widget
+    └── command_bar.py      # Add discussion/comment contexts
 
 tests/
-├── test_discussion_model.py
-├── test_discussion_view.py
-└── test_comment_input.py
+├── test_discussion_model.py     # 10 tests
+├── test_mock_client_discussions.py  # 13 tests
+├── test_discussion_screen.py    # 8 tests
+└── test_comment_screen.py       # 8 tests
 ```
 
 **Key Bindings**:
 | Key | Context | Action |
 |-----|---------|--------|
-| `d` | detail | Open discussions for selected ticket |
+| `d` | list/detail | Open discussions for selected ticket |
 | `c` | discussion | Open comment input |
-| `Enter` | comment | Submit comment |
+| `Ctrl+S` | comment | Submit comment |
 | `Esc` | discussion/comment | Return to previous view |
 
 **Key Concepts**:
 - Rally ConversationPost entity for discussions
-- Screen or modal for discussion view (separate from main layout)
-- HTML-to-text conversion for comment bodies
-- Timestamp formatting for display
-- Optimistic UI update after posting comment
+- Textual Screen class for modal-like discussion view
+- HTML-to-text conversion for comment bodies using existing utility
+- Timestamp formatting with strftime ("%b %d, %Y %I:%M %p")
+- Automatic refresh after posting comment
+- Discussion model with formatted_date and display_header properties
 
 ---
 

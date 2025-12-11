@@ -9,11 +9,15 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Keyboard-driven interface with vim-style navigation
 - Color-coded ticket types (User Stories, Defects, Tasks, Test Cases)
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
+- **Discussions**: View ticket discussions and add comments
 
 ## Status
 
-**Iteration 7 Complete** - Search & Filtering.
+**Iteration 8 Complete** - Discussions & Comments.
 
+- View ticket discussions with `d` key
+- Add comments with `c` key from discussion screen
+- HTML content converted to readable plain text
 - Search/filter tickets with `/` key (vim-style)
 - Real-time filtering as you type
 - Case-insensitive search across ID, name, owner, state
@@ -27,10 +31,9 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Tab to switch between panels
 - Context-sensitive keyboard shortcuts
 - Default filter to current iteration and current user when connected
-- HTML descriptions converted to readable plain text
-- 200 tests passing
+- 239 tests passing
 
-Next: Iteration 8 (Discussions & Comments).
+Next: Iteration 9 (CRUD Operations).
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -86,17 +89,20 @@ rally-tui
 
 ### Keyboard Navigation
 
-| Key | Action |
-|-----|--------|
-| j / ↓ | Move down |
-| k / ↑ | Move up |
-| g | Jump to top |
-| G | Jump to bottom |
-| / | Search/filter tickets |
-| Enter | Select item (or confirm search) |
-| Esc | Clear search filter |
-| Tab | Switch panel |
-| q | Quit |
+| Key | Context | Action |
+|-----|---------|--------|
+| j / ↓ | list | Move down |
+| k / ↑ | list | Move up |
+| g | list | Jump to top |
+| G | list | Jump to bottom |
+| / | list | Search/filter tickets |
+| Enter | list/search | Select item (or confirm search) |
+| Esc | any | Clear filter / Go back |
+| Tab | list/detail | Switch panel |
+| d | list/detail | Open discussions |
+| c | discussion | Add comment |
+| Ctrl+S | comment | Submit comment |
+| q | any | Quit |
 
 ## Development
 
@@ -110,7 +116,11 @@ rally-cli/
 │   ├── app.tcss             # CSS stylesheet
 │   ├── models/
 │   │   ├── ticket.py        # Ticket dataclass
-│   │   └── sample_data.py   # Hardcoded test data
+│   │   ├── discussion.py    # Discussion dataclass
+│   │   └── sample_data.py   # Sample data for offline mode
+│   ├── screens/
+│   │   ├── discussion_screen.py  # DiscussionScreen
+│   │   └── comment_screen.py     # CommentScreen
 │   ├── widgets/
 │   │   ├── ticket_list.py   # TicketList widget (left panel)
 │   │   ├── ticket_detail.py # TicketDetail widget (right panel)
@@ -125,22 +135,26 @@ rally-cli/
 │       ├── rally_client.py  # Real Rally API client
 │       └── mock_client.py   # MockRallyClient for testing
 ├── tests/
-│   ├── conftest.py          # Pytest fixtures
-│   ├── test_ticket_model.py  # Model unit tests
-│   ├── test_ticket_list.py   # TicketList widget tests
-│   ├── test_ticket_detail.py # TicketDetail widget tests
-│   ├── test_command_bar.py   # CommandBar widget tests
-│   ├── test_status_bar.py    # StatusBar widget tests
-│   ├── test_search_input.py  # SearchInput widget tests
-│   ├── test_services.py      # Service layer tests
-│   ├── test_config.py        # Configuration tests
-│   ├── test_rally_client.py  # RallyClient tests
-│   ├── test_html_to_text.py  # HTML conversion tests
-│   └── test_snapshots.py     # Visual regression tests
+│   ├── conftest.py               # Pytest fixtures
+│   ├── test_ticket_model.py      # Model unit tests
+│   ├── test_discussion_model.py  # Discussion model tests
+│   ├── test_ticket_list.py       # TicketList widget tests
+│   ├── test_ticket_detail.py     # TicketDetail widget tests
+│   ├── test_discussion_screen.py # DiscussionScreen tests
+│   ├── test_comment_screen.py    # CommentScreen tests
+│   ├── test_command_bar.py       # CommandBar widget tests
+│   ├── test_status_bar.py        # StatusBar widget tests
+│   ├── test_search_input.py      # SearchInput widget tests
+│   ├── test_services.py          # Service layer tests
+│   ├── test_mock_client_discussions.py  # MockClient discussion tests
+│   ├── test_config.py            # Configuration tests
+│   ├── test_rally_client.py      # RallyClient tests
+│   ├── test_html_to_text.py      # HTML conversion tests
+│   └── test_snapshots.py         # Visual regression tests
 └── docs/
     ├── API.md               # Rally WSAPI reference
     ├── PLAN.md              # Development roadmap
-    └── ITERATION_*.md       # Implementation guides (1-7)
+    └── ITERATION_*.md       # Implementation guides (1-8)
 ```
 
 ### Running Tests
