@@ -12,8 +12,9 @@ class CommandBar(Static):
 
     # Command sets for different contexts
     CONTEXTS = {
-        "list": "[j/k] Navigate  [g/G] Jump  [Enter] Select  [Tab] Switch Panel  [q] Quit",
+        "list": "[j/k] Navigate  [g/G] Jump  [\\[/\\]] Search  [Enter] Select  [Tab] Switch  [q] Quit",
         "detail": "[Tab] Switch Panel  [q] Quit",
+        "search": "[Enter] Confirm  [Esc] Clear  Type to filter...",
     }
 
     DEFAULT_CSS = """
