@@ -260,30 +260,59 @@ tests/
 
 **Goal**: Context-sensitive command hints at bottom
 
-**Tasks**:
-- [ ] Create `CommandBar` widget
-- [ ] Define command sets for different contexts
-- [ ] Update commands based on focused widget
-- [ ] Style as fixed footer
+**Detailed Guide**: See [ITERATION_3.md](./ITERATION_3.md) for step-by-step implementation.
 
-**Deliverable**: Bottom bar shows relevant commands, updates on focus change
+**Tasks**:
+- [ ] Create `CommandBar` widget (extends Static with DEFAULT_CSS)
+- [ ] Define command sets for different contexts (list vs detail)
+- [ ] Update commands based on focused widget using `watch_focused`
+- [ ] Make TicketDetail focusable (`can_focus = True`)
+- [ ] Add Tab key binding to switch focus between panels
+- [ ] Replace Footer with CommandBar in app layout
+- [ ] Write unit tests for CommandBar (8 tests)
+- [ ] Update snapshot tests for command bar contexts (2 tests)
+
+**Deliverable**: Bottom bar shows relevant commands, updates on focus change, Tab switches panels
+
+**Command Contexts**:
+| Context | Commands Shown |
+|---------|---------------|
+| list | `[j/k] Navigate  [g/G] Jump  [Enter] Select  [Tab] Switch Panel  [q] Quit` |
+| detail | `[Tab] Switch Panel  [q] Quit` |
 
 **Test Coverage**:
-- Snapshot: Command bar with list-context commands
-- Snapshot: Command bar with detail-context commands
-- Unit: Focus change updates command set
+- Unit: Initial context is list
+- Unit: List context shows navigation commands
+- Unit: Tab switches focus and updates context
+- Unit: Detail context shows different commands
+- Unit: Focus starts on list
+- Unit: Tab switches to detail
+- Unit: Tab switches back to list
+- Unit: set_context updates display
+- Snapshot: Command bar with list context
+- Snapshot: Command bar with detail context
 
-```python
-# Context-aware command bar
-class CommandBar(Static):
-    CONTEXTS = {
-        "list": "[j/k] Navigate  [Enter] Select  [/] Search  [c] Create",
-        "detail": "[e] Edit  [Esc] Back  [Tab] Next field",
-    }
-
-    def set_context(self, context: str):
-        self.update(self.CONTEXTS.get(context, ""))
+**Key Files**:
 ```
+src/rally_tui/widgets/
+└── command_bar.py      # New CommandBar widget
+
+src/rally_tui/
+├── app.py              # Use CommandBar, add Tab binding, watch focus
+├── app.tcss            # Command bar styling
+└── widgets/
+    ├── __init__.py     # Export CommandBar
+    └── ticket_detail.py # Add can_focus = True
+
+tests/
+└── test_command_bar.py # New tests
+```
+
+**Key Concepts**:
+- Custom widget with `DEFAULT_CSS` for bundled styling
+- `watch_focused` watcher for reactive focus tracking
+- `can_focus = True` to make widgets focusable
+- `widget.focus()` for programmatic focus management
 
 ---
 
