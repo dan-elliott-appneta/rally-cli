@@ -8,7 +8,7 @@ from textual.widgets import Footer, Header, Input, Static
 from rally_tui.models import Ticket
 
 
-class PointsScreen(Screen[int | None]):
+class PointsScreen(Screen[float | None]):
     """Screen for setting story points on a ticket."""
 
     BINDINGS = [
@@ -83,7 +83,7 @@ class PointsScreen(Screen[int | None]):
         yield Input(
             placeholder="Points",
             id="points-input",
-            type="integer",
+            type="number",
         )
         yield Static("", id="points-error")
         yield Footer()
@@ -107,11 +107,11 @@ class PointsScreen(Screen[int | None]):
 
         if not value:
             # Empty value means clear points
-            self.dismiss(0)
+            self.dismiss(0.0)
             return
 
         try:
-            points = int(value)
+            points = float(value)
             if points < 0 or points > 100:
                 error_widget.update("Points must be between 0 and 100")
                 error_widget.display = True

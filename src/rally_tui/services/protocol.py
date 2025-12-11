@@ -77,12 +77,12 @@ class RallyClientProtocol(Protocol):
         """
         ...
 
-    def update_points(self, ticket: Ticket, points: int) -> Ticket | None:
+    def update_points(self, ticket: Ticket, points: float) -> Ticket | None:
         """Update a ticket's story points.
 
         Args:
             ticket: The ticket to update.
-            points: The new story points value.
+            points: The new story points value (supports decimals like 0.5).
 
         Returns:
             The updated Ticket with new points, or None on failure.

@@ -238,7 +238,7 @@ class RallyTUI(App[None]):
                 callback=self._handle_points_result,
             )
 
-    def _handle_points_result(self, points: int | None) -> None:
+    def _handle_points_result(self, points: float | None) -> None:
         """Handle the result from PointsScreen."""
         if points is None:
             return
@@ -254,7 +254,9 @@ class RallyTUI(App[None]):
             # Update the ticket in the list
             ticket_list = self.query_one(TicketList)
             ticket_list.update_ticket(updated)
-            self.notify(f"Points set to {points}", timeout=2)
+            # Display as int if whole number
+            display_points = int(points) if points == int(points) else points
+            self.notify(f"Points set to {display_points}", timeout=2)
         else:
             self.notify("Failed to update points", severity="error", timeout=3)
 
