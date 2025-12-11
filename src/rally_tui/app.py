@@ -10,6 +10,7 @@ from textual.widgets import Header
 from rally_tui.config import RallyConfig
 from rally_tui.screens import DiscussionScreen, SplashScreen
 from rally_tui.services import MockRallyClient, RallyClient, RallyClientProtocol
+from rally_tui.user_settings import UserSettings
 from rally_tui.widgets import (
     CommandBar,
     SearchInput,
@@ -31,6 +32,7 @@ class RallyTUI(App[None]):
         Binding("?", "help", "Help", show=False),
         Binding("/", "start_search", "Search", show=False),
         Binding("d", "open_discussions", "Discussions", show=False),
+        Binding("t", "toggle_theme", "Toggle Theme", show=False),
     ]
 
     def __init__(
@@ -38,6 +40,7 @@ class RallyTUI(App[None]):
         client: RallyClientProtocol | None = None,
         config: RallyConfig | None = None,
         show_splash: bool = True,
+        user_settings: UserSettings | None = None,
     ) -> None:
         """Initialize the application.
 
@@ -46,9 +49,11 @@ class RallyTUI(App[None]):
             config: Rally configuration for connecting to API.
                    If not provided, uses MockRallyClient.
             show_splash: Whether to show splash screen on startup.
+            user_settings: User preferences. If None, loads from config file.
         """
         super().__init__()
         self._show_splash = show_splash
+        self._user_settings = user_settings or UserSettings()
 
         if client is not None:
             # Explicit client provided (e.g., for testing)
@@ -87,6 +92,9 @@ class RallyTUI(App[None]):
 
     def on_mount(self) -> None:
         """Initialize the app state."""
+        # Apply saved theme
+        self.dark = self._user_settings.theme == "dark"
+
         # Set panel titles
         self.query_one("#ticket-list").border_title = "Tickets"
         self.query_one("#ticket-detail").border_title = "Details"
@@ -202,6 +210,11 @@ class RallyTUI(App[None]):
         detail = self.query_one(TicketDetail)
         if detail.ticket:
             self.push_screen(DiscussionScreen(detail.ticket, self._client))
+
+    def action_toggle_theme(self) -> None:
+        """Toggle between dark and light theme and persist setting."""
+        self.dark = not self.dark
+        self._user_settings.theme = "dark" if self.dark else "light"
 
 
 def main() -> None:
