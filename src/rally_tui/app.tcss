@@ -97,7 +97,11 @@ TicketListItem.-highlight > Label {
     color: $text-muted;
 }
 
-/* Footer styling */
-Footer {
+/* Command bar styling - replaces Footer */
+#command-bar {
+    dock: bottom;
+    height: 1;
     background: $surface;
+    color: $text-muted;
+    padding: 0 1;
 }
