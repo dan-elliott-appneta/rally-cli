@@ -9,6 +9,7 @@ from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer, Header
+from textual.worker import Worker, WorkerState
 
 from rally_tui import __version__
 from rally_tui.config import RallyConfig
@@ -119,14 +120,12 @@ class RallyTUI(App[None]):
             current_user=self._client.current_user,
             id="status-bar",
         )
-        # Fetch filtered tickets first for fast startup
-        # (default filter = current iteration + current user)
-        tickets = self._client.get_tickets()
-        self._all_tickets = list(tickets)  # Will be replaced with full list later
-        self._all_tickets_loaded = False  # Track if full dataset is loaded
+        # Start with empty list - tickets loaded async after splash shows
+        self._all_tickets = []
+        self._all_tickets_loaded = False
         with Horizontal(id="main-container"):
             with Vertical(id="list-container"):
-                yield TicketList(tickets, id="ticket-list")
+                yield TicketList([], id="ticket-list")
                 yield SearchInput(id="search-input")
             yield TicketDetail(id="ticket-detail")
         yield Footer()
@@ -151,47 +150,85 @@ class RallyTUI(App[None]):
         # Hide search input initially
         self.query_one("#search-input").display = False
 
-        # Set initial filter state to match what was fetched
-        # (default query = current iteration + current user)
+        # Set initial filter state for connected mode
         if self._connected and self._client.current_iteration:
             self._iteration_filter = self._client.current_iteration
             self._user_filter_active = True
-            # Update status bar to show filters (tickets already loaded with this filter)
             status_bar = self.query_one(StatusBar)
             status_bar.set_iteration_filter(self._iteration_filter)
             status_bar.set_user_filter(True)
             _log.debug(f"Initial filters: iteration={self._iteration_filter}, user=True")
 
-        # Set first ticket in detail panel
-        ticket_list = self.query_one(TicketList)
-        _log.debug(f"Loaded {len(ticket_list._tickets)} tickets")
-        if ticket_list._tickets:
-            detail = self.query_one(TicketDetail)
-            detail.ticket = ticket_list._tickets[0]
-
         # Focus the ticket list initially
         self.query_one(TicketList).focus()
 
-        # Show splash screen on startup
+        # Show splash screen first, then load tickets
         if self._show_splash:
             self.push_screen(SplashScreen())
 
-        # Load all tickets in background for when user changes filters
-        if self._connected:
-            self.run_worker(self._load_all_tickets, exclusive=True)
+        # Start loading tickets (will dismiss splash when done)
+        self.run_worker(self._load_initial_tickets, thread=True, exclusive=True)
 
         _log.info("Rally TUI started successfully")
 
-    async def _load_all_tickets(self) -> None:
-        """Background worker to load all tickets."""
+    def _load_initial_tickets(self) -> list:
+        """Load initial filtered tickets in a thread."""
+        _log.debug("Loading initial tickets...")
+        try:
+            # Load filtered tickets first (current iteration + user)
+            tickets = self._client.get_tickets()
+            return list(tickets)
+        except Exception as e:
+            _log.error(f"Failed to load tickets: {e}")
+            return []
+
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        """Handle worker completion."""
+        if event.state != WorkerState.SUCCESS:
+            return
+
+        if event.worker.name == "_load_initial_tickets":
+            # Initial tickets loaded - update UI
+            tickets = event.worker.result
+            self._all_tickets = tickets
+            self._on_initial_tickets_loaded()
+
+            # Now load ALL tickets in background for filter changes
+            if self._connected:
+                self.run_worker(self._load_all_tickets, thread=True, exclusive=False)
+
+        elif event.worker.name == "_load_all_tickets":
+            # All tickets loaded - update cache
+            tickets = event.worker.result
+            if tickets:
+                self._all_tickets = tickets
+                self._all_tickets_loaded = True
+                _log.info(f"Background load complete: {len(self._all_tickets)} total tickets")
+
+    def _load_all_tickets(self) -> list:
+        """Load all tickets in background thread."""
         _log.debug("Loading all tickets in background...")
         try:
             all_tickets = self._client.get_tickets(query="")
-            self._all_tickets = list(all_tickets)
-            self._all_tickets_loaded = True
-            _log.info(f"Background load complete: {len(self._all_tickets)} total tickets")
+            return list(all_tickets)
         except Exception as e:
             _log.error(f"Failed to load all tickets: {e}")
+            return []
+
+    def _on_initial_tickets_loaded(self) -> None:
+        """Called when initial tickets are loaded - update UI and dismiss splash."""
+        ticket_list = self.query_one(TicketList)
+        ticket_list.set_tickets(self._all_tickets)
+        _log.debug(f"Loaded {len(self._all_tickets)} tickets")
+
+        # Set first ticket in detail panel
+        if self._all_tickets:
+            detail = self.query_one(TicketDetail)
+            detail.ticket = self._all_tickets[0]
+
+        # Dismiss splash screen if showing
+        if self._show_splash and len(self.screen_stack) > 1:
+            self.pop_screen()
 
     def on_ticket_list_ticket_highlighted(
         self, event: TicketList.TicketHighlighted
