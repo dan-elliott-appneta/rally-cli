@@ -8,14 +8,21 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - View ticket details in a split-pane layout
 - Keyboard-driven interface with vim-style navigation
 - Color-coded ticket types (User Stories, Defects, Tasks, Test Cases)
-- **Splash screen**: ASCII art rally car greeting on startup
+- **State indicators**: Visual workflow state with symbols (`.` not started, `+` in progress, `-` done, `✓` accepted)
+- **Sorted by workflow**: Tickets sorted by state progression (Ideas at top, Accepted at bottom)
+- **Splash screen**: ASCII art "RALLY TUI" greeting on startup
+- **Theme toggle**: Switch between dark/light themes with `t` key (persisted)
+- **User settings**: Preferences saved to `~/.config/rally-tui/config.json`
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
 - **Discussions**: View ticket discussions and add comments
 
 ## Status
 
-**Iteration 8 Complete** - Discussions & Comments.
+**Iteration 8+ Complete** - Discussions, Comments, and UI Polish.
 
+- State indicators show workflow progress with colored symbols
+- Tickets sorted by workflow state (earlier states at top)
+- Theme preference persisted to user config file
 - View ticket discussions with `d` key
 - Add comments with `c` key from discussion screen
 - HTML content converted to readable plain text
@@ -32,7 +39,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Tab to switch between panels
 - Context-sensitive keyboard shortcuts
 - Default filter to current iteration and current user when connected
-- 245 tests passing
+- 257 tests passing
 
 Next: Iteration 9 (CRUD Operations).
 
@@ -100,10 +107,21 @@ rally-tui
 | Enter | list/search | Select item (or confirm search) |
 | Esc | any | Clear filter / Go back |
 | Tab | list/detail | Switch panel |
+| t | any | Toggle dark/light theme |
 | d | list/detail | Open discussions |
 | c | discussion | Add comment |
 | Ctrl+S | comment | Submit comment |
 | q | any | Quit |
+
+### User Settings
+
+Settings are stored in `~/.config/rally-tui/config.json`:
+
+```json
+{
+  "theme": "dark"
+}
+```
 
 ## Development
 
@@ -115,6 +133,8 @@ rally-cli/
 ├── src/rally_tui/           # Main application code
 │   ├── app.py               # Textual application entry point
 │   ├── app.tcss             # CSS stylesheet
+│   ├── config.py            # Rally API config (pydantic-settings)
+│   ├── user_settings.py     # User preferences (~/.config/rally-tui/)
 │   ├── models/
 │   │   ├── ticket.py        # Ticket dataclass
 │   │   ├── discussion.py    # Discussion dataclass
@@ -124,12 +144,11 @@ rally-cli/
 │   │   ├── discussion_screen.py  # DiscussionScreen
 │   │   └── comment_screen.py     # CommentScreen
 │   ├── widgets/
-│   │   ├── ticket_list.py   # TicketList widget (left panel)
+│   │   ├── ticket_list.py   # TicketList widget (left panel, state sorting)
 │   │   ├── ticket_detail.py # TicketDetail widget (right panel)
 │   │   ├── command_bar.py   # CommandBar widget (bottom)
 │   │   ├── status_bar.py    # StatusBar widget (top)
 │   │   └── search_input.py  # SearchInput widget (search mode)
-│   ├── config.py            # Configuration (pydantic-settings)
 │   ├── utils/               # Utility functions
 │   │   └── html_to_text.py  # HTML to plain text converter
 │   └── services/            # Rally API client layer
@@ -151,6 +170,7 @@ rally-cli/
 │   ├── test_services.py          # Service layer tests
 │   ├── test_mock_client_discussions.py  # MockClient discussion tests
 │   ├── test_config.py            # Configuration tests
+│   ├── test_user_settings.py     # User settings tests
 │   ├── test_rally_client.py      # RallyClient tests
 │   ├── test_html_to_text.py      # HTML conversion tests
 │   └── test_snapshots.py         # Visual regression tests
