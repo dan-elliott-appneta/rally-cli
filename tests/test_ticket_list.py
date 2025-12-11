@@ -22,6 +22,7 @@ class TestTicketListWidget:
         """First item should be highlighted on start."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
+            await pilot.pause()  # Allow UI to settle
             ticket_list = app.query_one(TicketList)
             assert ticket_list.index == 0
 
@@ -29,6 +30,7 @@ class TestTicketListWidget:
         """Pressing j should move selection down."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
+            await pilot.pause()  # Allow UI to settle
             ticket_list = app.query_one(TicketList)
             assert ticket_list.index == 0
 
@@ -39,6 +41,7 @@ class TestTicketListWidget:
         """Pressing k should move selection up."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
+            await pilot.pause()  # Allow UI to settle
             ticket_list = app.query_one(TicketList)
 
             await pilot.press("j", "j")
@@ -51,6 +54,7 @@ class TestTicketListWidget:
         """Down arrow should move selection down."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
+            await pilot.pause()  # Allow UI to settle
             ticket_list = app.query_one(TicketList)
 
             await pilot.press("down")
@@ -60,6 +64,7 @@ class TestTicketListWidget:
         """Up arrow should move selection up."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
+            await pilot.pause()  # Allow UI to settle
             ticket_list = app.query_one(TicketList)
 
             await pilot.press("down", "down")
@@ -70,6 +75,7 @@ class TestTicketListWidget:
         """Pressing g should jump to first item."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
+            await pilot.pause()  # Allow UI to settle
             ticket_list = app.query_one(TicketList)
 
             await pilot.press("j", "j", "j")
@@ -91,6 +97,7 @@ class TestTicketListWidget:
         """Pressing k at top should stay at top."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
+            await pilot.pause()  # Allow UI to settle
             ticket_list = app.query_one(TicketList)
             assert ticket_list.index == 0
 
