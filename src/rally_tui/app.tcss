@@ -5,9 +5,17 @@ Screen {
     layout: vertical;
 }
 
-/* Ticket list styling */
-#ticket-list {
+/* Main content container - horizontal split */
+#main-container {
     height: 1fr;
+}
+
+/* Ticket list styling - left panel */
+#ticket-list {
+    width: 35%;
+    min-width: 25;
+    max-width: 50;
+    height: 100%;
     border: solid $primary;
     border-title-color: $text;
     border-title-style: bold;
@@ -50,6 +58,43 @@ TicketListItem.-highlight > Label {
 
 .ticket-tc {
     color: $primary;
+}
+
+/* Ticket detail panel - right panel */
+#ticket-detail {
+    width: 1fr;
+    height: 100%;
+    border: solid $secondary;
+    padding: 1 2;
+}
+
+#ticket-detail:focus {
+    border: double $accent;
+}
+
+/* Detail content styling */
+#detail-header {
+    text-style: bold;
+    color: $text;
+    margin-bottom: 0;
+}
+
+#detail-divider {
+    color: $text-muted;
+    margin-bottom: 1;
+}
+
+#detail-metadata {
+    margin-bottom: 1;
+}
+
+#detail-description-label {
+    text-style: bold;
+    color: $text;
+}
+
+#detail-description {
+    color: $text-muted;
 }
 
 /* Footer styling */
