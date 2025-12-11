@@ -5,6 +5,14 @@ Screen {
     layout: vertical;
 }
 
+/* Status bar styling - below header */
+#status-bar {
+    height: 1;
+    background: $primary-background;
+    color: $text;
+    padding: 0 1;
+}
+
 /* Main content container - horizontal split */
 #main-container {
     height: 1fr;
@@ -19,6 +27,7 @@ Screen {
     border: solid $primary;
     border-title-color: $text;
     border-title-style: bold;
+    border-title-align: center;
 }
 
 #ticket-list:focus {
@@ -65,6 +74,9 @@ TicketListItem.-highlight > Label {
     width: 1fr;
     height: 100%;
     border: solid $secondary;
+    border-title-color: $text;
+    border-title-style: bold;
+    border-title-align: center;
     padding: 1 2;
 }
 
