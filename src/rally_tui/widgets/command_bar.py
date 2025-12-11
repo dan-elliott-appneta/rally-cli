@@ -12,8 +12,8 @@ class CommandBar(Static):
 
     # Command sets for different contexts
     CONTEXTS = {
-        "list": "[c] Create  [p] Points  [n] Notes  [d] Discuss  [\\[/\\]] Search  [Ctrl+P] Palette  [q] Quit",
-        "detail": "[c] Create  [p] Points  [n] Notes  [d] Discuss  [Tab] Switch  [Ctrl+P] Palette  [q] Quit",
+        "list": "[w] Workitem  [p] Points  [n] Notes  [d] Discuss  [\\[/\\]] Search  [Ctrl+P] Palette  [q] Quit",
+        "detail": "[w] Workitem  [p] Points  [n] Notes  [d] Discuss  [Tab] Switch  [Ctrl+P] Palette  [q] Quit",
         "search": "[Enter] Confirm  [Esc] Clear  Type to filter...",
         "discussion": "[c] Comment  [Esc] Back  [q] Quit",
         "comment": "[Ctrl+S] Submit  [Esc] Cancel",

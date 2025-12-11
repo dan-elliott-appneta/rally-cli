@@ -256,7 +256,7 @@ class TestQuickTicketIntegration:
         app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             # Open quick ticket screen
-            await pilot.press("c")
+            await pilot.press("w")
             await pilot.pause()
 
             # Fill in title
@@ -278,7 +278,7 @@ class TestQuickTicketIntegration:
         app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             # Open quick ticket screen
-            await pilot.press("c")
+            await pilot.press("w")
             await pilot.pause()
 
             # Cancel
