@@ -11,7 +11,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **State indicators**: Visual workflow state with symbols (`.` not started, `+` in progress, `-` done, `✓` accepted)
 - **Sorted by workflow**: Tickets sorted by state progression (Ideas at top, Accepted at bottom)
 - **Splash screen**: ASCII art "RALLY TUI" greeting on startup
-- **Theme toggle**: Switch between dark/light themes with `t` key (persisted)
+- **Theme support**: Full Textual theme support (catppuccin, nord, dracula, etc.) via command palette, persisted between sessions
 - **Copy URL**: Press `y` to copy Rally ticket URL to clipboard
 - **Set Points**: Press `p` to set story points on selected ticket
 - **User settings**: Preferences saved to `~/.config/rally-tui/config.json`
@@ -43,7 +43,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Tab to switch between panels
 - Context-sensitive keyboard shortcuts
 - Default filter to current iteration and current user when connected
-- 276 tests passing
+- 281 tests passing
 
 Next: Iteration 9 (CRUD Operations).
 
@@ -126,9 +126,12 @@ Settings are stored in `~/.config/rally-tui/config.json`:
 
 ```json
 {
-  "theme": "dark"
+  "theme": "dark",
+  "theme_name": "catppuccin-mocha"
 }
 ```
+
+Available themes: `textual-dark`, `textual-light`, `catppuccin-mocha`, `catppuccin-latte`, `nord`, `gruvbox`, `dracula`, `tokyo-night`, `monokai`, `flexoki`, `solarized-light`
 
 ## Development
 
@@ -149,7 +152,8 @@ rally-cli/
 │   ├── screens/
 │   │   ├── splash_screen.py      # SplashScreen (startup)
 │   │   ├── discussion_screen.py  # DiscussionScreen
-│   │   └── comment_screen.py     # CommentScreen
+│   │   ├── comment_screen.py     # CommentScreen
+│   │   └── points_screen.py      # PointsScreen (set story points)
 │   ├── widgets/
 │   │   ├── ticket_list.py   # TicketList widget (left panel, state sorting)
 │   │   ├── ticket_detail.py # TicketDetail widget (right panel)
@@ -171,6 +175,7 @@ rally-cli/
 │   ├── test_splash_screen.py     # SplashScreen tests
 │   ├── test_discussion_screen.py # DiscussionScreen tests
 │   ├── test_comment_screen.py    # CommentScreen tests
+│   ├── test_points_screen.py     # PointsScreen tests
 │   ├── test_command_bar.py       # CommandBar widget tests
 │   ├── test_status_bar.py        # StatusBar widget tests
 │   ├── test_search_input.py      # SearchInput widget tests
