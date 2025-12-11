@@ -78,6 +78,13 @@ pip install -e ".[dev]"
 
 ## Usage
 
+### Check Version
+
+```bash
+rally-tui --version
+# Output: rally-tui 0.1.0
+```
+
 ### Running with Rally API
 
 ```bash
@@ -243,6 +250,19 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 - **[Textual](https://textual.textualize.io/)** - Modern Python TUI framework
 - **[pyral](https://pyral.readthedocs.io/)** - Rally REST API toolkit
 - **[pytest-textual-snapshot](https://github.com/Textualize/pytest-textual-snapshot)** - Visual regression testing
+
+## Versioning
+
+This project uses [Semantic Versioning](https://semver.org/):
+- Version is defined in `pyproject.toml`
+- Accessible as `rally_tui.__version__` in code
+- Displayed with `rally-tui --version`
+- Shown on splash screen at startup
+
+Version format: `MAJOR.MINOR.PATCH`
+- **MAJOR**: Incompatible API changes
+- **MINOR**: New features (backwards compatible)
+- **PATCH**: Bug fixes (backwards compatible)
 
 ## License
 
