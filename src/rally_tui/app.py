@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import argparse
+import sys
+
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer, Header
 
+from rally_tui import __version__
 from rally_tui.config import RallyConfig
 from rally_tui.screens import (
     DiscussionScreen,
@@ -393,6 +397,18 @@ def main() -> None:
     If RALLY_APIKEY is set, attempts to connect to Rally.
     Otherwise, runs in offline mode with sample data.
     """
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        prog="rally-tui",
+        description="A terminal user interface for Rally work items.",
+    )
+    parser.add_argument(
+        "-V", "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+    )
+    parser.parse_args()
+
     # Initialize logging first
     user_settings = UserSettings()
     setup_logging(user_settings)
