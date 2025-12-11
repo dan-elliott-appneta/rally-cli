@@ -5,7 +5,7 @@ from __future__ import annotations
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Header
+from textual.widgets import Footer, Header
 
 from rally_tui.config import RallyConfig
 from rally_tui.screens import (
@@ -19,7 +19,6 @@ from rally_tui.services import MockRallyClient, RallyClient, RallyClientProtocol
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils import get_logger, setup_logging
 from rally_tui.widgets import (
-    CommandBar,
     SearchInput,
     StatusBar,
     TicketDetail,
@@ -37,16 +36,16 @@ class RallyTUI(App[None]):
     CSS_PATH = "app.tcss"
 
     BINDINGS = [
+        Binding("w", "quick_ticket", "Workitem"),
+        Binding("p", "set_points", "Points"),
+        Binding("n", "toggle_notes", "Notes"),
+        Binding("d", "open_discussions", "Discuss"),
+        Binding("/", "start_search", "Search"),
+        Binding("ctrl+p", "command_palette", "Palette"),
         Binding("q", "quit", "Quit"),
         Binding("tab", "switch_panel", "Switch Panel", show=False, priority=True),
-        Binding("?", "help", "Help", show=False),
-        Binding("/", "start_search", "Search", show=False),
-        Binding("d", "open_discussions", "Discussions", show=False),
-        Binding("t", "toggle_theme", "Toggle Theme", show=False),
+        Binding("t", "toggle_theme", "Theme", show=False),
         Binding("y", "copy_ticket_url", "Copy URL", show=False),
-        Binding("p", "set_points", "Set Points", show=False),
-        Binding("n", "toggle_notes", "Toggle Notes", show=False),
-        Binding("w", "quick_ticket", "New Workitem", show=False),
     ]
 
     def __init__(
@@ -111,7 +110,7 @@ class RallyTUI(App[None]):
                 yield TicketList(tickets, id="ticket-list")
                 yield SearchInput(id="search-input")
             yield TicketDetail(id="ticket-detail")
-        yield CommandBar(id="command-bar")
+        yield Footer()
 
     def on_mount(self) -> None:
         """Initialize the app state."""
@@ -166,7 +165,6 @@ class RallyTUI(App[None]):
         """Switch focus between the list and detail panels."""
         ticket_list = self.query_one(TicketList)
         ticket_detail = self.query_one(TicketDetail)
-        command_bar = self.query_one(CommandBar)
         search_input = self.query_one(SearchInput)
 
         # If search is active, don't switch panels
@@ -175,17 +173,14 @@ class RallyTUI(App[None]):
 
         if ticket_list.has_focus:
             ticket_detail.focus()
-            command_bar.set_context("detail")
         else:
             ticket_list.focus()
-            command_bar.set_context("list")
 
     def action_start_search(self) -> None:
         """Activate search mode."""
         search_input = self.query_one(SearchInput)
         search_input.display = True
         search_input.focus()
-        self.query_one(CommandBar).set_context("search")
 
     def _end_search(self, clear: bool = False) -> None:
         """End search mode and return to list.
@@ -195,7 +190,6 @@ class RallyTUI(App[None]):
         """
         search_input = self.query_one(SearchInput)
         ticket_list = self.query_one(TicketList)
-        command_bar = self.query_one(CommandBar)
         status_bar = self.query_one(StatusBar)
 
         if clear:
@@ -205,7 +199,6 @@ class RallyTUI(App[None]):
 
         search_input.display = False
         ticket_list.focus()
-        command_bar.set_context("list")
 
     def on_search_input_search_changed(
         self, event: SearchInput.SearchChanged
