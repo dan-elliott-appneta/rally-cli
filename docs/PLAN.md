@@ -321,44 +321,56 @@ tests/
 
 ---
 
-### Iteration 4: Layout & Styling
+### Iteration 4: Layout Polish & Status Bar ✅ COMPLETE
 
-**Goal**: Proper 3-panel layout with CSS styling
+**Goal**: Visual polish and status bar for workspace/project info
+
+**Detailed Guide**: See [ITERATION_4.md](./ITERATION_4.md) for step-by-step implementation.
 
 **Tasks**:
-- [ ] Create main screen with CSS grid/dock layout
-- [ ] Left panel: fixed width or percentage
-- [ ] Right panel: flexible width
-- [ ] Bottom bar: docked to bottom
-- [ ] Add header bar with workspace/project info
-- [ ] Color coding for ticket types
-- [ ] Focus indicators (border highlight)
+- [x] Create `StatusBar` widget (extends Static)
+- [x] Display workspace/project info (placeholders until Rally integration)
+- [x] Add connection status indicator (Offline placeholder)
+- [x] Add border titles to panels ("Tickets", "Details")
+- [x] Enhance CSS styling for visual polish
+- [x] Write unit tests for StatusBar widget (17 tests)
+- [x] Update snapshot tests for new layout (7 updated)
 
-**Deliverable**: Polished layout matching the design mockup
+**Implementation Notes**:
+- StatusBar uses `display_content` property for test assertions
+- Panel titles set via `border_title` attribute in `on_mount`
+- CSS uses `border-title-align: center` for centered titles
+- 73 total tests passing
+
+**Deliverable**: StatusBar showing workspace/project info, polished panel titles
 
 **Test Coverage**:
-- Snapshot: Full app layout at different terminal sizes
-- Snapshot: Color coding for different ticket types
+- Unit: StatusBar renders with default values
+- Unit: StatusBar displays workspace/project names
+- Unit: StatusBar handles empty values gracefully
+- Unit: Panel titles are set correctly
+- Snapshot: Full app layout with StatusBar
+- Snapshot: Different terminal sizes
 
-```css
-/* rally_tui.tcss */
-TicketList {
-    width: 30%;
-    min-width: 25;
-    border: solid $primary;
-}
-
-TicketDetail {
-    width: 70%;
-    border: solid $secondary;
-}
-
-CommandBar {
-    dock: bottom;
-    height: 1;
-    background: $surface;
-}
+**Key Files**:
 ```
+src/rally_tui/widgets/
+└── status_bar.py      # New StatusBar widget
+
+src/rally_tui/
+├── app.py             # Add StatusBar, set panel titles
+├── app.tcss           # Status bar styling
+└── widgets/
+    └── __init__.py    # Export StatusBar
+
+tests/
+└── test_status_bar.py # New tests
+```
+
+**Key Concepts**:
+- `border_title` attribute for panel titles
+- Placeholder values for pre-Rally-integration state
+- Reactive properties for future workspace/project updates
 
 ---
 
