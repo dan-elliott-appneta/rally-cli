@@ -884,13 +884,106 @@ tests/
 
 ---
 
+### Iteration 11: Parent Selection Feature
+
+**Goal**: Require parent Feature assignment when moving tickets to "In Progress" state
+
+**Tasks**:
+- [ ] Add `parent_id` field to Ticket model
+- [ ] Add `parent_options` property to UserSettings (default: F59625, F59627, F59628)
+- [ ] Add `get_feature()` and `set_parent()` methods to RallyClientProtocol
+- [ ] Implement `get_feature()` and `set_parent()` in RallyClient
+- [ ] Implement `get_feature()` and `set_parent()` in MockRallyClient
+- [ ] Create `ParentScreen` modal for parent selection
+- [ ] Modify `_handle_state_result()` to intercept "In Progress" transitions
+- [ ] Update `_to_ticket()` to include parent_id from PortfolioItem
+- [ ] Write comprehensive tests
+- [ ] Update documentation
+- [ ] Bump version to 0.3.0
+
+**Implementation Notes**:
+- **Parent Options**: User-configurable list of 3 Feature IDs stored in `~/.config/rally-tui/config.json`
+- **ParentScreen UI**: Shows 3 configured parents with truncated titles (40 chars max) + 4th option for custom ID
+- **Rally API**: Features are `PortfolioItem/Feature` entities; User Stories have `PortfolioItem` field
+- **Flow**: When selecting "In Progress" and ticket has no parent, ParentScreen appears before state change
+- **Number Keys**: 1-3 for configured parents, 4 for custom input, Esc to cancel
+
+**UI Layout**:
+```
+┌─────────────────────────────────────────────┐
+│ Select Parent Feature - US1234              │
+├─────────────────────────────────────────────┤
+│ Ticket must have a parent before moving     │
+│ to In Progress.                             │
+│                                             │
+│ [1. F59625 - Feature Title Trunc...]        │
+│ [2. F59627 - Another Feature Ti...]         │
+│ [3. F59628 - Third Feature Name...]         │
+│ [4. Enter custom ID...]                     │
+│                                             │
+│ ┌─────────────────────────────────────────┐ │
+│ │ (Input field for custom ID)             │ │
+│ └─────────────────────────────────────────┘ │
+│                                             │
+│ Press 1-4 or click button, ESC to cancel    │
+└─────────────────────────────────────────────┘
+```
+
+**Key Files**:
+```
+src/rally_tui/
+├── models/
+│   └── ticket.py           # Add parent_id field
+├── user_settings.py        # Add parent_options property
+├── screens/
+│   ├── __init__.py         # Export ParentScreen
+│   └── parent_screen.py    # New ParentScreen modal
+├── services/
+│   ├── protocol.py         # Add get_feature, set_parent
+│   ├── rally_client.py     # Implement get_feature, set_parent
+│   └── mock_client.py      # Mock implementations
+└── app.py                  # Modify _handle_state_result
+
+tests/
+├── test_ticket_model.py      # Add parent_id tests
+├── test_user_settings.py     # Add parent_options tests
+├── test_parent_screen.py     # New test file
+├── test_services.py          # Add get_feature/set_parent tests
+└── test_app.py               # Add parent selection flow tests
+```
+
+**Test Coverage**:
+- Unit: Ticket model with parent_id field
+- Unit: UserSettings parent_options get/set/default
+- Unit: ParentScreen renders 4 options
+- Unit: ParentScreen number key bindings (1-4)
+- Unit: ParentScreen custom input mode
+- Unit: get_feature() returns (id, name) tuple
+- Unit: set_parent() updates ticket parent
+- Integration: State change to "In Progress" shows ParentScreen
+- Integration: State change skips ParentScreen when has parent
+- Integration: Full flow: parent selection → state change
+
+**Commit Plan**:
+1. `feat: add parent_id field to Ticket model`
+2. `feat: add parent_options to UserSettings`
+3. `feat: add get_feature and set_parent to protocol`
+4. `feat: implement get_feature and set_parent in clients`
+5. `feat: create ParentScreen modal`
+6. `feat: require parent when moving to In Progress`
+7. `test: add comprehensive tests for parent selection`
+8. `docs: update README with parent selection feature`
+9. `chore: bump version to 0.3.0`
+
+---
+
 ### Future Iterations
 
-- **Iteration 11**: Bulk operations (multi-select with Space)
-- **Iteration 12**: Attachment viewing/adding
-- **Iteration 13**: Custom fields support
-- **Iteration 14**: Caching and offline mode
-- **Iteration 15**: CRUD Operations (edit tickets, delete with confirmation)
+- **Iteration 12**: Bulk operations (multi-select with Space)
+- **Iteration 13**: Attachment viewing/adding
+- **Iteration 14**: Custom fields support
+- **Iteration 15**: Caching and offline mode
+- **Iteration 16**: CRUD Operations (edit tickets, delete with confirmation)
 
 ---
 
