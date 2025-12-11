@@ -169,7 +169,7 @@ class RallyClient:
             try:
                 response = self._rally.get(
                     entity_type,
-                    fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID",
+                    fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
                     query=effective_query,
                     pagesize=200,
                 )
@@ -202,7 +202,7 @@ class RallyClient:
         try:
             response = self._rally.get(
                 entity_type,
-                fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID",
+                fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
                 query=f'FormattedID = "{formatted_id}"',
             )
 
@@ -275,6 +275,11 @@ class RallyClient:
         if hasattr(item, "ObjectID") and item.ObjectID:
             object_id = str(item.ObjectID)
 
+        # Extract parent ID from PortfolioItem (for User Stories)
+        parent_id = None
+        if hasattr(item, "PortfolioItem") and item.PortfolioItem:
+            parent_id = getattr(item.PortfolioItem, "FormattedID", None)
+
         return Ticket(
             formatted_id=item.FormattedID,
             name=item.Name,
@@ -286,6 +291,7 @@ class RallyClient:
             iteration=iteration,
             points=points,
             object_id=object_id,
+            parent_id=parent_id,
         )
 
     def _get_entity_type(self, formatted_id: str) -> str:
@@ -468,6 +474,7 @@ class RallyClient:
                 iteration=ticket.iteration,
                 points=stored_points,
                 object_id=ticket.object_id,
+                parent_id=ticket.parent_id,
             )
         except Exception as e:
             _log.error(f"Error updating points for {ticket.formatted_id}: {e}")
@@ -583,6 +590,7 @@ class RallyClient:
                 iteration=ticket.iteration,
                 points=ticket.points,
                 object_id=ticket.object_id,
+                parent_id=ticket.parent_id,
             )
         except Exception as e:
             _log.error(f"Error updating state for {ticket.formatted_id}: {e}")
@@ -697,3 +705,93 @@ class RallyClient:
             _log.warning(f"Failed to parse date '{date_str}': {e}")
 
         return None
+
+    def get_feature(self, formatted_id: str) -> tuple[str, str] | None:
+        """Fetch a Feature's name by its formatted ID.
+
+        Args:
+            formatted_id: The Feature's formatted ID (e.g., "F59625").
+
+        Returns:
+            Tuple of (formatted_id, name) if found, None otherwise.
+        """
+        _log.debug(f"Fetching feature: {formatted_id}")
+
+        try:
+            # Search workspace-wide since Features may be at a higher level
+            response = self._rally.get(
+                "PortfolioItem/Feature",
+                fetch="FormattedID,Name",
+                query=f'FormattedID = "{formatted_id}"',
+                projectScopeUp=True,
+                projectScopeDown=True,
+            )
+
+            item = response.next()
+            _log.debug(f"Found feature: {formatted_id} - {item.Name}")
+            return (item.FormattedID, item.Name)
+        except StopIteration:
+            _log.warning(f"Feature not found: {formatted_id}")
+            return None
+        except Exception as e:
+            _log.error(f"Error fetching feature {formatted_id}: {e}")
+            return None
+
+    def set_parent(self, ticket: Ticket, parent_id: str) -> Ticket | None:
+        """Set a ticket's parent Feature.
+
+        Args:
+            ticket: The ticket to update.
+            parent_id: The parent Feature's formatted ID (e.g., "F59625").
+
+        Returns:
+            The updated Ticket with parent_id set, or None on failure.
+        """
+        if not ticket.object_id:
+            _log.warning(f"Cannot set parent: no object_id for {ticket.formatted_id}")
+            return None
+
+        _log.info(f"Setting parent of {ticket.formatted_id} to {parent_id}")
+
+        try:
+            entity_type = self._get_entity_type(ticket.formatted_id)
+
+            # Get the Feature's ObjectID for the ref (search workspace-wide)
+            feature_response = self._rally.get(
+                "PortfolioItem/Feature",
+                fetch="ObjectID",
+                query=f'FormattedID = "{parent_id}"',
+                projectScopeUp=True,
+                projectScopeDown=True,
+            )
+            feature = feature_response.next()
+            feature_object_id = feature.ObjectID
+
+            # Update the ticket's PortfolioItem
+            update_data = {
+                "ObjectID": ticket.object_id,
+                "PortfolioItem": f"/portfolioitem/feature/{feature_object_id}",
+            }
+
+            self._rally.update(entity_type, update_data)
+            _log.info(f"Parent set successfully for {ticket.formatted_id}")
+
+            return Ticket(
+                formatted_id=ticket.formatted_id,
+                name=ticket.name,
+                ticket_type=ticket.ticket_type,
+                state=ticket.state,
+                owner=ticket.owner,
+                description=ticket.description,
+                notes=ticket.notes,
+                iteration=ticket.iteration,
+                points=ticket.points,
+                object_id=ticket.object_id,
+                parent_id=parent_id,
+            )
+        except StopIteration:
+            _log.error(f"Feature not found: {parent_id}")
+            return None
+        except Exception as e:
+            _log.error(f"Error setting parent for {ticket.formatted_id}: {e}")
+            return None
