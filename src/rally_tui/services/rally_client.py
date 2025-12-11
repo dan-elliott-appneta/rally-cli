@@ -592,8 +592,8 @@ class RallyClient:
     def get_iterations(self, count: int = 5) -> list[Iteration]:
         """Fetch recent iterations from Rally.
 
-        Queries the Iteration entity and returns the most recent iterations,
-        sorted by start date descending (most recent first).
+        Queries the Iteration entity and returns iterations that have already
+        started (past + current), sorted by start date descending.
 
         Args:
             count: Maximum number of iterations to return.
@@ -601,13 +601,18 @@ class RallyClient:
         Returns:
             List of Iteration objects, sorted by start date descending.
         """
+        from datetime import datetime, timezone
+
         _log.debug(f"Fetching {count} recent iterations")
         iterations: list[Iteration] = []
 
         try:
+            # Only return iterations that have already started (past + current)
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             response = self._rally.get(
                 "Iteration",
                 fetch="ObjectID,Name,StartDate,EndDate,State",
+                query=f'(StartDate <= "{today}")',
                 order="StartDate desc",
                 pagesize=count * 2,  # Fetch extra to account for filtering
             )
