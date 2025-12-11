@@ -267,6 +267,7 @@ class TestRallyTUIWithClient:
         app = RallyTUI(show_splash=False)  # No client passed
         async with app.run_test() as pilot:
             detail = app.query_one(TicketDetail)
-            # Should show first ticket from SAMPLE_TICKETS
+            # Should show first ticket from SAMPLE_TICKETS (sorted by state)
+            # First ticket after sorting is US1235 (Defined state)
             assert detail.ticket is not None
-            assert detail.ticket.formatted_id == "US1234"
+            assert detail.ticket.formatted_id == "US1235"

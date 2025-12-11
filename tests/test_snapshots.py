@@ -1,4 +1,11 @@
-"""Snapshot tests for visual regression."""
+"""Snapshot tests for visual regression.
+
+Note: Tickets are sorted by state order:
+- Defined (US1235, TC101, US1237) - indices 0, 1, 2
+- Open (DE456, DE457) - indices 3, 4
+- In Progress (US1234, TA789) - indices 5, 6
+- Completed (US1236) - index 7
+"""
 
 import pytest
 
@@ -34,19 +41,20 @@ class TestAppSnapshots:
         """Snapshot showing defect details in the right panel."""
         from rally_tui.app import RallyTUI
 
-        # Navigate to first defect (DE456) at index 2
-        assert snap_compare(RallyTUI(show_splash=False), press=["j", "j"])
+        # Navigate to first defect DE456 (index 3 after sorting by state)
+        assert snap_compare(RallyTUI(show_splash=False), press=["j", "j", "j"])
 
     def test_unassigned_ticket(self, snap_compare) -> None:
         """Snapshot showing ticket with no owner (Unassigned)."""
         from rally_tui.app import RallyTUI
 
-        # Navigate to DE457 which has no owner (index 5)
-        assert snap_compare(RallyTUI(show_splash=False), press=["j", "j", "j", "j", "j"])
+        # Navigate to DE457 which has no owner (index 4 after sorting)
+        assert snap_compare(RallyTUI(show_splash=False), press=["j", "j", "j", "j"])
 
     def test_unscheduled_ticket(self, snap_compare) -> None:
         """Snapshot showing ticket with no iteration (Unscheduled)."""
         from rally_tui.app import RallyTUI
 
-        # Navigate to US1237 which has no iteration (last item)
-        assert snap_compare(RallyTUI(show_splash=False), press=["G"])
+        # Navigate to DE457 which has no iteration (index 4 after sorting)
+        # Note: US1237 also has no iteration but is at index 2
+        assert snap_compare(RallyTUI(show_splash=False), press=["j", "j", "j", "j"])

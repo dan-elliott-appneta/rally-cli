@@ -51,8 +51,20 @@ TicketListItem {
     padding: 0 1;
 }
 
-TicketListItem > Label {
+/* Ticket row layout */
+.ticket-row {
     width: 100%;
+    height: auto;
+}
+
+.state-indicator {
+    width: 2;
+    min-width: 2;
+    max-width: 2;
+}
+
+.ticket-text {
+    width: 1fr;
 }
 
 /* Highlighted (cursor) item */
