@@ -63,6 +63,24 @@ class TestStatusBarUnit:
         bar.set_connected(True)
         assert bar.connected is True
 
+    def test_default_filter_info_is_empty(self) -> None:
+        """Default filter_info should be empty string."""
+        bar = StatusBar()
+        assert bar.filter_info == ""
+
+    def test_set_filter_info(self) -> None:
+        """set_filter_info should update filter_info."""
+        bar = StatusBar()
+        bar.set_filter_info(5, 10)
+        assert bar.filter_info == "Filtered: 5/10"
+
+    def test_clear_filter_info(self) -> None:
+        """clear_filter_info should reset filter_info to empty."""
+        bar = StatusBar()
+        bar.set_filter_info(3, 8)
+        bar.clear_filter_info()
+        assert bar.filter_info == ""
+
 
 class TestStatusBarWidget:
     """Integration tests for StatusBar widget behavior."""
@@ -208,6 +226,36 @@ class TestStatusBarWidget:
             assert "Offline" in status_bar.display_content
             status_bar.set_connected(True)
             assert "Connected" in status_bar.display_content
+
+    async def test_status_bar_shows_filter_info(self) -> None:
+        """StatusBar should show filter info when set."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            status_bar.set_filter_info(3, 10)
+            assert "Filtered: 3/10" in status_bar.display_content
+
+    async def test_status_bar_clears_filter_info(self) -> None:
+        """StatusBar should clear filter info when cleared."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            status_bar.set_filter_info(3, 10)
+            assert "Filtered: 3/10" in status_bar.display_content
+            status_bar.clear_filter_info()
+            assert "Filtered:" not in status_bar.display_content
 
 
 class TestStatusBarInApp:
