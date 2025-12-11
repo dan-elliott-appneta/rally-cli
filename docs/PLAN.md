@@ -191,23 +191,23 @@ tests/
 
 ---
 
-### Iteration 2: Details Panel (Right Side)
+### Iteration 2: Details Panel (Right Side) - COMPLETE
 
 **Goal**: Show ticket details when a ticket is selected in a two-panel layout
 
 **Detailed Guide**: See [ITERATION_2.md](./ITERATION_2.md) for step-by-step implementation.
 
 **Tasks**:
-- [ ] Create `TicketDetail` widget (extends VerticalScroll)
-- [ ] Add new fields to Ticket model (description, owner, iteration, points)
-- [ ] Update sample data with all new fields
-- [ ] Implement two-panel layout with Horizontal container
-- [ ] Use reactive property for ticket updates (`watch_ticket`)
-- [ ] Display ticket fields (ID, Name, Type, State, Owner, Iteration, Points, Description)
-- [ ] Handle empty/null states ("Unassigned", "Unscheduled", "—" for no points)
-- [ ] Update CSS for two-panel layout (35% / 1fr split)
-- [ ] Write unit tests for TicketDetail widget (13 tests)
-- [ ] Update snapshot tests for new layout (3 tests)
+- [x] Create `TicketDetail` widget (extends VerticalScroll)
+- [x] Add new fields to Ticket model (description, owner, iteration, points)
+- [x] Update sample data with all new fields
+- [x] Implement two-panel layout with Horizontal container
+- [x] Use reactive property for ticket updates (`watch_ticket`)
+- [x] Display ticket fields (ID, Name, Type, State, Owner, Iteration, Points, Description)
+- [x] Handle empty/null states ("Unassigned", "Unscheduled", "—" for no points)
+- [x] Update CSS for two-panel layout (35% / 1fr split)
+- [x] Write unit tests for TicketDetail widget (13 tests)
+- [x] Update snapshot tests for new layout (3 new + 4 updated = 7 total)
 
 **Deliverable**: Two-panel layout where selecting a ticket updates the right panel
 
