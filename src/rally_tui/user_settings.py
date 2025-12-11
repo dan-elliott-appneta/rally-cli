@@ -16,10 +16,13 @@ class UserSettings:
 
     CONFIG_DIR = Path.home() / ".config" / "rally-tui"
     CONFIG_FILE = CONFIG_DIR / "config.json"
+    LOG_FILE = CONFIG_DIR / "rally-tui.log"
 
     # Defaults
     DEFAULT_THEME = "dark"
     DEFAULT_THEME_NAME = "textual-dark"
+    DEFAULT_LOG_LEVEL = "INFO"
+    VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
     def __init__(self) -> None:
         """Initialize user settings, loading from file if exists."""
@@ -64,6 +67,24 @@ class UserSettings:
     def theme_name(self, value: str) -> None:
         """Set and persist the theme name."""
         self._settings["theme_name"] = value
+        self._save()
+
+    @property
+    def log_level(self) -> str:
+        """Get the current log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)."""
+        level = self._settings.get("log_level", self.DEFAULT_LOG_LEVEL)
+        # Ensure it's a valid level
+        if level.upper() not in self.VALID_LOG_LEVELS:
+            return self.DEFAULT_LOG_LEVEL
+        return level.upper()
+
+    @log_level.setter
+    def log_level(self, value: str) -> None:
+        """Set and persist the log level."""
+        value = value.upper()
+        if value not in self.VALID_LOG_LEVELS:
+            raise ValueError(f"Log level must be one of: {', '.join(self.VALID_LOG_LEVELS)}")
+        self._settings["log_level"] = value
         self._save()
 
     def get(self, key: str, default: Any = None) -> Any:
