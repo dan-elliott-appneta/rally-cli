@@ -2,10 +2,11 @@
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.containers import Horizontal
 from textual.widgets import Footer, Header
 
 from rally_tui.models.sample_data import SAMPLE_TICKETS
-from rally_tui.widgets import TicketList
+from rally_tui.widgets import TicketDetail, TicketList
 
 
 class RallyTUI(App[None]):
@@ -22,15 +23,23 @@ class RallyTUI(App[None]):
     def compose(self) -> ComposeResult:
         """Create the application layout."""
         yield Header()
-        yield TicketList(SAMPLE_TICKETS, id="ticket-list")
+        with Horizontal(id="main-container"):
+            yield TicketList(SAMPLE_TICKETS, id="ticket-list")
+            yield TicketDetail(id="ticket-detail")
         yield Footer()
+
+    def on_mount(self) -> None:
+        """Initialize the detail panel with the first ticket."""
+        if SAMPLE_TICKETS:
+            detail = self.query_one(TicketDetail)
+            detail.ticket = SAMPLE_TICKETS[0]
 
     def on_ticket_list_ticket_highlighted(
         self, event: TicketList.TicketHighlighted
     ) -> None:
-        """Handle ticket highlight changes."""
-        if event.ticket:
-            self.log.info(f"Highlighted: {event.ticket.formatted_id}")
+        """Update detail panel when ticket highlight changes."""
+        detail = self.query_one(TicketDetail)
+        detail.ticket = event.ticket
 
     def on_ticket_list_ticket_selected(
         self, event: TicketList.TicketSelected
