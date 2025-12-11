@@ -210,7 +210,7 @@ class TestRallyTUIWithClient:
             workspace="Custom Workspace",
             project="Custom Project",
         )
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             # Verify the app uses the injected client's data
             ticket_list = app.query_one(TicketList)
@@ -222,7 +222,7 @@ class TestRallyTUIWithClient:
             workspace="Injected Workspace",
             project="Injected Project",
         )
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
             assert "Injected Workspace" in status_bar.display_content
@@ -233,7 +233,7 @@ class TestRallyTUIWithClient:
             workspace="Test Workspace",
             project="Injected Project",
         )
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
             assert "Injected Project" in status_bar.display_content
@@ -255,7 +255,7 @@ class TestRallyTUIWithClient:
             ),
         ]
         client = MockRallyClient(tickets=custom_tickets)
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             detail = app.query_one(TicketDetail)
             # First ticket should be shown in detail
@@ -264,7 +264,7 @@ class TestRallyTUIWithClient:
 
     async def test_app_default_client(self) -> None:
         """App should use MockRallyClient with SAMPLE_TICKETS by default."""
-        app = RallyTUI()  # No client passed
+        app = RallyTUI(show_splash=False)  # No client passed
         async with app.run_test() as pilot:
             detail = app.query_one(TicketDetail)
             # Should show first ticket from SAMPLE_TICKETS

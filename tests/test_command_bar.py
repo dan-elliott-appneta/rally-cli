@@ -11,21 +11,21 @@ class TestCommandBarWidget:
 
     async def test_command_bar_exists(self) -> None:
         """CommandBar should be present in the app."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             command_bar = app.query_one(CommandBar)
             assert command_bar is not None
 
     async def test_initial_context_is_list(self) -> None:
         """CommandBar should start with 'list' context."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             command_bar = app.query_one(CommandBar)
             assert command_bar.context == "list"
 
     async def test_shows_list_commands_initially(self) -> None:
         """CommandBar should show list commands on startup."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             command_bar = app.query_one(CommandBar)
             # Context should be list
@@ -38,7 +38,7 @@ class TestCommandBarWidget:
 
     async def test_context_changes_on_tab(self) -> None:
         """Pressing Tab should change context to 'detail'."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             command_bar = app.query_one(CommandBar)
             assert command_bar.context == "list"
@@ -48,7 +48,7 @@ class TestCommandBarWidget:
 
     async def test_context_toggles_back_on_second_tab(self) -> None:
         """Pressing Tab twice should return to 'list' context."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             command_bar = app.query_one(CommandBar)
 
@@ -60,7 +60,7 @@ class TestCommandBarWidget:
 
     async def test_detail_context_shows_fewer_commands(self) -> None:
         """Detail context should show fewer commands than list context."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             command_bar = app.query_one(CommandBar)
 
@@ -82,7 +82,7 @@ class TestCommandBarWidget:
 
     async def test_focus_switches_with_tab(self) -> None:
         """Tab should switch focus between list and detail panels."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
             ticket_detail = app.query_one(TicketDetail)

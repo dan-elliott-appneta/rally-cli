@@ -12,7 +12,7 @@ class TestTicketListWidget:
 
     async def test_initial_render(self) -> None:
         """List should render all provided tickets."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
             items = list(app.query("TicketListItem"))
@@ -20,14 +20,14 @@ class TestTicketListWidget:
 
     async def test_first_item_highlighted_by_default(self) -> None:
         """First item should be highlighted on start."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
             assert ticket_list.index == 0
 
     async def test_keyboard_navigation_j(self) -> None:
         """Pressing j should move selection down."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
             assert ticket_list.index == 0
@@ -37,7 +37,7 @@ class TestTicketListWidget:
 
     async def test_keyboard_navigation_k(self) -> None:
         """Pressing k should move selection up."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
 
@@ -49,7 +49,7 @@ class TestTicketListWidget:
 
     async def test_keyboard_navigation_down_arrow(self) -> None:
         """Down arrow should move selection down."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
 
@@ -58,7 +58,7 @@ class TestTicketListWidget:
 
     async def test_keyboard_navigation_up_arrow(self) -> None:
         """Up arrow should move selection up."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
 
@@ -68,7 +68,7 @@ class TestTicketListWidget:
 
     async def test_vim_go_to_top(self) -> None:
         """Pressing g should jump to first item."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
 
@@ -80,7 +80,7 @@ class TestTicketListWidget:
 
     async def test_vim_go_to_bottom(self) -> None:
         """Pressing G should jump to last item."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
 
@@ -89,7 +89,7 @@ class TestTicketListWidget:
 
     async def test_navigation_wraps_at_top(self) -> None:
         """Pressing k at top should stay at top."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
             assert ticket_list.index == 0
@@ -99,7 +99,7 @@ class TestTicketListWidget:
 
     async def test_navigation_wraps_at_bottom(self) -> None:
         """Pressing j at bottom should stay at bottom."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
 
@@ -111,7 +111,7 @@ class TestTicketListWidget:
 
     async def test_quit_binding(self) -> None:
         """Pressing q should quit the app."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             await pilot.press("q")
             assert app._exit
@@ -159,7 +159,7 @@ class TestTicketListFilter:
         from rally_tui.services import MockRallyClient
 
         client = MockRallyClient(tickets=sample_tickets)
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
             ticket_list.filter_tickets("US1001")
@@ -171,7 +171,7 @@ class TestTicketListFilter:
         from rally_tui.services import MockRallyClient
 
         client = MockRallyClient(tickets=sample_tickets)
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
             ticket_list.filter_tickets("login")
@@ -182,7 +182,7 @@ class TestTicketListFilter:
         from rally_tui.services import MockRallyClient
 
         client = MockRallyClient(tickets=sample_tickets)
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
             ticket_list.filter_tickets("john")
@@ -193,7 +193,7 @@ class TestTicketListFilter:
         from rally_tui.services import MockRallyClient
 
         client = MockRallyClient(tickets=sample_tickets)
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
             ticket_list.filter_tickets("progress")
@@ -204,7 +204,7 @@ class TestTicketListFilter:
         from rally_tui.services import MockRallyClient
 
         client = MockRallyClient(tickets=sample_tickets)
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
 
@@ -222,7 +222,7 @@ class TestTicketListFilter:
         from rally_tui.services import MockRallyClient
 
         client = MockRallyClient(tickets=sample_tickets)
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
             ticket_list.filter_tickets("login")  # Apply filter first
@@ -236,7 +236,7 @@ class TestTicketListFilter:
         from rally_tui.services import MockRallyClient
 
         client = MockRallyClient(tickets=sample_tickets)
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
 
@@ -267,7 +267,7 @@ class TestTicketListFilter:
         from rally_tui.services import MockRallyClient
 
         client = MockRallyClient(tickets=sample_tickets)
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
             assert ticket_list.total_count == 4
@@ -282,7 +282,7 @@ class TestTicketListFilter:
         from rally_tui.services import MockRallyClient
 
         client = MockRallyClient(tickets=sample_tickets)
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
             assert ticket_list.filter_query == ""
