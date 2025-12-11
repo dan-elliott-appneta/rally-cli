@@ -5,7 +5,7 @@ from textual.binding import Binding
 from textual.containers import Horizontal
 from textual.widgets import Header
 
-from rally_tui.models.sample_data import SAMPLE_TICKETS
+from rally_tui.services import MockRallyClient, RallyClientProtocol
 from rally_tui.widgets import CommandBar, StatusBar, TicketDetail, TicketList
 
 
@@ -21,16 +21,29 @@ class RallyTUI(App[None]):
         Binding("?", "help", "Help", show=False),
     ]
 
+    def __init__(
+        self,
+        client: RallyClientProtocol | None = None,
+    ) -> None:
+        """Initialize the application.
+
+        Args:
+            client: Rally client to use for data. Defaults to MockRallyClient.
+        """
+        super().__init__()
+        self._client = client or MockRallyClient()
+
     def compose(self) -> ComposeResult:
         """Create the application layout."""
         yield Header()
         yield StatusBar(
-            workspace="My Workspace",
-            project="My Project",
+            workspace=self._client.workspace,
+            project=self._client.project,
             id="status-bar",
         )
+        tickets = self._client.get_tickets()
         with Horizontal(id="main-container"):
-            yield TicketList(SAMPLE_TICKETS, id="ticket-list")
+            yield TicketList(tickets, id="ticket-list")
             yield TicketDetail(id="ticket-detail")
         yield CommandBar(id="command-bar")
 
@@ -41,9 +54,10 @@ class RallyTUI(App[None]):
         self.query_one("#ticket-detail").border_title = "Details"
 
         # Set first ticket in detail panel
-        if SAMPLE_TICKETS:
+        tickets = self._client.get_tickets()
+        if tickets:
             detail = self.query_one(TicketDetail)
-            detail.ticket = SAMPLE_TICKETS[0]
+            detail.ticket = tickets[0]
 
         # Focus the ticket list initially
         self.query_one(TicketList).focus()
