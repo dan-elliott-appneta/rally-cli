@@ -47,6 +47,8 @@ class StatusBar(Static):
         self._current_user = current_user
         self._display_content = ""
         self._filter_info = ""
+        self._iteration_filter: str | None = None
+        self._user_filter_active = False
 
     def on_mount(self) -> None:
         """Set initial content when mounted."""
@@ -57,6 +59,16 @@ class StatusBar(Static):
         parts = ["[bold orange]rally-tui[/]"]
         if self._project:
             parts.append(f"Project: {self._project}")
+
+        # Build filter display
+        filters = []
+        if self._iteration_filter:
+            filters.append(f"Sprint: {self._iteration_filter}")
+        if self._user_filter_active:
+            filters.append("[cyan]My Items[/]")
+        if filters:
+            parts.append(" ".join(filters))
+
         if self._filter_info:
             parts.append(self._filter_info)
         if self._connected:
@@ -136,3 +148,31 @@ class StatusBar(Static):
     def filter_info(self) -> str:
         """Get the current filter info string."""
         return self._filter_info
+
+    def set_iteration_filter(self, iteration_name: str | None) -> None:
+        """Set the iteration filter display.
+
+        Args:
+            iteration_name: Name of the iteration to show, or None to clear.
+        """
+        self._iteration_filter = iteration_name
+        self._update_display()
+
+    @property
+    def iteration_filter(self) -> str | None:
+        """Get the current iteration filter."""
+        return self._iteration_filter
+
+    def set_user_filter(self, active: bool) -> None:
+        """Set whether the user filter (My Items) is active.
+
+        Args:
+            active: Whether the user filter is active.
+        """
+        self._user_filter_active = active
+        self._update_display()
+
+    @property
+    def user_filter_active(self) -> bool:
+        """Get whether the user filter is active."""
+        return self._user_filter_active
