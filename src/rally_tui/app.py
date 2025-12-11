@@ -14,6 +14,8 @@ from textual.worker import Worker, WorkerState
 from rally_tui import __version__
 from rally_tui.config import RallyConfig
 from rally_tui.screens import (
+    ConfigData,
+    ConfigScreen,
     DiscussionScreen,
     FILTER_ALL,
     FILTER_BACKLOG,
@@ -57,6 +59,7 @@ class RallyTUI(App[None]):
         Binding("i", "iteration_filter", "Sprint"),
         Binding("u", "toggle_user_filter", "My Items"),
         Binding("/", "start_search", "Search"),
+        Binding("f2", "open_settings", "Settings"),
         Binding("q", "quit", "Quit"),
         Binding("tab", "switch_panel", "Switch Panel", show=False, priority=True),
         Binding("t", "toggle_theme", "Theme", show=False),
@@ -717,6 +720,28 @@ class RallyTUI(App[None]):
         }
         self.notify(f"Sort: {mode_names[next_mode]}", timeout=2)
         _log.info(f"Sort mode changed to {next_mode.value}")
+
+    def action_open_settings(self) -> None:
+        """Open the settings configuration screen."""
+        self.push_screen(
+            ConfigScreen(self._user_settings),
+            callback=self._handle_settings_result,
+        )
+
+    def _handle_settings_result(self, result: ConfigData | None) -> None:
+        """Handle the result from ConfigScreen."""
+        if result is None:
+            _log.debug("Settings cancelled")
+            return
+
+        _log.info(f"Settings saved: theme={result.theme_name}, log_level={result.log_level}")
+
+        # Apply theme immediately if changed
+        if result.theme_name in self.available_themes:
+            self.theme = result.theme_name
+
+        # Note: Log level change takes effect on next startup
+        self.notify("Settings saved", timeout=2)
 
     def _apply_filters(self) -> None:
         """Apply iteration and user filters to the ticket list."""
