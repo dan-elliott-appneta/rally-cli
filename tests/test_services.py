@@ -2,9 +2,11 @@
 
 import pytest
 
+from rally_tui.app import RallyTUI
 from rally_tui.models import Ticket
 from rally_tui.models.sample_data import SAMPLE_TICKETS
 from rally_tui.services import MockRallyClient
+from rally_tui.widgets import StatusBar, TicketDetail, TicketList
 
 
 class TestMockRallyClient:
@@ -159,3 +161,82 @@ class TestMockRallyClientProtocol:
         not_found = client.get_ticket("NONEXISTENT")
         assert isinstance(found, Ticket)
         assert not_found is None
+
+
+class TestRallyTUIWithClient:
+    """Tests for RallyTUI with injected client."""
+
+    async def test_app_accepts_client(self) -> None:
+        """RallyTUI should accept a client parameter."""
+        client = MockRallyClient(
+            tickets=[
+                Ticket(
+                    formatted_id="CUSTOM1",
+                    name="Custom Ticket",
+                    ticket_type="UserStory",
+                    state="Defined",
+                ),
+            ],
+            workspace="Custom Workspace",
+            project="Custom Project",
+        )
+        app = RallyTUI(client=client)
+        async with app.run_test() as pilot:
+            # Verify the app uses the injected client's data
+            ticket_list = app.query_one(TicketList)
+            assert ticket_list is not None
+
+    async def test_app_shows_client_workspace(self) -> None:
+        """StatusBar should show the client's workspace."""
+        client = MockRallyClient(
+            workspace="Injected Workspace",
+            project="Injected Project",
+        )
+        app = RallyTUI(client=client)
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            assert "Injected Workspace" in status_bar.display_content
+
+    async def test_app_shows_client_project(self) -> None:
+        """StatusBar should show the client's project."""
+        client = MockRallyClient(
+            workspace="Test Workspace",
+            project="Injected Project",
+        )
+        app = RallyTUI(client=client)
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            assert "Injected Project" in status_bar.display_content
+
+    async def test_app_uses_client_tickets(self) -> None:
+        """App should display tickets from the injected client."""
+        custom_tickets = [
+            Ticket(
+                formatted_id="TEST001",
+                name="Test Ticket One",
+                ticket_type="UserStory",
+                state="Defined",
+            ),
+            Ticket(
+                formatted_id="TEST002",
+                name="Test Ticket Two",
+                ticket_type="Defect",
+                state="Open",
+            ),
+        ]
+        client = MockRallyClient(tickets=custom_tickets)
+        app = RallyTUI(client=client)
+        async with app.run_test() as pilot:
+            detail = app.query_one(TicketDetail)
+            # First ticket should be shown in detail
+            assert detail.ticket is not None
+            assert detail.ticket.formatted_id == "TEST001"
+
+    async def test_app_default_client(self) -> None:
+        """App should use MockRallyClient with SAMPLE_TICKETS by default."""
+        app = RallyTUI()  # No client passed
+        async with app.run_test() as pilot:
+            detail = app.query_one(TicketDetail)
+            # Should show first ticket from SAMPLE_TICKETS
+            assert detail.ticket is not None
+            assert detail.ticket.formatted_id == "US1234"
