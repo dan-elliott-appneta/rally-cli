@@ -15,6 +15,8 @@ class TicketDetail(VerticalScroll):
     It updates reactively when the ticket property changes.
     """
 
+    can_focus = True  # Allow this widget to receive focus via Tab
+
     ticket: reactive[Ticket | None] = reactive(None)
 
     def compose(self) -> ComposeResult:
