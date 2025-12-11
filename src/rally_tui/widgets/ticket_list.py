@@ -1,5 +1,6 @@
 """Ticket list widget with keyboard navigation."""
 
+from enum import Enum
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.message import Message
@@ -7,6 +8,14 @@ from textual.widgets import Label, ListItem, ListView
 from textual.containers import Horizontal
 
 from rally_tui.models import Ticket
+
+
+class SortMode(Enum):
+    """Available sort modes for the ticket list."""
+
+    STATE = "state"  # By state flow (Defined → In Progress → Completed)
+    CREATED = "created"  # By most recently created (newest first)
+    OWNER = "owner"  # By owner name (unassigned first, then alphabetical)
 
 
 # State ordering from earliest (top) to latest (bottom) in workflow
@@ -113,6 +122,52 @@ def sort_tickets_by_state(tickets: list[Ticket]) -> list[Ticket]:
     return sorted(tickets, key=lambda t: get_state_order(t.state))
 
 
+def sort_tickets_by_created(tickets: list[Ticket]) -> list[Ticket]:
+    """Sort tickets by creation date (newest first).
+
+    Uses FormattedID as a proxy for creation order since higher IDs
+    are assigned to newer tickets.
+    """
+    def get_id_number(ticket: Ticket) -> int:
+        """Extract numeric part of FormattedID for sorting."""
+        # Extract digits from FormattedID (e.g., "US1234" -> 1234)
+        digits = "".join(c for c in ticket.formatted_id if c.isdigit())
+        return int(digits) if digits else 0
+
+    return sorted(tickets, key=get_id_number, reverse=True)
+
+
+def sort_tickets_by_owner(tickets: list[Ticket]) -> list[Ticket]:
+    """Sort tickets by owner name (unassigned first, then alphabetical)."""
+    def get_owner_key(ticket: Ticket) -> tuple[int, str]:
+        """Return sort key: (0, "") for None, (1, name) for assigned."""
+        if ticket.owner is None:
+            return (0, "")
+        return (1, ticket.owner.lower())
+
+    return sorted(tickets, key=get_owner_key)
+
+
+def sort_tickets(tickets: list[Ticket], mode: SortMode) -> list[Ticket]:
+    """Sort tickets by the specified mode.
+
+    Args:
+        tickets: List of tickets to sort.
+        mode: The sort mode to use.
+
+    Returns:
+        Sorted list of tickets.
+    """
+    if mode == SortMode.STATE:
+        return sort_tickets_by_state(tickets)
+    elif mode == SortMode.CREATED:
+        return sort_tickets_by_created(tickets)
+    elif mode == SortMode.OWNER:
+        return sort_tickets_by_owner(tickets)
+    else:
+        return sort_tickets_by_state(tickets)
+
+
 class TicketListItem(ListItem):
     """A single ticket item in the list."""
 
@@ -179,6 +234,7 @@ class TicketList(ListView):
         *,
         id: str | None = None,
         classes: str | None = None,
+        sort_mode: SortMode = SortMode.STATE,
     ) -> None:
         """Initialize the ticket list.
 
@@ -186,10 +242,12 @@ class TicketList(ListView):
             tickets: List of tickets to display. If None, list is empty.
             id: Widget ID for CSS targeting.
             classes: CSS classes to apply.
+            sort_mode: How to sort the tickets.
         """
         super().__init__(id=id, classes=classes)
-        # Sort tickets by state order
-        sorted_tickets = sort_tickets_by_state(tickets or [])
+        self._sort_mode = sort_mode
+        # Sort tickets by the specified mode
+        sorted_tickets = sort_tickets(tickets or [], self._sort_mode)
         self._tickets = sorted_tickets
         self._all_tickets = list(sorted_tickets)
         self._filter_query = ""
@@ -228,9 +286,14 @@ class TicketList(ListView):
             return self._tickets[self.index]
         return None
 
+    @property
+    def sort_mode(self) -> SortMode:
+        """Get the current sort mode."""
+        return self._sort_mode
+
     def set_tickets(self, tickets: list[Ticket]) -> None:
         """Replace the ticket list with new data."""
-        sorted_tickets = sort_tickets_by_state(tickets)
+        sorted_tickets = sort_tickets(tickets, self._sort_mode)
         self._tickets = sorted_tickets
         self._all_tickets = list(sorted_tickets)
         self._filter_query = ""
@@ -239,6 +302,37 @@ class TicketList(ListView):
             self.append(TicketListItem(ticket))
         # Select first item if list is not empty
         if sorted_tickets:
+            self.index = 0
+
+    def set_sort_mode(self, mode: SortMode) -> None:
+        """Change the sort mode and re-sort the current tickets.
+
+        Args:
+            mode: The new sort mode to use.
+        """
+        if mode == self._sort_mode:
+            return
+
+        self._sort_mode = mode
+        # Re-sort the all_tickets list
+        self._all_tickets = sort_tickets(self._all_tickets, mode)
+
+        # Re-apply any active filter with new sort order
+        if self._filter_query:
+            query_lower = self._filter_query.lower()
+            self._tickets = [
+                t for t in self._all_tickets if self._matches_query(t, query_lower)
+            ]
+        else:
+            self._tickets = list(self._all_tickets)
+
+        # Refresh the display
+        self.clear()
+        for ticket in self._tickets:
+            self.append(TicketListItem(ticket))
+
+        # Select first item if list is not empty
+        if self._tickets:
             self.index = 0
 
     def filter_tickets(self, query: str) -> None:

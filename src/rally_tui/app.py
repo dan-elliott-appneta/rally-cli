@@ -29,6 +29,7 @@ from rally_tui.user_settings import UserSettings
 from rally_tui.utils import get_logger, setup_logging
 from rally_tui.widgets import (
     SearchInput,
+    SortMode,
     StatusBar,
     TicketDetail,
     TicketList,
@@ -48,6 +49,7 @@ class RallyTUI(App[None]):
         Binding("w", "quick_ticket", "Workitem"),
         Binding("s", "set_state", "State"),
         Binding("p", "set_points", "Points"),
+        Binding("o", "cycle_sort", "Sort"),
         Binding("n", "toggle_notes", "Notes"),
         Binding("d", "open_discussions", "Discuss"),
         Binding("i", "iteration_filter", "Sprint"),
@@ -586,6 +588,34 @@ class RallyTUI(App[None]):
         self._user_filter_active = not self._user_filter_active
         _log.info(f"User filter {'enabled' if self._user_filter_active else 'disabled'}")
         self._apply_filters()
+
+    def action_cycle_sort(self) -> None:
+        """Cycle through sort modes: State → Created → Owner → State."""
+        ticket_list = self.query_one(TicketList)
+        current = ticket_list.sort_mode
+
+        # Cycle to next mode
+        if current == SortMode.STATE:
+            next_mode = SortMode.CREATED
+        elif current == SortMode.CREATED:
+            next_mode = SortMode.OWNER
+        else:
+            next_mode = SortMode.STATE
+
+        ticket_list.set_sort_mode(next_mode)
+
+        # Update status bar
+        status_bar = self.query_one(StatusBar)
+        status_bar.set_sort_mode(next_mode)
+
+        # Notify user
+        mode_names = {
+            SortMode.STATE: "State Flow",
+            SortMode.CREATED: "Recently Created",
+            SortMode.OWNER: "Owner",
+        }
+        self.notify(f"Sort: {mode_names[next_mode]}", timeout=2)
+        _log.info(f"Sort mode changed to {next_mode.value}")
 
     def _apply_filters(self) -> None:
         """Apply iteration and user filters to the ticket list."""
