@@ -25,6 +25,7 @@ class StatusBar(Static):
         workspace: str = "Not Connected",
         project: str = "",
         connected: bool = False,
+        current_user: str | None = None,
         *,
         id: str | None = None,
         classes: str | None = None,
@@ -35,6 +36,7 @@ class StatusBar(Static):
             workspace: Workspace name to display.
             project: Project name to display.
             connected: Whether connected to Rally API.
+            current_user: Name of the logged-in user (shown when connected).
             id: Widget ID for CSS targeting.
             classes: CSS classes to apply.
         """
@@ -42,6 +44,7 @@ class StatusBar(Static):
         self._workspace = workspace
         self._project = project
         self._connected = connected
+        self._current_user = current_user
         self._display_content = ""
         self._filter_info = ""
 
@@ -56,7 +59,13 @@ class StatusBar(Static):
             parts.append(f"Project: {self._project}")
         if self._filter_info:
             parts.append(self._filter_info)
-        status = "Connected" if self._connected else "Offline"
+        if self._connected:
+            if self._current_user:
+                status = f"Connected as {self._current_user}"
+            else:
+                status = "Connected"
+        else:
+            status = "Offline"
         parts.append(status)
         self._display_content = " | ".join(parts)
         self.update(self._display_content)

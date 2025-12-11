@@ -80,6 +80,7 @@ class RallyTUI(App[None]):
             workspace=self._client.workspace,
             project=self._client.project,
             connected=self._connected,
+            current_user=self._client.current_user,
             id="status-bar",
         )
         tickets = self._client.get_tickets()
