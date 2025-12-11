@@ -1,6 +1,7 @@
 """Screens for Rally TUI."""
 
 from rally_tui.screens.comment_screen import CommentScreen
+from rally_tui.screens.config_screen import ConfigData, ConfigScreen
 from rally_tui.screens.discussion_screen import DiscussionScreen
 from rally_tui.screens.iteration_screen import (
     FILTER_ALL,
@@ -15,6 +16,8 @@ from rally_tui.screens.state_screen import StateScreen
 
 __all__ = [
     "CommentScreen",
+    "ConfigData",
+    "ConfigScreen",
     "DiscussionScreen",
     "FILTER_ALL",
     "FILTER_BACKLOG",
