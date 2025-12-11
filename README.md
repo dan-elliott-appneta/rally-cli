@@ -14,6 +14,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Theme support**: Full Textual theme support (catppuccin, nord, dracula, etc.) via command palette, persisted between sessions
 - **Copy URL**: Press `y` to copy Rally ticket URL to clipboard
 - **Set Points**: Press `p` to set story points on selected ticket
+- **Quick Create**: Press `c` to create a new ticket (User Story or Defect)
 - **Toggle Notes**: Press `n` to toggle between description and notes view
 - **User settings**: Preferences saved to `~/.config/rally-tui/config.json`
 - **File logging**: Logs to `~/.config/rally-tui/rally-tui.log` with configurable log level
@@ -29,6 +30,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Theme preference persisted to user config file
 - Copy ticket URL to clipboard with `y` key
 - Set story points with `p` key
+- Create tickets with `c` key (User Story or Defect, auto-assigns to you and current iteration)
 - View ticket discussions with `d` key
 - Add comments with `c` key from discussion screen
 - HTML content converted to readable plain text
@@ -47,7 +49,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 305 tests passing
+- 321 tests passing
 
 Next: Iteration 9 (CRUD Operations).
 
@@ -121,6 +123,7 @@ rally-tui
 | p | list/detail | Set story points |
 | n | list/detail | Toggle description/notes |
 | d | list/detail | Open discussions |
+| c | list/detail | Create new ticket |
 | c | discussion | Add comment |
 | Ctrl+S | comment | Submit comment |
 | q | any | Quit |
@@ -163,7 +166,8 @@ rally-cli/
 │   │   ├── splash_screen.py      # SplashScreen (startup)
 │   │   ├── discussion_screen.py  # DiscussionScreen
 │   │   ├── comment_screen.py     # CommentScreen
-│   │   └── points_screen.py      # PointsScreen (set story points)
+│   │   ├── points_screen.py      # PointsScreen (set story points)
+│   │   └── quick_ticket_screen.py # QuickTicketScreen (create tickets)
 │   ├── widgets/
 │   │   ├── ticket_list.py   # TicketList widget (left panel, state sorting)
 │   │   ├── ticket_detail.py # TicketDetail widget (right panel)
@@ -187,6 +191,7 @@ rally-cli/
 │   ├── test_discussion_screen.py # DiscussionScreen tests
 │   ├── test_comment_screen.py    # CommentScreen tests
 │   ├── test_points_screen.py     # PointsScreen tests
+│   ├── test_quick_ticket_screen.py # QuickTicketScreen tests
 │   ├── test_command_bar.py       # CommandBar widget tests
 │   ├── test_status_bar.py        # StatusBar widget tests
 │   ├── test_search_input.py      # SearchInput widget tests

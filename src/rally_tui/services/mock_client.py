@@ -42,6 +42,8 @@ class MockRallyClient:
         self._current_user = current_user
         self._current_iteration = current_iteration
         self._next_discussion_id = 300000  # For generating new discussion IDs
+        self._next_story_id = 9000  # For generating new User Story IDs
+        self._next_defect_id = 9000  # For generating new Defect IDs
 
     @property
     def workspace(self) -> str:
@@ -163,3 +165,48 @@ class MockRallyClient:
                 self._tickets[i] = updated
                 return updated
         return None
+
+    def create_ticket(
+        self,
+        title: str,
+        ticket_type: str,
+        description: str = "",
+    ) -> Ticket | None:
+        """Create a new ticket.
+
+        Args:
+            title: The ticket title/name.
+            ticket_type: The entity type ("HierarchicalRequirement" or "Defect").
+            description: Optional ticket description.
+
+        Returns:
+            The created Ticket.
+        """
+        # Generate formatted ID based on type
+        if ticket_type == "HierarchicalRequirement":
+            formatted_id = f"US{self._next_story_id}"
+            self._next_story_id += 1
+            internal_type = "UserStory"
+        else:
+            formatted_id = f"DE{self._next_defect_id}"
+            self._next_defect_id += 1
+            internal_type = "Defect"
+
+        # Create the ticket with current user/iteration
+        ticket = Ticket(
+            formatted_id=formatted_id,
+            name=title,
+            ticket_type=internal_type,  # type: ignore[arg-type]
+            state="Defined",
+            owner=self._current_user,
+            description=description,
+            iteration=self._current_iteration,
+            points=None,
+            object_id=str(self._next_discussion_id),
+        )
+        self._next_discussion_id += 1
+
+        # Add to tickets list
+        self._tickets.append(ticket)
+
+        return ticket

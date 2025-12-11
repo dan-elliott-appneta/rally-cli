@@ -8,7 +8,13 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import Header
 
 from rally_tui.config import RallyConfig
-from rally_tui.screens import DiscussionScreen, PointsScreen, SplashScreen
+from rally_tui.screens import (
+    DiscussionScreen,
+    PointsScreen,
+    QuickTicketData,
+    QuickTicketScreen,
+    SplashScreen,
+)
 from rally_tui.services import MockRallyClient, RallyClient, RallyClientProtocol
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils import get_logger, setup_logging
@@ -40,6 +46,7 @@ class RallyTUI(App[None]):
         Binding("y", "copy_ticket_url", "Copy URL", show=False),
         Binding("p", "set_points", "Set Points", show=False),
         Binding("n", "toggle_notes", "Toggle Notes", show=False),
+        Binding("c", "quick_ticket", "Create Ticket", show=False),
     ]
 
     def __init__(
@@ -300,6 +307,45 @@ class RallyTUI(App[None]):
         except Exception as e:
             _log.exception(f"Error updating points for {ticket_id}: {e}")
             self.notify("Failed to update points", severity="error", timeout=3)
+
+    def action_quick_ticket(self) -> None:
+        """Open the quick ticket creation screen."""
+        self.push_screen(
+            QuickTicketScreen(),
+            callback=self._handle_quick_ticket_result,
+        )
+
+    def _handle_quick_ticket_result(self, data: QuickTicketData | None) -> None:
+        """Handle the result from QuickTicketScreen."""
+        if data is None:
+            _log.debug("Quick ticket creation cancelled")
+            return
+
+        _log.info(f"Creating {data.ticket_type}: {data.title}")
+
+        try:
+            created = self._client.create_ticket(
+                title=data.title,
+                ticket_type=data.ticket_type,
+                description=data.description,
+            )
+            if created:
+                # Add the ticket to the list
+                ticket_list = self.query_one(TicketList)
+                ticket_list.add_ticket(created)
+                # Select the new ticket
+                detail = self.query_one(TicketDetail)
+                detail.ticket = created
+                # Show notification
+                type_display = "User Story" if data.ticket_type == "HierarchicalRequirement" else "Defect"
+                self.notify(f"Created {type_display}: {created.formatted_id}", timeout=3)
+                _log.info(f"Created ticket: {created.formatted_id}")
+            else:
+                _log.error("Failed to create ticket")
+                self.notify("Failed to create ticket", severity="error", timeout=3)
+        except Exception as e:
+            _log.exception(f"Error creating ticket: {e}")
+            self.notify("Failed to create ticket", severity="error", timeout=3)
 
 
 def main() -> None:

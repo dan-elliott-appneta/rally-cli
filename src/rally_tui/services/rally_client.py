@@ -473,3 +473,69 @@ class RallyClient:
             _log.error(f"Error updating points for {ticket.formatted_id}: {e}")
 
         return None
+
+    def create_ticket(
+        self,
+        title: str,
+        ticket_type: str,
+        description: str = "",
+    ) -> Ticket | None:
+        """Create a new ticket in Rally.
+
+        Creates a ticket with the current user as owner and assigns it
+        to the current iteration.
+
+        Args:
+            title: The ticket title/name.
+            ticket_type: The entity type ("HierarchicalRequirement" or "Defect").
+            description: Optional ticket description.
+
+        Returns:
+            The created Ticket, or None on failure.
+        """
+        _log.info(f"Creating {ticket_type}: {title}")
+
+        try:
+            # Build the ticket data
+            ticket_data: dict[str, str | None] = {
+                "Name": title,
+                "Description": description,
+            }
+
+            # Add current iteration if available
+            if self._current_iteration:
+                # Query for the iteration ref
+                response = self._rally.get(
+                    "Iteration",
+                    fetch="Name,ObjectID",
+                    query=f'(Name = "{self._current_iteration}")',
+                    pagesize=1,
+                )
+                for iteration in response:
+                    ticket_data["Iteration"] = f"/iteration/{iteration.ObjectID}"
+                    break
+
+            # Add current user as owner if available
+            if self._current_user:
+                # Query for the user ref
+                response = self._rally.get(
+                    "User",
+                    fetch="DisplayName,ObjectID",
+                    query=f'(DisplayName = "{self._current_user}")',
+                    pagesize=1,
+                )
+                for user in response:
+                    ticket_data["Owner"] = f"/user/{user.ObjectID}"
+                    break
+
+            # Create the ticket
+            created = self._rally.create(ticket_type, ticket_data)
+
+            if created:
+                _log.info(f"Created ticket: {created.FormattedID}")
+                return self._to_ticket(created, ticket_type)
+
+        except Exception as e:
+            _log.error(f"Error creating ticket: {e}")
+
+        return None
