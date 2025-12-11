@@ -263,21 +263,21 @@ class TestStatusBarInApp:
 
     async def test_status_bar_exists_in_app(self) -> None:
         """StatusBar should be present in the app."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
             assert status_bar is not None
 
     async def test_status_bar_shows_workspace_in_app(self) -> None:
         """StatusBar should show workspace name in app."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
             assert "My Workspace" in status_bar.display_content
 
     async def test_status_bar_shows_project_in_app(self) -> None:
         """StatusBar should show project name in app."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
             assert "My Project" in status_bar.display_content

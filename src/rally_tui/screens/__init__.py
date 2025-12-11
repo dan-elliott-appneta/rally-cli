@@ -2,5 +2,6 @@
 
 from rally_tui.screens.comment_screen import CommentScreen
 from rally_tui.screens.discussion_screen import DiscussionScreen
+from rally_tui.screens.splash_screen import SplashScreen
 
-__all__ = ["CommentScreen", "DiscussionScreen"]
+__all__ = ["CommentScreen", "DiscussionScreen", "SplashScreen"]

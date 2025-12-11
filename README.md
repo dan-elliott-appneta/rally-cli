@@ -8,6 +8,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - View ticket details in a split-pane layout
 - Keyboard-driven interface with vim-style navigation
 - Color-coded ticket types (User Stories, Defects, Tasks, Test Cases)
+- **Splash screen**: ASCII art rally car greeting on startup
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
 - **Discussions**: View ticket discussions and add comments
 
@@ -31,7 +32,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Tab to switch between panels
 - Context-sensitive keyboard shortcuts
 - Default filter to current iteration and current user when connected
-- 239 tests passing
+- 245 tests passing
 
 Next: Iteration 9 (CRUD Operations).
 
@@ -119,6 +120,7 @@ rally-cli/
 │   │   ├── discussion.py    # Discussion dataclass
 │   │   └── sample_data.py   # Sample data for offline mode
 │   ├── screens/
+│   │   ├── splash_screen.py      # SplashScreen (startup)
 │   │   ├── discussion_screen.py  # DiscussionScreen
 │   │   └── comment_screen.py     # CommentScreen
 │   ├── widgets/
@@ -140,6 +142,7 @@ rally-cli/
 │   ├── test_discussion_model.py  # Discussion model tests
 │   ├── test_ticket_list.py       # TicketList widget tests
 │   ├── test_ticket_detail.py     # TicketDetail widget tests
+│   ├── test_splash_screen.py     # SplashScreen tests
 │   ├── test_discussion_screen.py # DiscussionScreen tests
 │   ├── test_comment_screen.py    # CommentScreen tests
 │   ├── test_command_bar.py       # CommandBar widget tests

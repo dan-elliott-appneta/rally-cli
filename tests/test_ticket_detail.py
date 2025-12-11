@@ -11,7 +11,7 @@ class TestTicketDetailWidget:
 
     async def test_initial_state_shows_first_ticket(self) -> None:
         """Detail panel should show first ticket on mount."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             detail = app.query_one(TicketDetail)
             assert detail.ticket is not None
@@ -19,7 +19,7 @@ class TestTicketDetailWidget:
 
     async def test_detail_updates_on_navigation(self) -> None:
         """Detail panel should update when navigating list."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             detail = app.query_one(TicketDetail)
 
@@ -30,7 +30,7 @@ class TestTicketDetailWidget:
 
     async def test_detail_shows_ticket_name(self) -> None:
         """Detail panel should display ticket name in header."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             header = app.query_one("#detail-header")
             rendered = str(header.render())
@@ -38,7 +38,7 @@ class TestTicketDetailWidget:
 
     async def test_detail_shows_ticket_state(self) -> None:
         """Detail panel should display ticket state."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
@@ -46,7 +46,7 @@ class TestTicketDetailWidget:
 
     async def test_detail_shows_owner(self) -> None:
         """Detail panel should display owner name."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
@@ -54,7 +54,7 @@ class TestTicketDetailWidget:
 
     async def test_detail_shows_unassigned_for_no_owner(self) -> None:
         """Detail panel should show 'Unassigned' when owner is None."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             # Navigate to DE457 which has no owner (6th item, index 5)
             for _ in range(5):
@@ -70,7 +70,7 @@ class TestTicketDetailWidget:
 
     async def test_detail_shows_description(self) -> None:
         """Detail panel should display ticket description."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             description = app.query_one("#detail-description")
             rendered = str(description.render())
@@ -78,7 +78,7 @@ class TestTicketDetailWidget:
 
     async def test_detail_shows_iteration(self) -> None:
         """Detail panel should display iteration name."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
@@ -86,7 +86,7 @@ class TestTicketDetailWidget:
 
     async def test_detail_shows_points(self) -> None:
         """Detail panel should display story points."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
@@ -94,7 +94,7 @@ class TestTicketDetailWidget:
 
     async def test_detail_shows_unscheduled_for_no_iteration(self) -> None:
         """Detail panel should show 'Unscheduled' when iteration is None."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             # Navigate to DE457 which has no iteration (6th item, index 5)
             for _ in range(5):
@@ -106,7 +106,7 @@ class TestTicketDetailWidget:
 
     async def test_detail_shows_dash_for_no_points(self) -> None:
         """Detail panel should show '—' when points is None."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             # Navigate to TA789 which has no points (5th item, index 4)
             for _ in range(4):
@@ -118,7 +118,7 @@ class TestTicketDetailWidget:
 
     async def test_detail_shows_formatted_id_in_header(self) -> None:
         """Detail panel header should include formatted ID."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             header = app.query_one("#detail-header")
             rendered = str(header.render())
@@ -126,7 +126,7 @@ class TestTicketDetailWidget:
 
     async def test_detail_navigation_to_defect(self) -> None:
         """Detail panel should update correctly when navigating to defect."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             # Navigate to first defect DE456 (3rd item, index 2)
             await pilot.press("j")
@@ -143,14 +143,14 @@ class TestPanelTitles:
 
     async def test_ticket_list_has_title(self) -> None:
         """Ticket list panel should have 'Tickets' as border title."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one("#ticket-list")
             assert ticket_list.border_title == "Tickets"
 
     async def test_ticket_detail_has_title(self) -> None:
         """Ticket detail panel should have 'Details' as border title."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_detail = app.query_one("#ticket-detail")
             assert ticket_detail.border_title == "Details"

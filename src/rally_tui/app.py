@@ -8,7 +8,7 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import Header
 
 from rally_tui.config import RallyConfig
-from rally_tui.screens import DiscussionScreen
+from rally_tui.screens import DiscussionScreen, SplashScreen
 from rally_tui.services import MockRallyClient, RallyClient, RallyClientProtocol
 from rally_tui.widgets import (
     CommandBar,
@@ -37,6 +37,7 @@ class RallyTUI(App[None]):
         self,
         client: RallyClientProtocol | None = None,
         config: RallyConfig | None = None,
+        show_splash: bool = True,
     ) -> None:
         """Initialize the application.
 
@@ -44,8 +45,10 @@ class RallyTUI(App[None]):
             client: Rally client to use for data. Takes precedence over config.
             config: Rally configuration for connecting to API.
                    If not provided, uses MockRallyClient.
+            show_splash: Whether to show splash screen on startup.
         """
         super().__init__()
+        self._show_splash = show_splash
 
         if client is not None:
             # Explicit client provided (e.g., for testing)
@@ -99,6 +102,10 @@ class RallyTUI(App[None]):
 
         # Focus the ticket list initially
         self.query_one(TicketList).focus()
+
+        # Show splash screen on startup
+        if self._show_splash:
+            self.push_screen(SplashScreen())
 
     def on_ticket_list_ticket_highlighted(
         self, event: TicketList.TicketHighlighted

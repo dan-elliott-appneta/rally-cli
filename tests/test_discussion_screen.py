@@ -24,7 +24,7 @@ class TestDiscussionScreenBasic:
         )
         client = MockRallyClient()
 
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             await app.push_screen(DiscussionScreen(ticket, client))
 
@@ -43,7 +43,7 @@ class TestDiscussionScreenBasic:
         )
         client = MockRallyClient(discussions={})
 
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             await app.push_screen(DiscussionScreen(ticket, client))
 
@@ -80,7 +80,7 @@ class TestDiscussionScreenBasic:
         }
         client = MockRallyClient(discussions=discussions)
 
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             await app.push_screen(DiscussionScreen(ticket, client))
 
@@ -105,7 +105,7 @@ class TestDiscussionScreenNavigation:
         )
         client = MockRallyClient()
 
-        app = RallyTUI(client=client)
+        app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             # Push discussion screen
             app.push_screen(DiscussionScreen(ticket, client))
@@ -127,7 +127,7 @@ class TestDiscussionScreenFromApp:
 
     async def test_d_key_opens_discussion_screen(self) -> None:
         """Pressing 'd' should open the discussion screen."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             # Press 'd' to open discussions
             await pilot.press("d")
@@ -138,7 +138,7 @@ class TestDiscussionScreenFromApp:
 
     async def test_d_key_shows_discussions_for_selected_ticket(self) -> None:
         """Discussion screen should show discussions for the selected ticket."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             # Press 'd' to open discussions for first ticket (US1234)
             await pilot.press("d")
@@ -151,7 +151,7 @@ class TestDiscussionScreenFromApp:
 
     async def test_discussion_screen_for_different_ticket(self) -> None:
         """Discussion screen should show discussions for navigated ticket."""
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             # Navigate to second ticket
             await pilot.press("j")

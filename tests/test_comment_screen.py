@@ -21,7 +21,7 @@ class TestCommentScreenBasic:
             state="In Progress",
         )
 
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             await app.push_screen(CommentScreen(ticket))
 
@@ -38,7 +38,7 @@ class TestCommentScreenBasic:
             state="In Progress",
         )
 
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             await app.push_screen(CommentScreen(ticket))
 
@@ -56,7 +56,7 @@ class TestCommentScreenBasic:
             state="In Progress",
         )
 
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             await app.push_screen(CommentScreen(ticket))
 
@@ -76,7 +76,7 @@ class TestCommentScreenNavigation:
             state="In Progress",
         )
 
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             app.push_screen(CommentScreen(ticket))
             await pilot.pause()
@@ -109,7 +109,7 @@ class TestCommentScreenCallback:
         def on_submit(text: str | None) -> None:
             received_text.append(text)
 
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             await app.push_screen(CommentScreen(ticket, on_submit=on_submit))
 
@@ -139,7 +139,7 @@ class TestCommentScreenCallback:
         def on_submit(text: str | None) -> None:
             received_text.append(text)
 
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             app.push_screen(CommentScreen(ticket, on_submit=on_submit))
             await pilot.pause()
@@ -165,7 +165,7 @@ class TestCommentScreenCallback:
         def on_submit(text: str | None) -> None:
             received_text.append(text)
 
-        app = RallyTUI()
+        app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             app.push_screen(CommentScreen(ticket, on_submit=on_submit))
             await pilot.pause()
