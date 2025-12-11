@@ -58,3 +58,43 @@ class TestTicket:
         """Owner should be stored when provided."""
         ticket = Ticket("US1", "Test", "UserStory", "Open", "John Doe")
         assert ticket.owner == "John Doe"
+
+
+class TestTicketRallyUrl:
+    """Tests for the rally_url method."""
+
+    def test_rally_url_user_story(self) -> None:
+        """User story URL should use userstory path."""
+        ticket = Ticket("US1234", "Test", "UserStory", "Open", object_id="12345")
+        url = ticket.rally_url()
+        assert url == "https://rally1.rallydev.com/#/detail/userstory/12345"
+
+    def test_rally_url_defect(self) -> None:
+        """Defect URL should use defect path."""
+        ticket = Ticket("DE456", "Test", "Defect", "Open", object_id="67890")
+        url = ticket.rally_url()
+        assert url == "https://rally1.rallydev.com/#/detail/defect/67890"
+
+    def test_rally_url_task(self) -> None:
+        """Task URL should use task path."""
+        ticket = Ticket("TA789", "Test", "Task", "Open", object_id="11111")
+        url = ticket.rally_url()
+        assert url == "https://rally1.rallydev.com/#/detail/task/11111"
+
+    def test_rally_url_testcase(self) -> None:
+        """Test case URL should use testcase path."""
+        ticket = Ticket("TC101", "Test", "TestCase", "Open", object_id="22222")
+        url = ticket.rally_url()
+        assert url == "https://rally1.rallydev.com/#/detail/testcase/22222"
+
+    def test_rally_url_custom_server(self) -> None:
+        """URL should use custom server when provided."""
+        ticket = Ticket("US1", "Test", "UserStory", "Open", object_id="12345")
+        url = ticket.rally_url(server="custom.rally.com")
+        assert url == "https://custom.rally.com/#/detail/userstory/12345"
+
+    def test_rally_url_no_object_id(self) -> None:
+        """URL should be None when object_id is missing."""
+        ticket = Ticket("US1", "Test", "UserStory", "Open")
+        url = ticket.rally_url()
+        assert url is None

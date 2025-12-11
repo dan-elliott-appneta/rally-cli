@@ -36,3 +36,25 @@ class Ticket:
             if char.isdigit():
                 return self.formatted_id[:i]
         return self.formatted_id[:2]
+
+    def rally_url(self, server: str = "rally1.rallydev.com") -> str | None:
+        """Generate Rally web URL for this ticket.
+
+        Args:
+            server: Rally server hostname.
+
+        Returns:
+            URL to view the ticket in Rally, or None if object_id unavailable.
+        """
+        if not self.object_id:
+            return None
+
+        # Map ticket type to Rally URL path
+        type_map = {
+            "UserStory": "userstory",
+            "Defect": "defect",
+            "Task": "task",
+            "TestCase": "testcase",
+        }
+        url_type = type_map.get(self.ticket_type, "artifact")
+        return f"https://{server}/#/detail/{url_type}/{self.object_id}"
