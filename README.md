@@ -49,7 +49,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 321 tests passing
+- 306 tests passing
 
 Next: Iteration 9 (CRUD Operations).
 
@@ -171,7 +171,6 @@ rally-cli/
 │   ├── widgets/
 │   │   ├── ticket_list.py   # TicketList widget (left panel, state sorting)
 │   │   ├── ticket_detail.py # TicketDetail widget (right panel)
-│   │   ├── command_bar.py   # CommandBar widget (bottom)
 │   │   ├── status_bar.py    # StatusBar widget (rally-tui banner, project, status)
 │   │   └── search_input.py  # SearchInput widget (search mode)
 │   ├── utils/               # Utility functions
@@ -192,7 +191,6 @@ rally-cli/
 │   ├── test_comment_screen.py    # CommentScreen tests
 │   ├── test_points_screen.py     # PointsScreen tests
 │   ├── test_quick_ticket_screen.py # QuickTicketScreen tests
-│   ├── test_command_bar.py       # CommandBar widget tests
 │   ├── test_status_bar.py        # StatusBar widget tests
 │   ├── test_search_input.py      # SearchInput widget tests
 │   ├── test_services.py          # Service layer tests
