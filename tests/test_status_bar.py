@@ -99,8 +99,8 @@ class TestStatusBarWidget:
             assert status_bar is not None
             assert status_bar.workspace == "Not Connected"
 
-    async def test_status_bar_shows_workspace(self) -> None:
-        """StatusBar should display workspace name."""
+    async def test_status_bar_shows_banner(self) -> None:
+        """StatusBar should display rally-tui banner."""
         from textual.app import App, ComposeResult
 
         class TestApp(App[None]):
@@ -111,8 +111,8 @@ class TestStatusBarWidget:
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
             assert status_bar.workspace == "My Workspace"
-            # Check the rendered content includes workspace
-            assert "My Workspace" in status_bar.display_content
+            # Check the rendered content includes rally-tui banner
+            assert "rally-tui" in status_bar.display_content
 
     async def test_status_bar_shows_project(self) -> None:
         """StatusBar should display project name when set."""
@@ -145,7 +145,7 @@ class TestStatusBarWidget:
             assert "Offline" in status_bar.display_content
 
     async def test_status_bar_update_workspace(self) -> None:
-        """StatusBar should update display when workspace changes."""
+        """StatusBar workspace property updates but banner stays."""
         from textual.app import App, ComposeResult
 
         class TestApp(App[None]):
@@ -156,7 +156,9 @@ class TestStatusBarWidget:
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
             status_bar.set_workspace("Updated Workspace")
-            assert "Updated Workspace" in status_bar.display_content
+            # Workspace property updates, but banner stays rally-tui
+            assert status_bar.workspace == "Updated Workspace"
+            assert "rally-tui" in status_bar.display_content
 
     async def test_status_bar_format_with_project(self) -> None:
         """StatusBar should format with pipe separators."""
@@ -174,8 +176,8 @@ class TestStatusBarWidget:
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
             content = status_bar.display_content
-            # Should contain workspace, project, and offline with separators
-            assert "Workspace: WS" in content
+            # Should contain banner, project, and offline with separators
+            assert "rally-tui" in content
             assert "Project: PR" in content
             assert "|" in content
 
@@ -195,7 +197,7 @@ class TestStatusBarWidget:
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
             content = status_bar.display_content
-            assert "Workspace: WS" in content
+            assert "rally-tui" in content
             assert "Project:" not in content
 
     async def test_status_bar_shows_connected(self) -> None:
@@ -268,12 +270,12 @@ class TestStatusBarInApp:
             status_bar = app.query_one(StatusBar)
             assert status_bar is not None
 
-    async def test_status_bar_shows_workspace_in_app(self) -> None:
-        """StatusBar should show workspace name in app."""
+    async def test_status_bar_shows_banner_in_app(self) -> None:
+        """StatusBar should show rally-tui banner in app."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
-            assert "My Workspace" in status_bar.display_content
+            assert "rally-tui" in status_bar.display_content
 
     async def test_status_bar_shows_project_in_app(self) -> None:
         """StatusBar should show project name in app."""

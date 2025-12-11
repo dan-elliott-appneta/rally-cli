@@ -154,7 +154,7 @@ rally-cli/
 │   │   ├── ticket_list.py   # TicketList widget (left panel, state sorting)
 │   │   ├── ticket_detail.py # TicketDetail widget (right panel)
 │   │   ├── command_bar.py   # CommandBar widget (bottom)
-│   │   ├── status_bar.py    # StatusBar widget (top)
+│   │   ├── status_bar.py    # StatusBar widget (rally-tui banner, project, status)
 │   │   └── search_input.py  # SearchInput widget (search mode)
 │   ├── utils/               # Utility functions
 │   │   └── html_to_text.py  # HTML to plain text converter

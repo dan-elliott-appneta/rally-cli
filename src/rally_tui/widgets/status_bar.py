@@ -54,7 +54,7 @@ class StatusBar(Static):
 
     def _update_display(self) -> None:
         """Update the status bar content."""
-        parts = [f"Workspace: {self._workspace}"]
+        parts = ["[bold orange]rally-tui[/]"]
         if self._project:
             parts.append(f"Project: {self._project}")
         if self._filter_info:
