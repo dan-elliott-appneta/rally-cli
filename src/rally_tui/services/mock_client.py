@@ -133,3 +133,31 @@ class MockRallyClient:
         self._discussions[ticket.formatted_id].append(discussion)
 
         return discussion
+
+    def update_points(self, ticket: Ticket, points: int) -> Ticket | None:
+        """Update a ticket's story points.
+
+        Args:
+            ticket: The ticket to update.
+            points: The new story points value.
+
+        Returns:
+            The updated Ticket with new points, or None on failure.
+        """
+        # Find and update the ticket in our list
+        for i, t in enumerate(self._tickets):
+            if t.formatted_id == ticket.formatted_id:
+                updated = Ticket(
+                    formatted_id=t.formatted_id,
+                    name=t.name,
+                    ticket_type=t.ticket_type,
+                    state=t.state,
+                    owner=t.owner,
+                    description=t.description,
+                    iteration=t.iteration,
+                    points=points,
+                    object_id=t.object_id,
+                )
+                self._tickets[i] = updated
+                return updated
+        return None
