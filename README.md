@@ -168,6 +168,7 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 - [ITERATION_4.md](docs/ITERATION_4.md) - Iteration 4 implementation guide (complete)
 - [ITERATION_5.md](docs/ITERATION_5.md) - Iteration 5 implementation guide (complete)
 - [ITERATION_6.md](docs/ITERATION_6.md) - Iteration 6 implementation guide (complete)
+- [ITERATION_8.md](docs/ITERATION_8.md) - Iteration 8 implementation guide (Discussions & Comments)
 
 ## Technology Stack
 

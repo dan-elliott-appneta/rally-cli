@@ -590,6 +590,8 @@ tests/
 
 **Goal**: View ticket discussions and add comments from TUI
 
+**Detailed Guide**: See [ITERATION_8.md](./ITERATION_8.md) for step-by-step implementation.
+
 **Tasks**:
 - [ ] Create `Discussion` model for conversation posts
 - [ ] Add `get_discussions(ticket_id)` to RallyClientProtocol
