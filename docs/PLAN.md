@@ -199,23 +199,36 @@ tests/
 
 **Tasks**:
 - [ ] Create `TicketDetail` widget (extends VerticalScroll)
-- [ ] Add `description` field to Ticket model
-- [ ] Update sample data with descriptions
+- [ ] Add new fields to Ticket model (description, owner, iteration, points)
+- [ ] Update sample data with all new fields
 - [ ] Implement two-panel layout with Horizontal container
 - [ ] Use reactive property for ticket updates (`watch_ticket`)
-- [ ] Display ticket fields (ID, Name, Type, State, Owner, Description)
-- [ ] Handle empty state (no selection)
+- [ ] Display ticket fields (ID, Name, Type, State, Owner, Iteration, Points, Description)
+- [ ] Handle empty/null states ("Unassigned", "Unscheduled", "—" for no points)
 - [ ] Update CSS for two-panel layout (35% / 1fr split)
-- [ ] Write unit tests for TicketDetail widget
-- [ ] Update snapshot tests for new layout
+- [ ] Write unit tests for TicketDetail widget (13 tests)
+- [ ] Update snapshot tests for new layout (3 tests)
 
 **Deliverable**: Two-panel layout where selecting a ticket updates the right panel
 
-**Test Coverage**:
+**Detail Panel Fields**:
+| Field | Display | Empty State |
+|-------|---------|-------------|
+| Owner | `ticket.owner` | "Unassigned" |
+| Iteration | `ticket.iteration` | "Unscheduled" |
+| Points | `ticket.points` | "—" |
+| State | `ticket.state` | (required) |
+| Description | `ticket.description` | (empty) |
+
+**Test Coverage** (16 new tests):
 - Unit: Detail shows first ticket on mount
 - Unit: Detail updates on navigation
 - Unit: Detail shows ticket name, state, owner, description
 - Unit: "Unassigned" shown when owner is None
+- Unit: Iteration displayed correctly
+- Unit: "Unscheduled" shown when iteration is None
+- Unit: Points displayed correctly
+- Unit: "—" shown when points is None
 - Snapshot: Two-panel layout with detail visible
 - Snapshot: Detail after navigation
 - Snapshot: Defect type in detail panel
@@ -226,8 +239,8 @@ src/rally_tui/
 ├── app.py              # Horizontal container, on_mount
 ├── app.tcss            # Two-panel CSS layout
 ├── models/
-│   ├── ticket.py       # Add description field
-│   └── sample_data.py  # Add descriptions
+│   ├── ticket.py       # Add description, iteration, points fields
+│   └── sample_data.py  # Add all new field values
 └── widgets/
     ├── __init__.py     # Export TicketDetail
     └── ticket_detail.py # New widget
@@ -239,6 +252,7 @@ tests/
 - Horizontal container for side-by-side layout
 - Reactive properties with `watch_` methods
 - CSS fractional units (`1fr`) for flexible sizing
+- Null-safe field display with sensible defaults
 
 ---
 

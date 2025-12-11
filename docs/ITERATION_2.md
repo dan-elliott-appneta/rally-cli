@@ -25,9 +25,10 @@ Add a details panel on the right side of the screen that displays full ticket in
 │  ~~~~~~~~~~~~~~~~~~~~~~ │  ~~~~~~~~~~~~~~~~~~~~~                    │
 │  ▶ US1234 User login    │  US1234 - User login feature              │
 │    US1235 Password rst  │  ─────────────────────────────────────    │
-│    DE456  Fix null ptr  │  Type: User Story                         │
-│    US1236 Add logout    │  State: In Progress                       │
-│    TA789  Write tests   │  Owner: John Smith                        │
+│    DE456  Fix null ptr  │  Owner: John Smith                        │
+│    US1236 Add logout    │  Iteration: Sprint 5                      │
+│    TA789  Write tests   │  Points: 3                                │
+│                         │  State: In Progress                       │
 │                         │                                           │
 │                         │  Description:                             │
 │                         │  As a user, I want to log in so that...   │
@@ -123,31 +124,22 @@ class TicketDetail(VerticalScroll):
         # Divider
         self.query_one("#detail-divider", Static).update("─" * 40)
 
-        # Metadata section
-        type_display = self._format_type(ticket.ticket_type)
+        # Metadata section: Owner, Iteration, Points, State
         owner_display = ticket.owner or "Unassigned"
+        iteration_display = ticket.iteration or "Unscheduled"
+        points_display = str(ticket.points) if ticket.points is not None else "—"
         metadata = (
-            f"Type: {type_display}\n"
-            f"State: {ticket.state}\n"
-            f"Owner: {owner_display}"
+            f"Owner: {owner_display}\n"
+            f"Iteration: {iteration_display}\n"
+            f"Points: {points_display}\n"
+            f"State: {ticket.state}"
         )
         self.query_one("#detail-metadata", Static).update(metadata)
 
-        # Description (placeholder for now - will be added to model later)
+        # Description
         self.query_one("#detail-description-label", Static).update("\nDescription:")
-        self.query_one("#detail-description", Static).update(
-            "No description available."
-        )
-
-    def _format_type(self, ticket_type: str) -> str:
-        """Format ticket type for display."""
-        type_names = {
-            "UserStory": "User Story",
-            "Defect": "Defect",
-            "Task": "Task",
-            "TestCase": "Test Case",
-        }
-        return type_names.get(ticket_type, ticket_type)
+        description = ticket.description or "No description available."
+        self.query_one("#detail-description", Static).update(description)
 ```
 
 ### Step 2: Update the Widgets Package
@@ -338,9 +330,9 @@ Footer {
 }
 ```
 
-### Step 5: Add Description to Ticket Model
+### Step 5: Add New Fields to Ticket Model
 
-Extend the Ticket model to include a description field:
+Extend the Ticket model to include description, iteration, and points fields:
 
 ```python
 # src/rally_tui/models/ticket.py
@@ -362,6 +354,8 @@ class Ticket:
     state: str
     owner: str | None = None
     description: str = ""
+    iteration: str | None = None
+    points: int | None = None
 
     @property
     def display_text(self) -> str:
@@ -377,7 +371,7 @@ class Ticket:
         return self.formatted_id[:2]
 ```
 
-### Step 6: Update Sample Data with Descriptions
+### Step 6: Update Sample Data with All Fields
 
 ```python
 # src/rally_tui/models/sample_data.py
@@ -393,6 +387,8 @@ SAMPLE_TICKETS: list[Ticket] = [
         state="In Progress",
         owner="John Smith",
         description="As a user, I want to log in with my email and password so that I can access my account securely.",
+        iteration="Sprint 5",
+        points=3,
     ),
     Ticket(
         formatted_id="US1235",
@@ -401,6 +397,8 @@ SAMPLE_TICKETS: list[Ticket] = [
         state="Defined",
         owner="Jane Doe",
         description="As a user, I want to reset my password via email so that I can regain access if I forget it.",
+        iteration="Sprint 6",
+        points=5,
     ),
     Ticket(
         formatted_id="DE456",
@@ -409,6 +407,8 @@ SAMPLE_TICKETS: list[Ticket] = [
         state="Open",
         owner="Bob Wilson",
         description="NullPointerException thrown when user clicks checkout with an empty cart. Stack trace attached.",
+        iteration="Sprint 5",
+        points=2,
     ),
     Ticket(
         formatted_id="US1236",
@@ -417,6 +417,8 @@ SAMPLE_TICKETS: list[Ticket] = [
         state="Completed",
         owner="Alice Chen",
         description="Add a clearly visible logout button in the navigation bar for authenticated users.",
+        iteration="Sprint 4",
+        points=1,
     ),
     Ticket(
         formatted_id="TA789",
@@ -425,6 +427,8 @@ SAMPLE_TICKETS: list[Ticket] = [
         state="In Progress",
         owner="John Smith",
         description="Create comprehensive unit tests for the authentication module including login, logout, and session management.",
+        iteration="Sprint 5",
+        points=None,  # Tasks often don't have points
     ),
     Ticket(
         formatted_id="DE457",
@@ -433,6 +437,8 @@ SAMPLE_TICKETS: list[Ticket] = [
         state="Open",
         owner=None,
         description="Memory usage grows unbounded when processing multiple images. Heap dump analysis needed.",
+        iteration=None,  # Unscheduled
+        points=None,
     ),
     Ticket(
         formatted_id="TC101",
@@ -441,6 +447,8 @@ SAMPLE_TICKETS: list[Ticket] = [
         state="Defined",
         owner="QA Team",
         description="Test that users can successfully log in with valid email/password combinations.",
+        iteration="Sprint 5",
+        points=None,
     ),
     Ticket(
         formatted_id="US1237",
@@ -449,13 +457,15 @@ SAMPLE_TICKETS: list[Ticket] = [
         state="Defined",
         owner=None,
         description="Allow users to switch between light and dark themes via a toggle in settings.",
+        iteration=None,  # Backlog
+        points=8,
     ),
 ]
 ```
 
-### Step 7: Update TicketDetail to Show Description
+### Step 7: TicketDetail _show_ticket Method (Final)
 
-Update the `_show_ticket` method:
+The `_show_ticket` method displays all fields: Owner, Iteration, Points, State, and Description:
 
 ```python
 def _show_ticket(self, ticket: Ticket) -> None:
@@ -467,13 +477,15 @@ def _show_ticket(self, ticket: Ticket) -> None:
     # Divider
     self.query_one("#detail-divider", Static).update("─" * 40)
 
-    # Metadata section
-    type_display = self._format_type(ticket.ticket_type)
+    # Metadata section: Owner, Iteration, Points, State
     owner_display = ticket.owner or "Unassigned"
+    iteration_display = ticket.iteration or "Unscheduled"
+    points_display = str(ticket.points) if ticket.points is not None else "—"
     metadata = (
-        f"Type: {type_display}\n"
-        f"State: {ticket.state}\n"
-        f"Owner: {owner_display}"
+        f"Owner: {owner_display}\n"
+        f"Iteration: {iteration_display}\n"
+        f"Points: {points_display}\n"
+        f"State: {ticket.state}"
     )
     self.query_one("#detail-metadata", Static).update(metadata)
 
@@ -490,7 +502,7 @@ def _show_ticket(self, ticket: Ticket) -> None:
 ### Step 8: Update Test Fixtures
 
 ```python
-# tests/conftest.py - add description to fixtures
+# tests/conftest.py - add all new fields to fixtures
 @pytest.fixture
 def sample_tickets() -> list[Ticket]:
     """Provide a small set of tickets for testing."""
@@ -502,6 +514,8 @@ def sample_tickets() -> list[Ticket]:
             state="Defined",
             owner="Test User",
             description="Test description for story one.",
+            iteration="Sprint 1",
+            points=3,
         ),
         Ticket(
             formatted_id="DE200",
@@ -510,6 +524,8 @@ def sample_tickets() -> list[Ticket]:
             state="Open",
             owner=None,
             description="Test description for defect.",
+            iteration="Sprint 1",
+            points=2,
         ),
         Ticket(
             formatted_id="TA300",
@@ -518,6 +534,8 @@ def sample_tickets() -> list[Ticket]:
             state="In Progress",
             owner="Another User",
             description="",
+            iteration=None,
+            points=None,
         ),
     ]
 
@@ -532,6 +550,8 @@ def single_ticket() -> Ticket:
         state="Completed",
         owner="Owner Name",
         description="This is a test description.",
+        iteration="Sprint 2",
+        points=5,
     )
 ```
 
@@ -615,6 +635,42 @@ class TestTicketDetailWidget:
             description = app.query_one("#detail-description")
             rendered = str(description.render())
             assert "email and password" in rendered
+
+    async def test_detail_shows_iteration(self) -> None:
+        """Detail panel should display iteration name."""
+        app = RallyTUI()
+        async with app.run_test() as pilot:
+            metadata = app.query_one("#detail-metadata")
+            rendered = str(metadata.render())
+            assert "Sprint 5" in rendered
+
+    async def test_detail_shows_points(self) -> None:
+        """Detail panel should display story points."""
+        app = RallyTUI()
+        async with app.run_test() as pilot:
+            metadata = app.query_one("#detail-metadata")
+            rendered = str(metadata.render())
+            assert "Points: 3" in rendered
+
+    async def test_detail_shows_unscheduled_for_no_iteration(self) -> None:
+        """Detail panel should show 'Unscheduled' when iteration is None."""
+        app = RallyTUI()
+        async with app.run_test() as pilot:
+            # Navigate to DE457 which has no iteration
+            await pilot.press("j", "j", "j", "j", "j")  # 5 times to DE457
+            metadata = app.query_one("#detail-metadata")
+            rendered = str(metadata.render())
+            assert "Unscheduled" in rendered
+
+    async def test_detail_shows_dash_for_no_points(self) -> None:
+        """Detail panel should show '—' when points is None."""
+        app = RallyTUI()
+        async with app.run_test() as pilot:
+            # Navigate to TA789 which has no points
+            await pilot.press("j", "j", "j", "j")  # 4 times to TA789
+            metadata = app.query_one("#detail-metadata")
+            rendered = str(metadata.render())
+            assert "Points: —" in rendered
 ```
 
 ### Step 10: Write Snapshot Tests for Two-Panel Layout
@@ -650,12 +706,14 @@ Before moving to Iteration 3, verify:
 - [ ] Right panel (TicketDetail) fills remaining space
 - [ ] First ticket details shown on app launch
 - [ ] Navigating with j/k updates the detail panel immediately
-- [ ] Detail panel shows: Header (ID + Name), Type, State, Owner, Description
+- [ ] Detail panel shows: Header (ID + Name), Owner, Iteration, Points, State, Description
 - [ ] "Unassigned" displayed when ticket has no owner
+- [ ] "Unscheduled" displayed when ticket has no iteration
+- [ ] "—" displayed when ticket has no points
 - [ ] Empty descriptions show "No description available"
 - [ ] Detail panel scrolls when content exceeds height
 - [ ] All existing tests still pass
-- [ ] New unit tests pass (7+ tests for TicketDetail)
+- [ ] New unit tests pass (11+ tests for TicketDetail)
 - [ ] Snapshot tests updated and passing
 
 ---
@@ -668,8 +726,8 @@ src/rally_tui/
 ├── app.py              # Add Horizontal container, TicketDetail, on_mount
 ├── app.tcss            # Two-panel layout CSS, detail styling
 ├── models/
-│   ├── ticket.py       # Add description field
-│   └── sample_data.py  # Add descriptions to sample tickets
+│   ├── ticket.py       # Add description, iteration, points fields
+│   └── sample_data.py  # Add all fields to sample tickets
 └── widgets/
     └── __init__.py     # Export TicketDetail
 ```
