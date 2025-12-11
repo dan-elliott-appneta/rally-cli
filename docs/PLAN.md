@@ -2,74 +2,493 @@
 
 ## Overview
 
-A Python command-line interface for interacting with Rally (Broadcom) via the WSAPI.
+A Python TUI (Text User Interface) application for interacting with Rally (Broadcom) via the WSAPI. The interface features a three-panel layout: ticket list (left), ticket details (right), and context-sensitive command bar (bottom).
 
 ## Goals
 
-- Provide a simple CLI for common Rally operations
-- Support querying, creating, updating, and viewing work items
-- Enable scripting and automation workflows
+- Provide an intuitive TUI for browsing and managing Rally work items
+- Full keyboard navigation with vim-style bindings
+- Testable architecture with snapshot testing for UI components
+- Clean separation between UI and Rally API logic
 
-## Planned Features
+---
 
-### Phase 1: Core Functionality
+## Architecture
 
-- [ ] Project setup (pyproject.toml, dependencies)
-- [ ] Configuration management (API key, workspace, project)
-- [ ] Basic authentication flow
-- [ ] Query commands for artifacts (user stories, defects, tasks)
-- [ ] View single item details by FormattedID
+### Technology Stack
 
-### Phase 2: CRUD Operations
+| Component | Choice | Rationale |
+|-----------|--------|-----------|
+| TUI Framework | **Textual** | Modern async Python TUI, CSS-like styling, built-in testing support |
+| Rally API | **pyral** | Official Python toolkit for Rally WSAPI |
+| Testing | **pytest + pytest-textual-snapshot** | Snapshot testing for visual regression, async test support |
+| Config | **pydantic-settings** | Type-safe configuration with env/file support |
 
-- [ ] Create new artifacts
-- [ ] Update existing artifacts
-- [ ] Delete artifacts
-- [ ] Bulk operations support
-
-### Phase 3: Enhanced Features
-
-- [ ] Interactive mode
-- [ ] Output formatting (table, JSON, CSV)
-- [ ] Filtering and sorting options
-- [ ] Iteration/Release scoping
-- [ ] Attachment handling
-
-### Phase 4: Advanced
-
-- [ ] Caching for improved performance
-- [ ] Custom field support
-- [ ] Templates for common operations
-- [ ] Shell completions
-
-## Technical Decisions
-
-### Dependencies
-
-- `pyral` - Rally REST API toolkit
-- `click` or `typer` - CLI framework (TBD)
-- `rich` - Terminal formatting (optional)
-
-### Configuration
-
-- Config file: `~/.rally-cli/config.yaml` or `~/.rally-cli.yaml`
-- Environment variables: `RALLY_APIKEY`, `RALLY_WORKSPACE`, `RALLY_PROJECT`
-- Command-line overrides
-
-### Command Structure
+### Project Structure
 
 ```
-rally [OPTIONS] COMMAND [ARGS]
-
-Commands:
-  config    Manage configuration
-  query     Query artifacts
-  show      Show artifact details
-  create    Create new artifact
-  update    Update artifact
-  delete    Delete artifact
+rally-cli/
+├── pyproject.toml
+├── src/
+│   └── rally_tui/
+│       ├── __init__.py
+│       ├── app.py              # Main Textual application
+│       ├── screens/
+│       │   └── main.py         # Main screen with 3-panel layout
+│       ├── widgets/
+│       │   ├── __init__.py
+│       │   ├── ticket_list.py  # Left panel - scrollable ticket list
+│       │   ├── ticket_detail.py # Right panel - ticket details view
+│       │   └── command_bar.py  # Bottom panel - context commands
+│       ├── models/
+│       │   ├── __init__.py
+│       │   └── ticket.py       # Ticket data models (decoupled from pyral)
+│       ├── services/
+│       │   ├── __init__.py
+│       │   ├── rally_client.py # Rally API wrapper (injectable)
+│       │   └── mock_client.py  # Mock client for testing
+│       └── config.py           # Configuration management
+├── tests/
+│   ├── conftest.py             # Fixtures, mock Rally client
+│   ├── test_ticket_list.py
+│   ├── test_ticket_detail.py
+│   ├── test_command_bar.py
+│   ├── test_integration.py
+│   └── snapshots/              # SVG snapshots for visual tests
+└── docs/
+    ├── API.md
+    └── PLAN.md
 ```
+
+### Testability Strategy
+
+1. **Dependency Injection**: Rally client is injected into the app, allowing mock substitution
+2. **Data Models**: Internal `Ticket` model decouples UI from pyral response objects
+3. **Snapshot Testing**: Visual regression tests using pytest-textual-snapshot
+4. **Unit Tests**: Individual widget behavior tested in isolation
+5. **Integration Tests**: Full app flow with mock Rally data
+
+```python
+# Example: Injecting mock client for tests
+class RallyTUI(App):
+    def __init__(self, client: RallyClientProtocol):
+        self.client = client
+        super().__init__()
+
+# In tests
+def test_ticket_list(snap_compare):
+    mock_client = MockRallyClient(tickets=[...])
+    app = RallyTUI(client=mock_client)
+    assert snap_compare(app)
+```
+
+---
+
+## UI Layout
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Rally TUI - Workspace: MyWorkspace | Project: MyProject            │
+├─────────────────────────┬───────────────────────────────────────────┤
+│  TICKETS                │  DETAILS                                  │
+│                         │                                           │
+│  ▶ US1234 User login    │  US1234 - User login feature              │
+│    US1235 Password rst  │  ─────────────────────────────────────    │
+│    DE456  Fix null ptr  │  State: In Progress                       │
+│    US1236 Add logout    │  Owner: John Smith                        │
+│    TA789  Write tests   │  Iteration: Sprint 5                      │
+│                         │  Points: 3                                │
+│                         │                                           │
+│                         │  Description:                             │
+│                         │  As a user, I want to log in so that...   │
+│                         │                                           │
+│                         │  Tasks (2/3 complete):                    │
+│                         │  ☑ Design login form                      │
+│                         │  ☑ Implement backend                      │
+│                         │  ☐ Add validation                         │
+│                         │                                           │
+├─────────────────────────┴───────────────────────────────────────────┤
+│  [j/k] Navigate  [Enter] Open  [e] Edit  [c] Create  [/] Search  [?]│
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Panel Specifications
+
+**Left Panel (Ticket List)**
+- Scrollable list of tickets (FormattedID + Name truncated)
+- Visual indicator for selected item
+- Type icons/colors (US=blue, DE=red, TA=green)
+- Keyboard: j/k or ↑/↓ to navigate, Enter to select
+
+**Right Panel (Ticket Details)**
+- Full ticket information for selected item
+- Sections: Header, Metadata, Description, Related Items
+- Scrollable for long content
+
+**Bottom Bar (Command Bar)**
+- Context-sensitive based on current focus/selection
+- Shows available keyboard shortcuts
+- Updates when context changes (e.g., different commands in edit mode)
+
+---
+
+## Iterative Build Plan
+
+### Iteration 1: Project Skeleton & Static List
+
+**Goal**: Display a hardcoded list of tickets, navigate with keyboard
+
+**Tasks**:
+- [ ] Initialize project with pyproject.toml
+- [ ] Set up Textual app skeleton
+- [ ] Create `TicketList` widget with hardcoded data
+- [ ] Implement j/k and arrow key navigation
+- [ ] Add visual selection indicator (highlight row)
+- [ ] Write first snapshot test
+
+**Deliverable**: App displays static ticket list, arrow keys move selection
+
+**Test Coverage**:
+- Snapshot: Initial render with first item selected
+- Snapshot: Selection moved to third item
+- Unit: Key bindings trigger selection change
+
+```python
+# Iteration 1 - Minimal TicketList widget
+class TicketList(Widget):
+    BINDINGS = [
+        ("j", "cursor_down", "Down"),
+        ("k", "cursor_up", "Up"),
+    ]
+
+    def __init__(self):
+        super().__init__()
+        self.tickets = [...]  # Hardcoded for now
+        self.selected_index = 0
+```
+
+---
+
+### Iteration 2: Details Panel (Right Side)
+
+**Goal**: Show ticket details when a ticket is selected
+
+**Tasks**:
+- [ ] Create `TicketDetail` widget
+- [ ] Implement reactive binding: list selection → detail update
+- [ ] Display ticket fields (ID, Name, State, Owner, Description)
+- [ ] Handle empty state (no selection)
+- [ ] Add scrolling for long descriptions
+
+**Deliverable**: Selecting a ticket updates the right panel
+
+**Test Coverage**:
+- Snapshot: Details panel shows correct ticket
+- Snapshot: Empty state when no tickets
+- Unit: Selection change emits correct message
+
+```python
+# Reactive message for selection changes
+class TicketSelected(Message):
+    def __init__(self, ticket: Ticket):
+        self.ticket = ticket
+        super().__init__()
+
+# In TicketDetail
+def on_ticket_selected(self, message: TicketSelected):
+    self.ticket = message.ticket
+    self.refresh()
+```
+
+---
+
+### Iteration 3: Command Bar (Bottom)
+
+**Goal**: Context-sensitive command hints at bottom
+
+**Tasks**:
+- [ ] Create `CommandBar` widget
+- [ ] Define command sets for different contexts
+- [ ] Update commands based on focused widget
+- [ ] Style as fixed footer
+
+**Deliverable**: Bottom bar shows relevant commands, updates on focus change
+
+**Test Coverage**:
+- Snapshot: Command bar with list-context commands
+- Snapshot: Command bar with detail-context commands
+- Unit: Focus change updates command set
+
+```python
+# Context-aware command bar
+class CommandBar(Static):
+    CONTEXTS = {
+        "list": "[j/k] Navigate  [Enter] Select  [/] Search  [c] Create",
+        "detail": "[e] Edit  [Esc] Back  [Tab] Next field",
+    }
+
+    def set_context(self, context: str):
+        self.update(self.CONTEXTS.get(context, ""))
+```
+
+---
+
+### Iteration 4: Layout & Styling
+
+**Goal**: Proper 3-panel layout with CSS styling
+
+**Tasks**:
+- [ ] Create main screen with CSS grid/dock layout
+- [ ] Left panel: fixed width or percentage
+- [ ] Right panel: flexible width
+- [ ] Bottom bar: docked to bottom
+- [ ] Add header bar with workspace/project info
+- [ ] Color coding for ticket types
+- [ ] Focus indicators (border highlight)
+
+**Deliverable**: Polished layout matching the design mockup
+
+**Test Coverage**:
+- Snapshot: Full app layout at different terminal sizes
+- Snapshot: Color coding for different ticket types
+
+```css
+/* rally_tui.tcss */
+TicketList {
+    width: 30%;
+    min-width: 25;
+    border: solid $primary;
+}
+
+TicketDetail {
+    width: 70%;
+    border: solid $secondary;
+}
+
+CommandBar {
+    dock: bottom;
+    height: 1;
+    background: $surface;
+}
+```
+
+---
+
+### Iteration 5: Ticket Data Model & Mock Service
+
+**Goal**: Clean data layer with testable mock
+
+**Tasks**:
+- [ ] Define `Ticket` dataclass with all needed fields
+- [ ] Create `RallyClientProtocol` (abstract interface)
+- [ ] Implement `MockRallyClient` with fixture data
+- [ ] Wire mock client into app for testing
+- [ ] Add factory fixtures for test data generation
+
+**Deliverable**: App uses injectable client, tests use mock
+
+**Test Coverage**:
+- Unit: Mock client returns expected data
+- Integration: App renders mock data correctly
+
+```python
+# models/ticket.py
+@dataclass
+class Ticket:
+    formatted_id: str
+    name: str
+    type: Literal["UserStory", "Defect", "Task"]
+    state: str
+    owner: str | None
+    description: str
+    story_points: int | None
+    iteration: str | None
+
+# services/rally_client.py
+class RallyClientProtocol(Protocol):
+    def get_tickets(self, query: str | None = None) -> list[Ticket]: ...
+    def get_ticket(self, formatted_id: str) -> Ticket | None: ...
+```
+
+---
+
+### Iteration 6: Real Rally Integration
+
+**Goal**: Connect to actual Rally API
+
+**Tasks**:
+- [ ] Implement `RallyClient` using pyral
+- [ ] Configuration loading (API key, workspace, project)
+- [ ] Map pyral responses to internal `Ticket` model
+- [ ] Add loading states to widgets
+- [ ] Handle API errors gracefully
+- [ ] Add connection status indicator
+
+**Deliverable**: App fetches and displays real Rally data
+
+**Test Coverage**:
+- Unit: pyral response → Ticket mapping
+- Integration: Full flow with mock (no real API in tests)
+
+```python
+# services/rally_client.py
+class RallyClient:
+    def __init__(self, config: RallyConfig):
+        self._rally = Rally(
+            config.server,
+            apikey=config.api_key,
+            workspace=config.workspace,
+            project=config.project
+        )
+
+    def get_tickets(self, query: str | None = None) -> list[Ticket]:
+        response = self._rally.get('Artifact', fetch=True, query=query)
+        return [self._to_ticket(item) for item in response]
+```
+
+---
+
+### Iteration 7: Search & Filtering
+
+**Goal**: Filter ticket list with search
+
+**Tasks**:
+- [ ] Add search input (activated with `/`)
+- [ ] Filter list as user types
+- [ ] Highlight matching text in list
+- [ ] Clear search with Esc
+- [ ] Persist last search
+
+**Deliverable**: User can search/filter the ticket list
+
+**Test Coverage**:
+- Snapshot: Search input visible
+- Snapshot: Filtered list results
+- Unit: Filter logic correctness
+
+---
+
+### Iteration 8: CRUD Operations
+
+**Goal**: Create, edit, update tickets from TUI
+
+**Tasks**:
+- [ ] Edit mode for ticket details (e key)
+- [ ] Form widgets for editable fields
+- [ ] Save changes to Rally (Enter)
+- [ ] Cancel edits (Esc)
+- [ ] Create new ticket dialog (c key)
+- [ ] Delete with confirmation (d key)
+- [ ] Optimistic UI updates
+
+**Deliverable**: Full CRUD operations from within TUI
+
+**Test Coverage**:
+- Snapshot: Edit mode appearance
+- Snapshot: Create dialog
+- Unit: Form validation
+- Integration: Mock client receives correct update calls
+
+---
+
+### Future Iterations
+
+- **Iteration 9**: Iteration/Release scoping and filtering
+- **Iteration 10**: Bulk operations (multi-select with Space)
+- **Iteration 11**: Attachment viewing/adding
+- **Iteration 12**: Custom fields support
+- **Iteration 13**: Caching and offline mode
+- **Iteration 14**: Configurable keybindings
+
+---
+
+## Testing Strategy
+
+### Test Types
+
+| Type | Tool | Purpose |
+|------|------|---------|
+| Snapshot | pytest-textual-snapshot | Visual regression for UI |
+| Unit | pytest | Widget logic, data transforms |
+| Integration | pytest + mock client | Full app flows |
+| E2E | Manual / pytest | Real Rally (sparingly) |
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=rally_tui
+
+# Update snapshots after intentional UI changes
+pytest --snapshot-update
+
+# Run only snapshot tests
+pytest -k snapshot
+```
+
+### Snapshot Test Example
+
+```python
+# tests/test_ticket_list.py
+import pytest
+from rally_tui.app import RallyTUI
+from rally_tui.services.mock_client import MockRallyClient
+
+@pytest.fixture
+def mock_tickets():
+    return [
+        Ticket("US1234", "User login feature", "UserStory", "In Progress", ...),
+        Ticket("DE456", "Fix null pointer", "Defect", "Open", ...),
+    ]
+
+def test_ticket_list_initial_render(snap_compare, mock_tickets):
+    client = MockRallyClient(tickets=mock_tickets)
+    app = RallyTUI(client=client)
+    assert snap_compare(app)
+
+def test_ticket_list_navigation(snap_compare, mock_tickets):
+    client = MockRallyClient(tickets=mock_tickets)
+    app = RallyTUI(client=client)
+    assert snap_compare(app, press=["j", "j"])  # Move down twice
+```
+
+---
+
+## Dependencies
+
+```toml
+# pyproject.toml
+[project]
+name = "rally-tui"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "textual>=0.40.0",
+    "pyral>=1.6.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-textual-snapshot>=0.4.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.8.0",
+]
+
+[project.scripts]
+rally = "rally_tui.app:main"
+```
+
+---
 
 ## Notes
 
 - See `docs/API.md` for Rally WSAPI reference
+- Textual docs: https://textual.textualize.io/
+- pytest-textual-snapshot: https://github.com/Textualize/pytest-textual-snapshot
