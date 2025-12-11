@@ -1,5 +1,7 @@
 """Pytest configuration and fixtures for Rally TUI tests."""
 
+from unittest.mock import MagicMock
+
 import pytest
 
 from rally_tui.models import Ticket
@@ -76,3 +78,16 @@ def empty_client() -> MockRallyClient:
         workspace="Empty Workspace",
         project="Empty Project",
     )
+
+
+@pytest.fixture
+def mock_user_settings() -> MagicMock:
+    """Provide mock UserSettings with parent_options configured.
+
+    This matches the DEFAULT_FEATURES in MockRallyClient.
+    """
+    settings = MagicMock()
+    settings.theme = "dark"
+    settings.theme_name = "textual-dark"
+    settings.parent_options = ["F59625", "F59627", "F59628"]
+    return settings

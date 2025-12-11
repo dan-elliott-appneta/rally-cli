@@ -134,14 +134,25 @@ class ParentScreen(Screen[str | None]):
             "Ticket must have a parent before moving to In Progress.",
             id="parent-info",
         )
-        yield Static(
-            "Select a parent or press 1-4:",
-            id="parent-hint",
-        )
+
+        # Show different hint based on whether options are configured
+        if self._parent_options:
+            yield Static(
+                f"Select a parent (1-{len(self._parent_options)}) or enter custom ID ({len(self._parent_options) + 1}):",
+                id="parent-hint",
+            )
+        else:
+            yield Static(
+                "Enter a Feature ID below (e.g., F12345):",
+                id="parent-hint",
+            )
+
         with Vertical(id="parent-buttons"):
             for i, option in enumerate(self._parent_options, 1):
                 yield Button(option.display_text(i), id=f"btn-parent-{i}")
-            yield Button("4. Enter custom ID...", id="btn-parent-custom")
+            # Custom button index is number of options + 1
+            custom_index = len(self._parent_options) + 1
+            yield Button(f"{custom_index}. Enter custom ID...", id="btn-parent-custom")
         with Vertical(id="custom-input-container"):
             yield Input(
                 placeholder="Enter Feature ID (e.g., F12345)",
@@ -150,8 +161,12 @@ class ParentScreen(Screen[str | None]):
         yield Footer()
 
     def on_mount(self) -> None:
-        """Focus the first button."""
-        self.query_one("#btn-parent-1", Button).focus()
+        """Focus first parent button or custom button if no options."""
+        if self._parent_options:
+            self.query_one("#btn-parent-1", Button).focus()
+        else:
+            # No parent options - focus custom button
+            self.query_one("#btn-parent-custom", Button).focus()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle parent button clicks."""
@@ -181,20 +196,29 @@ class ParentScreen(Screen[str | None]):
         self.dismiss(None)
 
     def action_select_1(self) -> None:
-        """Select first parent option."""
+        """Select first parent option, or show custom input if no options."""
         if len(self._parent_options) >= 1:
             self.dismiss(self._parent_options[0].formatted_id)
+        else:
+            # No options configured - "1" triggers custom input
+            self._show_custom_input()
 
     def action_select_2(self) -> None:
-        """Select second parent option."""
+        """Select second parent option, or show custom input if only 1 option."""
         if len(self._parent_options) >= 2:
             self.dismiss(self._parent_options[1].formatted_id)
+        elif len(self._parent_options) == 1:
+            # Only 1 option - "2" triggers custom input
+            self._show_custom_input()
 
     def action_select_3(self) -> None:
-        """Select third parent option."""
+        """Select third parent option, or show custom input if only 2 options."""
         if len(self._parent_options) >= 3:
             self.dismiss(self._parent_options[2].formatted_id)
+        elif len(self._parent_options) == 2:
+            # Only 2 options - "3" triggers custom input
+            self._show_custom_input()
 
     def action_select_custom(self) -> None:
-        """Show custom input field."""
+        """Show custom input field (always bound to 4, or next number after options)."""
         self._show_custom_input()
