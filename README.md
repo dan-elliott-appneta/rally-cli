@@ -8,6 +8,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - View ticket details in a split-pane layout
 - Keyboard-driven interface with vim-style navigation
 - Color-coded ticket types (User Stories, Defects, Tasks, Test Cases)
+- **Default filter**: When connected, shows only tickets in the current iteration owned by you
 
 ## Status
 
@@ -25,7 +26,8 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Two-panel layout with ticket list and detail view
 - Tab to switch between panels
 - Context-sensitive keyboard shortcuts
-- 161 tests passing
+- Default filter to current iteration and current user when connected
+- 177 tests passing
 
 Next: Iteration 8 (CRUD Operations).
 
