@@ -31,6 +31,10 @@ class RallyTUI(App[None]):
 
     def on_mount(self) -> None:
         """Initialize the app state."""
+        # Set panel titles
+        self.query_one("#ticket-list").border_title = "Tickets"
+        self.query_one("#ticket-detail").border_title = "Details"
+
         # Set first ticket in detail panel
         if SAMPLE_TICKETS:
             detail = self.query_one(TicketDetail)

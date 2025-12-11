@@ -136,3 +136,21 @@ class TestTicketDetailWidget:
             assert detail.ticket is not None
             assert detail.ticket.formatted_id == "DE456"
             assert detail.ticket.ticket_type == "Defect"
+
+
+class TestPanelTitles:
+    """Tests for panel border titles."""
+
+    async def test_ticket_list_has_title(self) -> None:
+        """Ticket list panel should have 'Tickets' as border title."""
+        app = RallyTUI()
+        async with app.run_test() as pilot:
+            ticket_list = app.query_one("#ticket-list")
+            assert ticket_list.border_title == "Tickets"
+
+    async def test_ticket_detail_has_title(self) -> None:
+        """Ticket detail panel should have 'Details' as border title."""
+        app = RallyTUI()
+        async with app.run_test() as pilot:
+            ticket_detail = app.query_one("#ticket-detail")
+            assert ticket_detail.border_title == "Details"
