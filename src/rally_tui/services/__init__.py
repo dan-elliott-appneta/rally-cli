@@ -2,5 +2,6 @@
 
 from .mock_client import MockRallyClient
 from .protocol import RallyClientProtocol
+from .rally_client import RallyClient
 
-__all__ = ["MockRallyClient", "RallyClientProtocol"]
+__all__ = ["MockRallyClient", "RallyClient", "RallyClientProtocol"]
