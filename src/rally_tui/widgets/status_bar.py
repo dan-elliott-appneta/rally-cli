@@ -43,6 +43,7 @@ class StatusBar(Static):
         self._project = project
         self._connected = connected
         self._display_content = ""
+        self._filter_info = ""
 
     def on_mount(self) -> None:
         """Set initial content when mounted."""
@@ -53,6 +54,8 @@ class StatusBar(Static):
         parts = [f"Workspace: {self._workspace}"]
         if self._project:
             parts.append(f"Project: {self._project}")
+        if self._filter_info:
+            parts.append(self._filter_info)
         status = "Connected" if self._connected else "Offline"
         parts.append(status)
         self._display_content = " | ".join(parts)
@@ -104,3 +107,23 @@ class StatusBar(Static):
         """
         self._connected = connected
         self._update_display()
+
+    def set_filter_info(self, filtered: int, total: int) -> None:
+        """Show filter count in status bar.
+
+        Args:
+            filtered: Number of tickets matching filter.
+            total: Total number of tickets.
+        """
+        self._filter_info = f"Filtered: {filtered}/{total}"
+        self._update_display()
+
+    def clear_filter_info(self) -> None:
+        """Clear filter info from status bar."""
+        self._filter_info = ""
+        self._update_display()
+
+    @property
+    def filter_info(self) -> str:
+        """Get the current filter info string."""
+        return self._filter_info
