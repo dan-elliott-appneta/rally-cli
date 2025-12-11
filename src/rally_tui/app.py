@@ -119,10 +119,11 @@ class RallyTUI(App[None]):
             current_user=self._client.current_user,
             id="status-bar",
         )
-        # Fetch ALL tickets (empty query bypasses default filter)
-        # We'll apply iteration/user filters client-side
-        tickets = self._client.get_tickets(query="")
-        self._all_tickets = list(tickets)  # Store all tickets for filtering
+        # Fetch filtered tickets first for fast startup
+        # (default filter = current iteration + current user)
+        tickets = self._client.get_tickets()
+        self._all_tickets = list(tickets)  # Will be replaced with full list later
+        self._all_tickets_loaded = False  # Track if full dataset is loaded
         with Horizontal(id="main-container"):
             with Vertical(id="list-container"):
                 yield TicketList(tickets, id="ticket-list")
@@ -150,19 +151,23 @@ class RallyTUI(App[None]):
         # Hide search input initially
         self.query_one("#search-input").display = False
 
-        # Apply default filters when connected (current iteration + current user)
+        # Set initial filter state to match what was fetched
+        # (default query = current iteration + current user)
         if self._connected and self._client.current_iteration:
             self._iteration_filter = self._client.current_iteration
             self._user_filter_active = True
-            self._apply_filters()
-            _log.debug(f"Applied default filters: iteration={self._iteration_filter}, user=True")
-        else:
-            # Set first ticket in detail panel
-            ticket_list = self.query_one(TicketList)
-            _log.debug(f"Loaded {len(ticket_list._tickets)} tickets")
-            if ticket_list._tickets:
-                detail = self.query_one(TicketDetail)
-                detail.ticket = ticket_list._tickets[0]
+            # Update status bar to show filters (tickets already loaded with this filter)
+            status_bar = self.query_one(StatusBar)
+            status_bar.set_iteration_filter(self._iteration_filter)
+            status_bar.set_user_filter(True)
+            _log.debug(f"Initial filters: iteration={self._iteration_filter}, user=True")
+
+        # Set first ticket in detail panel
+        ticket_list = self.query_one(TicketList)
+        _log.debug(f"Loaded {len(ticket_list._tickets)} tickets")
+        if ticket_list._tickets:
+            detail = self.query_one(TicketDetail)
+            detail.ticket = ticket_list._tickets[0]
 
         # Focus the ticket list initially
         self.query_one(TicketList).focus()
@@ -171,7 +176,22 @@ class RallyTUI(App[None]):
         if self._show_splash:
             self.push_screen(SplashScreen())
 
+        # Load all tickets in background for when user changes filters
+        if self._connected:
+            self.run_worker(self._load_all_tickets, exclusive=True)
+
         _log.info("Rally TUI started successfully")
+
+    async def _load_all_tickets(self) -> None:
+        """Background worker to load all tickets."""
+        _log.debug("Loading all tickets in background...")
+        try:
+            all_tickets = self._client.get_tickets(query="")
+            self._all_tickets = list(all_tickets)
+            self._all_tickets_loaded = True
+            _log.info(f"Background load complete: {len(self._all_tickets)} total tickets")
+        except Exception as e:
+            _log.error(f"Failed to load all tickets: {e}")
 
     def on_ticket_list_ticket_highlighted(
         self, event: TicketList.TicketHighlighted
@@ -444,6 +464,11 @@ class RallyTUI(App[None]):
 
     def _apply_filters(self) -> None:
         """Apply iteration and user filters to the ticket list."""
+        # If all tickets aren't loaded yet, notify user
+        if not self._all_tickets_loaded:
+            _log.debug("All tickets not yet loaded")
+            self.notify("Loading all tickets...", timeout=1)
+
         # Start with all tickets
         filtered = list(self._all_tickets)
 
