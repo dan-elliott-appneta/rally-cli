@@ -314,3 +314,31 @@ class TicketList(ListView):
                 if i < len(items):
                     items[i].ticket = ticket
                 break
+
+    def add_ticket(self, ticket: Ticket) -> None:
+        """Add a new ticket to the list.
+
+        Args:
+            ticket: The new ticket to add.
+        """
+        # Add to all_tickets
+        self._all_tickets.append(ticket)
+
+        # Re-sort all tickets by state
+        self._all_tickets = sort_tickets_by_state(self._all_tickets)
+
+        # If no filter is active, add to displayed tickets
+        if not self._filter_query:
+            self._tickets = list(self._all_tickets)
+            # Rebuild the UI list
+            self.clear()
+            for t in self._tickets:
+                self.append(TicketListItem(t))
+            # Select the new ticket
+            for i, t in enumerate(self._tickets):
+                if t.formatted_id == ticket.formatted_id:
+                    self.index = i
+                    break
+        else:
+            # Re-apply filter
+            self.filter_tickets(self._filter_query)

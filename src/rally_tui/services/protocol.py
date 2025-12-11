@@ -88,3 +88,24 @@ class RallyClientProtocol(Protocol):
             The updated Ticket with new points, or None on failure.
         """
         ...
+
+    def create_ticket(
+        self,
+        title: str,
+        ticket_type: str,
+        description: str = "",
+    ) -> Ticket | None:
+        """Create a new ticket in Rally.
+
+        Creates a ticket with the current user as owner and assigns it
+        to the current iteration.
+
+        Args:
+            title: The ticket title/name.
+            ticket_type: The entity type ("HierarchicalRequirement" or "Defect").
+            description: Optional ticket description.
+
+        Returns:
+            The created Ticket, or None on failure.
+        """
+        ...
