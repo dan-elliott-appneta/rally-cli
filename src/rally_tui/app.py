@@ -123,7 +123,8 @@ class RallyTUI(App[None]):
             self.theme = saved_theme
             _log.debug(f"Applied saved theme: {saved_theme}")
         else:
-            self.dark = self._user_settings.theme == "dark"
+            # Fallback to basic dark/light theme
+            self.theme = "textual-dark" if self._user_settings.theme == "dark" else "textual-light"
 
         # Set panel titles
         self.query_one("#ticket-list").border_title = "Tickets"
@@ -246,8 +247,12 @@ class RallyTUI(App[None]):
 
     def action_toggle_theme(self) -> None:
         """Toggle between dark and light theme and persist setting."""
-        self.dark = not self.dark
-        self._user_settings.theme = "dark" if self.dark else "light"
+        # In Textual 0.40+, use theme property instead of deprecated dark property
+        if self.theme and "light" in self.theme:
+            self.theme = "textual-dark"
+        else:
+            self.theme = "textual-light"
+        self._user_settings.theme = "dark" if "dark" in self.theme else "light"
 
     def watch_theme(self, theme: str) -> None:
         """Persist theme when changed via command palette."""
