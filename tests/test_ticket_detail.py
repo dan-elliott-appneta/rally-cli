@@ -169,3 +169,82 @@ class TestPanelTitles:
         async with app.run_test() as pilot:
             ticket_detail = app.query_one("#ticket-detail")
             assert ticket_detail.border_title == "Details"
+
+
+class TestTicketDetailNotesToggle:
+    """Tests for description/notes toggle in ticket detail."""
+
+    async def test_default_view_is_description(self) -> None:
+        """Detail panel should show description by default."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            detail = app.query_one(TicketDetail)
+            assert detail.content_view == "description"
+            label = app.query_one("#detail-description-label")
+            assert "Description:" in str(label.render())
+
+    async def test_toggle_shows_notes(self) -> None:
+        """Pressing 'n' should toggle to notes view."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            detail = app.query_one(TicketDetail)
+
+            # Press n to toggle to notes
+            await pilot.press("n")
+
+            assert detail.content_view == "notes"
+            label = app.query_one("#detail-description-label")
+            assert "Notes:" in str(label.render())
+
+    async def test_toggle_back_to_description(self) -> None:
+        """Pressing 'n' again should toggle back to description."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            detail = app.query_one(TicketDetail)
+
+            # Toggle to notes then back
+            await pilot.press("n")
+            await pilot.press("n")
+
+            assert detail.content_view == "description"
+            label = app.query_one("#detail-description-label")
+            assert "Description:" in str(label.render())
+
+    async def test_notes_content_displayed(self) -> None:
+        """Notes view should display ticket notes."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            # First ticket is US1235 with notes about reset tokens
+            await pilot.press("n")
+
+            content = app.query_one("#detail-description")
+            rendered = str(content.render())
+            # US1235 has notes: "Implementation notes: Reset tokens..."
+            assert "Reset tokens" in rendered or "Implementation notes" in rendered
+
+    async def test_empty_notes_shows_message(self) -> None:
+        """Empty notes should show 'No notes available' message."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            # Navigate to US1236 (index 7, Completed state) which has empty notes
+            for _ in range(7):
+                await pilot.press("j")
+
+            # Toggle to notes
+            await pilot.press("n")
+
+            content = app.query_one("#detail-description")
+            rendered = str(content.render())
+            assert "No notes available" in rendered
+
+    async def test_toggle_method_works(self) -> None:
+        """toggle_content_view method should work correctly."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            detail = app.query_one(TicketDetail)
+
+            assert detail.content_view == "description"
+            detail.toggle_content_view()
+            assert detail.content_view == "notes"
+            detail.toggle_content_view()
+            assert detail.content_view == "description"

@@ -35,6 +35,7 @@ class RallyTUI(App[None]):
         Binding("t", "toggle_theme", "Toggle Theme", show=False),
         Binding("y", "copy_ticket_url", "Copy URL", show=False),
         Binding("p", "set_points", "Set Points", show=False),
+        Binding("n", "toggle_notes", "Toggle Notes", show=False),
     ]
 
     def __init__(
@@ -236,6 +237,11 @@ class RallyTUI(App[None]):
             if url:
                 self.copy_to_clipboard(url)
                 self.notify(f"Copied: {url}", timeout=2)
+
+    def action_toggle_notes(self) -> None:
+        """Toggle between description and notes view in detail panel."""
+        detail = self.query_one(TicketDetail)
+        detail.toggle_content_view()
 
     def action_set_points(self) -> None:
         """Open the points screen for the selected ticket."""

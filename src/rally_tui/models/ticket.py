@@ -20,6 +20,7 @@ class Ticket:
     state: str
     owner: str | None = None
     description: str = ""
+    notes: str = ""
     iteration: str | None = None
     points: int | float | None = None
     object_id: str | None = None  # Rally ObjectID for API calls

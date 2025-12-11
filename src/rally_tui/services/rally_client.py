@@ -156,7 +156,7 @@ class RallyClient:
             try:
                 response = self._rally.get(
                     entity_type,
-                    fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Iteration,PlanEstimate,ObjectID",
+                    fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID",
                     query=effective_query,
                     pagesize=200,
                 )
@@ -183,7 +183,7 @@ class RallyClient:
         try:
             response = self._rally.get(
                 entity_type,
-                fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Iteration,PlanEstimate,ObjectID",
+                fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID",
                 query=f'FormattedID = "{formatted_id}"',
             )
 
@@ -245,6 +245,9 @@ class RallyClient:
         # Get description, handle None
         description = getattr(item, "Description", "") or ""
 
+        # Get notes, handle None
+        notes = getattr(item, "Notes", "") or ""
+
         # Get ObjectID for discussion queries
         object_id = None
         if hasattr(item, "ObjectID") and item.ObjectID:
@@ -257,6 +260,7 @@ class RallyClient:
             state=state,
             owner=owner,
             description=description,
+            notes=notes,
             iteration=iteration,
             points=points,
             object_id=object_id,
@@ -427,6 +431,7 @@ class RallyClient:
                 state=ticket.state,
                 owner=ticket.owner,
                 description=ticket.description,
+                notes=ticket.notes,
                 iteration=ticket.iteration,
                 points=stored_points,
                 object_id=ticket.object_id,
