@@ -290,12 +290,12 @@ class TestUserSettingsParentOptions:
     """Tests for parent_options property."""
 
     def test_default_parent_options(self, tmp_path: Path, monkeypatch) -> None:
-        """Default parent_options should be empty (user must configure)."""
+        """Default parent_options should be F59625, F59627, F59628."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
 
         settings = UserSettings()
-        assert settings.parent_options == []
+        assert settings.parent_options == ["F59625", "F59627", "F59628"]
 
     def test_set_parent_options(self, tmp_path: Path, monkeypatch) -> None:
         """Should be able to set custom parent options."""
