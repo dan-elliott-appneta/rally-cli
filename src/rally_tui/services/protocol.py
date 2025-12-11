@@ -76,3 +76,15 @@ class RallyClientProtocol(Protocol):
             The created Discussion, or None on failure.
         """
         ...
+
+    def update_points(self, ticket: Ticket, points: int) -> Ticket | None:
+        """Update a ticket's story points.
+
+        Args:
+            ticket: The ticket to update.
+            points: The new story points value.
+
+        Returns:
+            The updated Ticket with new points, or None on failure.
+        """
+        ...

@@ -8,7 +8,7 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import Header
 
 from rally_tui.config import RallyConfig
-from rally_tui.screens import DiscussionScreen, SplashScreen
+from rally_tui.screens import DiscussionScreen, PointsScreen, SplashScreen
 from rally_tui.services import MockRallyClient, RallyClient, RallyClientProtocol
 from rally_tui.user_settings import UserSettings
 from rally_tui.widgets import (
@@ -34,6 +34,7 @@ class RallyTUI(App[None]):
         Binding("d", "open_discussions", "Discussions", show=False),
         Binding("t", "toggle_theme", "Toggle Theme", show=False),
         Binding("y", "copy_ticket_url", "Copy URL", show=False),
+        Binding("p", "set_points", "Set Points", show=False),
     ]
 
     def __init__(
@@ -227,6 +228,35 @@ class RallyTUI(App[None]):
             if url:
                 self.copy_to_clipboard(url)
                 self.notify(f"Copied: {url}", timeout=2)
+
+    def action_set_points(self) -> None:
+        """Open the points screen for the selected ticket."""
+        detail = self.query_one(TicketDetail)
+        if detail.ticket:
+            self.push_screen(
+                PointsScreen(detail.ticket),
+                callback=self._handle_points_result,
+            )
+
+    def _handle_points_result(self, points: int | None) -> None:
+        """Handle the result from PointsScreen."""
+        if points is None:
+            return
+
+        detail = self.query_one(TicketDetail)
+        if not detail.ticket:
+            return
+
+        updated = self._client.update_points(detail.ticket, points)
+        if updated:
+            # Update the detail panel with new ticket data
+            detail.ticket = updated
+            # Update the ticket in the list
+            ticket_list = self.query_one(TicketList)
+            ticket_list.update_ticket(updated)
+            self.notify(f"Points set to {points}", timeout=2)
+        else:
+            self.notify("Failed to update points", severity="error", timeout=3)
 
 
 def main() -> None:

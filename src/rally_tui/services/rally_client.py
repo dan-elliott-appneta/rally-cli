@@ -389,3 +389,46 @@ class RallyClient:
             pass
 
         return None
+
+    def update_points(self, ticket: Ticket, points: int) -> Ticket | None:
+        """Update a ticket's story points.
+
+        Updates PlanEstimate on User Stories and Defects.
+
+        Args:
+            ticket: The ticket to update.
+            points: The new story points value.
+
+        Returns:
+            The updated Ticket with new points, or None on failure.
+        """
+        if not ticket.object_id:
+            return None
+
+        try:
+            entity_type = self._get_entity_type(ticket.formatted_id)
+
+            # Update the PlanEstimate field
+            update_data = {
+                "ObjectID": ticket.object_id,
+                "PlanEstimate": points,
+            }
+
+            self._rally.update(entity_type, update_data)
+
+            # Return updated ticket
+            return Ticket(
+                formatted_id=ticket.formatted_id,
+                name=ticket.name,
+                ticket_type=ticket.ticket_type,
+                state=ticket.state,
+                owner=ticket.owner,
+                description=ticket.description,
+                iteration=ticket.iteration,
+                points=points,
+                object_id=ticket.object_id,
+            )
+        except Exception:
+            pass
+
+        return None

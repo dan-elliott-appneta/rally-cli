@@ -13,6 +13,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Splash screen**: ASCII art "RALLY TUI" greeting on startup
 - **Theme toggle**: Switch between dark/light themes with `t` key (persisted)
 - **Copy URL**: Press `y` to copy Rally ticket URL to clipboard
+- **Set Points**: Press `p` to set story points on selected ticket
 - **User settings**: Preferences saved to `~/.config/rally-tui/config.json`
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
 - **Discussions**: View ticket discussions and add comments
@@ -25,6 +26,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Tickets sorted by workflow state (earlier states at top)
 - Theme preference persisted to user config file
 - Copy ticket URL to clipboard with `y` key
+- Set story points with `p` key
 - View ticket discussions with `d` key
 - Add comments with `c` key from discussion screen
 - HTML content converted to readable plain text
@@ -41,7 +43,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Tab to switch between panels
 - Context-sensitive keyboard shortcuts
 - Default filter to current iteration and current user when connected
-- 263 tests passing
+- 276 tests passing
 
 Next: Iteration 9 (CRUD Operations).
 
@@ -111,6 +113,7 @@ rally-tui
 | Tab | list/detail | Switch panel |
 | t | any | Toggle dark/light theme |
 | y | list/detail | Copy ticket URL to clipboard |
+| p | list/detail | Set story points |
 | d | list/detail | Open discussions |
 | c | discussion | Add comment |
 | Ctrl+S | comment | Submit comment |

@@ -292,3 +292,25 @@ class TicketList(ListView):
     def filtered_count(self) -> int:
         """Get filtered ticket count."""
         return len(self._tickets)
+
+    def update_ticket(self, ticket: Ticket) -> None:
+        """Update a ticket in place.
+
+        Args:
+            ticket: The updated ticket (matched by formatted_id).
+        """
+        # Update in all_tickets
+        for i, t in enumerate(self._all_tickets):
+            if t.formatted_id == ticket.formatted_id:
+                self._all_tickets[i] = ticket
+                break
+
+        # Update in filtered tickets
+        for i, t in enumerate(self._tickets):
+            if t.formatted_id == ticket.formatted_id:
+                self._tickets[i] = ticket
+                # Update the corresponding list item
+                items = list(self.query(TicketListItem))
+                if i < len(items):
+                    items[i].ticket = ticket
+                break
