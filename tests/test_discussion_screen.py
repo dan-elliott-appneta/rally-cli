@@ -19,7 +19,7 @@ class TestDiscussionScreenBasic:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
             object_id="100001",
         )
         client = MockRallyClient()
@@ -100,7 +100,7 @@ class TestDiscussionScreenNavigation:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
             object_id="100001",
         )
         client = MockRallyClient()

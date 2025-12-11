@@ -13,7 +13,7 @@ from rally_tui.models import Ticket
 class SortMode(Enum):
     """Available sort modes for the ticket list."""
 
-    STATE = "state"  # By state flow (Defined → In Progress → Completed)
+    STATE = "state"  # By state flow (Defined → In-Progress → Completed)
     CREATED = "created"  # By most recently created (newest first)
     OWNER = "owner"  # By owner name (unassigned first, then alphabetical)
 

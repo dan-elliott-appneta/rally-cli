@@ -10,9 +10,10 @@ from rally_tui.models import Ticket
 
 
 # Common workflow states for User Stories and Defects
+# Note: Rally uses hyphenated "In-Progress" (not "In Progress")
 WORKFLOW_STATES: list[str] = [
     "Defined",
-    "In Progress",
+    "In-Progress",
     "Completed",
     "Accepted",
 ]

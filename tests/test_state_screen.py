@@ -13,7 +13,7 @@ from rally_tui.widgets import TicketList
 def story_ticket() -> Ticket:
     """A user story ticket for testing.
 
-    Note: Includes parent_id so tests can change to "In Progress"
+    Note: Includes parent_id so tests can change to "In-Progress"
     without triggering parent selection flow.
     """
     return Ticket(
@@ -26,7 +26,7 @@ def story_ticket() -> Ticket:
         iteration="Sprint 1",
         points=3,
         object_id="123456",
-        parent_id="F59625",  # Has parent to allow In Progress transition
+        parent_id="F59625",  # Has parent to allow In-Progress transition
     )
 
 
@@ -101,7 +101,7 @@ class TestStateScreenStoryStates:
             await pilot.pause()
 
             # Check states are workflow states
-            assert screen._states == ["Defined", "In Progress", "Completed", "Accepted"]
+            assert screen._states == ["Defined", "In-Progress", "Completed", "Accepted"]
 
     async def test_current_state_button_highlighted(self, story_ticket: Ticket) -> None:
         """Current state button should be highlighted."""
@@ -146,12 +146,12 @@ class TestStateScreenSelection:
             app.push_screen(StateScreen(story_ticket), callback=callback)
             await pilot.pause()
 
-            # Click "In Progress" button (button 2)
+            # Click "In-Progress" button (button 2)
             btn2 = app.screen.query_one("#btn-state-2")
             await pilot.click(btn2)
             await pilot.pause()
 
-            assert result == "In Progress"
+            assert result == "In-Progress"
 
     async def test_number_key_selects_state(self, story_ticket: Ticket) -> None:
         """Pressing number key should select corresponding state."""
@@ -203,10 +203,10 @@ class TestMockClientUpdateState:
         """Should return ticket with new state."""
         client = MockRallyClient(tickets=[story_ticket])
 
-        updated = client.update_state(story_ticket, "In Progress")
+        updated = client.update_state(story_ticket, "In-Progress")
 
         assert updated is not None
-        assert updated.state == "In Progress"
+        assert updated.state == "In-Progress"
         assert updated.formatted_id == story_ticket.formatted_id
 
     def test_update_state_modifies_internal_list(self, story_ticket: Ticket) -> None:
@@ -223,7 +223,7 @@ class TestMockClientUpdateState:
         """Should return None for nonexistent ticket."""
         client = MockRallyClient(tickets=[])
 
-        result = client.update_state(story_ticket, "In Progress")
+        result = client.update_state(story_ticket, "In-Progress")
 
         assert result is None
 
@@ -240,13 +240,13 @@ class TestStateIntegration:
             await pilot.press("s")
             await pilot.pause()
 
-            # Select "In Progress" (button 2)
+            # Select "In-Progress" (button 2)
             await pilot.press("2")
             await pilot.pause()
 
             # Check ticket was updated in list
             ticket_list = app.query_one(TicketList)
-            assert ticket_list._tickets[0].state == "In Progress"
+            assert ticket_list._tickets[0].state == "In-Progress"
 
     async def test_cancel_does_not_change_state(self, story_ticket: Ticket) -> None:
         """Cancelling should not change the state."""
@@ -309,10 +309,10 @@ class TestStateIntegration:
 
 
 class TestParentSelectionIntegration:
-    """Integration tests for parent selection when moving to In Progress."""
+    """Integration tests for parent selection when moving to In-Progress."""
 
     async def test_in_progress_without_parent_shows_parent_screen(self) -> None:
-        """Moving to In Progress without parent should show ParentScreen."""
+        """Moving to In-Progress without parent should show ParentScreen."""
         # Ticket without a parent
         ticket = Ticket(
             formatted_id="US100",
@@ -329,7 +329,7 @@ class TestParentSelectionIntegration:
             await pilot.press("s")
             await pilot.pause()
 
-            # Select "In Progress" (button 2)
+            # Select "In-Progress" (button 2)
             await pilot.press("2")
             await pilot.pause()
 
@@ -338,7 +338,7 @@ class TestParentSelectionIntegration:
             assert isinstance(app.screen, ParentScreen)
 
     async def test_in_progress_with_parent_skips_parent_screen(self) -> None:
-        """Moving to In Progress with existing parent should update directly."""
+        """Moving to In-Progress with existing parent should update directly."""
         # Ticket with a parent already set
         ticket = Ticket(
             formatted_id="US100",
@@ -356,7 +356,7 @@ class TestParentSelectionIntegration:
             await pilot.press("s")
             await pilot.pause()
 
-            # Select "In Progress" (button 2)
+            # Select "In-Progress" (button 2)
             await pilot.press("2")
             await pilot.pause()
 
@@ -366,7 +366,7 @@ class TestParentSelectionIntegration:
 
             # Verify state was updated
             ticket_list = app.query_one(TicketList)
-            assert ticket_list._tickets[0].state == "In Progress"
+            assert ticket_list._tickets[0].state == "In-Progress"
 
     async def test_other_states_skip_parent_screen(self) -> None:
         """Changing to other states should not show ParentScreen."""
@@ -410,10 +410,10 @@ class TestParentSelectionIntegration:
         client = MockRallyClient(tickets=[ticket])
         app = RallyTUI(client=client, show_splash=False, user_settings=mock_user_settings)
         async with app.run_test() as pilot:
-            # Open state screen -> In Progress -> ParentScreen
+            # Open state screen -> In-Progress -> ParentScreen
             await pilot.press("s")
             await pilot.pause()
-            await pilot.press("2")  # In Progress
+            await pilot.press("2")  # In-Progress
             await pilot.pause()
 
             # Select first parent option
@@ -424,7 +424,7 @@ class TestParentSelectionIntegration:
             ticket_list = app.query_one(TicketList)
             updated_ticket = ticket_list._tickets[0]
             assert updated_ticket.parent_id == "F59625"
-            assert updated_ticket.state == "In Progress"
+            assert updated_ticket.state == "In-Progress"
 
     async def test_cancel_parent_selection_cancels_state_change(self, mock_user_settings) -> None:
         """Cancelling parent selection should not change state."""
@@ -439,10 +439,10 @@ class TestParentSelectionIntegration:
         client = MockRallyClient(tickets=[ticket])
         app = RallyTUI(client=client, show_splash=False, user_settings=mock_user_settings)
         async with app.run_test() as pilot:
-            # Open state screen -> In Progress -> ParentScreen
+            # Open state screen -> In-Progress -> ParentScreen
             await pilot.press("s")
             await pilot.pause()
-            await pilot.press("2")  # In Progress
+            await pilot.press("2")  # In-Progress
             await pilot.pause()
 
             # Cancel parent selection
@@ -467,10 +467,10 @@ class TestParentSelectionIntegration:
         client = MockRallyClient(tickets=[ticket])
         app = RallyTUI(client=client, show_splash=False, user_settings=mock_user_settings)
         async with app.run_test() as pilot:
-            # Open state screen -> In Progress -> ParentScreen
+            # Open state screen -> In-Progress -> ParentScreen
             await pilot.press("s")
             await pilot.pause()
-            await pilot.press("2")  # In Progress
+            await pilot.press("2")  # In-Progress
             await pilot.pause()
 
             # Press 4 for custom input
@@ -486,4 +486,4 @@ class TestParentSelectionIntegration:
             ticket_list = app.query_one(TicketList)
             updated_ticket = ticket_list._tickets[0]
             assert updated_ticket.parent_id == "F99999"
-            assert updated_ticket.state == "In Progress"
+            assert updated_ticket.state == "In-Progress"

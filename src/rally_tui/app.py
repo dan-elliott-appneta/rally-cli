@@ -495,7 +495,7 @@ class RallyTUI(App[None]):
     def _handle_state_result(self, state: str | None) -> None:
         """Handle the result from StateScreen.
 
-        If transitioning to "In Progress" and ticket has no parent,
+        If transitioning to "In-Progress" and ticket has no parent,
         prompts user to select a parent first.
         """
         if state is None:
@@ -506,9 +506,9 @@ class RallyTUI(App[None]):
         if not detail.ticket:
             return
 
-        # Check if moving to "In Progress" without a parent
-        if state == "In Progress" and not detail.ticket.parent_id:
-            _log.info(f"Ticket {detail.ticket.formatted_id} needs parent before In Progress")
+        # Check if moving to "In-Progress" without a parent
+        if state == "In-Progress" and not detail.ticket.parent_id:
+            _log.info(f"Ticket {detail.ticket.formatted_id} needs parent before In-Progress")
             # Store the pending state and show parent selection screen
             self._pending_state = state
             parent_options = self._build_parent_options()
