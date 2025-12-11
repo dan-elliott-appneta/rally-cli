@@ -30,7 +30,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - HTML descriptions converted to readable plain text
 - 200 tests passing
 
-Next: Iteration 8 (CRUD Operations).
+Next: Iteration 8 (Discussions & Comments).
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 

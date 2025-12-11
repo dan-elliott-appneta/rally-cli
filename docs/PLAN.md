@@ -586,7 +586,96 @@ tests/
 
 ---
 
-### Iteration 8: CRUD Operations
+### Iteration 8: Discussions & Comments
+
+**Goal**: View ticket discussions and add comments from TUI
+
+**Tasks**:
+- [ ] Create `Discussion` model for conversation posts
+- [ ] Add `get_discussions(ticket_id)` to RallyClientProtocol
+- [ ] Implement Rally API call to fetch ConversationPost entities
+- [ ] Create `DiscussionView` widget (scrollable list of comments)
+- [ ] Add `d` key binding to open discussions from ticket detail
+- [ ] Display comment author, timestamp, and text (HTML converted)
+- [ ] Create `CommentInput` widget for adding new comments
+- [ ] Add `c` key binding in discussion view to compose comment
+- [ ] Implement Rally API call to create ConversationPost
+- [ ] Update MockRallyClient with discussion support
+- [ ] Add discussions context to CommandBar
+- [ ] Write tests for discussion functionality
+
+**Deliverable**: User can press `d` to view ticket discussions, `c` to add a comment
+
+**UI Layout**:
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Rally TUI - Workspace: MyWorkspace | Project: MyProject           │
+├─────────────────────────────────────────────────────────────────────┤
+│  DISCUSSIONS - US1234                                               │
+│                                                                     │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ John Smith • 2024-01-15 10:30 AM                            │   │
+│  │ I've started working on the login form. Will have a PR      │   │
+│  │ ready by end of day.                                        │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ Jane Doe • 2024-01-15 2:45 PM                               │   │
+│  │ Looks good! Don't forget to add input validation.           │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+├─────────────────────────────────────────────────────────────────────┤
+│  [c] Add Comment  [Esc] Back to Details  [q] Quit                   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**Test Coverage**:
+- Unit: Discussion model properties
+- Unit: DiscussionView renders comments correctly
+- Unit: CommentInput message handling
+- Unit: RallyClient.get_discussions() mapping
+- Unit: RallyClient.add_comment() API call
+- Integration: Navigation to discussions and back
+- Snapshot: Discussion view with multiple comments
+- Snapshot: Comment input dialog
+
+**Key Files**:
+```
+src/rally_tui/
+├── models/
+│   └── discussion.py       # Discussion dataclass
+├── services/
+│   ├── protocol.py         # Add get_discussions, add_comment
+│   ├── rally_client.py     # Implement discussion API calls
+│   └── mock_client.py      # Mock discussion data
+└── widgets/
+    ├── discussion_view.py  # DiscussionView widget
+    └── comment_input.py    # CommentInput widget
+
+tests/
+├── test_discussion_model.py
+├── test_discussion_view.py
+└── test_comment_input.py
+```
+
+**Key Bindings**:
+| Key | Context | Action |
+|-----|---------|--------|
+| `d` | detail | Open discussions for selected ticket |
+| `c` | discussion | Open comment input |
+| `Enter` | comment | Submit comment |
+| `Esc` | discussion/comment | Return to previous view |
+
+**Key Concepts**:
+- Rally ConversationPost entity for discussions
+- Screen or modal for discussion view (separate from main layout)
+- HTML-to-text conversion for comment bodies
+- Timestamp formatting for display
+- Optimistic UI update after posting comment
+
+---
+
+### Iteration 9: CRUD Operations
 
 **Goal**: Create, edit, update tickets from TUI
 
@@ -611,12 +700,12 @@ tests/
 
 ### Future Iterations
 
-- **Iteration 9**: Iteration/Release scoping and filtering
-- **Iteration 10**: Bulk operations (multi-select with Space)
-- **Iteration 11**: Attachment viewing/adding
-- **Iteration 12**: Custom fields support
-- **Iteration 13**: Caching and offline mode
-- **Iteration 14**: Configurable keybindings
+- **Iteration 10**: Iteration/Release scoping and filtering
+- **Iteration 11**: Bulk operations (multi-select with Space)
+- **Iteration 12**: Attachment viewing/adding
+- **Iteration 13**: Custom fields support
+- **Iteration 14**: Caching and offline mode
+- **Iteration 15**: Configurable keybindings
 
 ---
 
