@@ -159,11 +159,11 @@ Settings are stored in `~/.config/rally-tui/config.json`:
   "theme": "dark",
   "theme_name": "catppuccin-mocha",
   "log_level": "INFO",
-  "parent_options": ["F59625", "F59627", "F59628"]
+  "parent_options": ["F12345", "F12346", "F12347"]
 }
 ```
 
-The `parent_options` array contains the Feature IDs shown when selecting a parent for a ticket.
+**Important**: The `parent_options` array must be configured with valid Feature IDs from your Rally workspace. These are shown when selecting a parent for a ticket before moving to "In Progress" state. If not configured, you can still enter a custom Feature ID manually.
 
 Available themes: `textual-dark`, `textual-light`, `catppuccin-mocha`, `catppuccin-latte`, `nord`, `gruvbox`, `dracula`, `tokyo-night`, `monokai`, `flexoki`, `solarized-light`
 

@@ -512,6 +512,16 @@ class RallyTUI(App[None]):
             # Store the pending state and show parent selection screen
             self._pending_state = state
             parent_options = self._build_parent_options()
+
+            # If no parent options configured, notify user and still show screen
+            # (they can use custom ID input)
+            if not parent_options:
+                self.notify(
+                    "No parent options configured. Use custom ID or configure parent_options in settings.",
+                    severity="warning",
+                    timeout=5,
+                )
+
             self.push_screen(
                 ParentScreen(detail.ticket, parent_options),
                 callback=self._handle_parent_result,
@@ -530,8 +540,15 @@ class RallyTUI(App[None]):
             if feature:
                 options.append(ParentOption(feature[0], feature[1]))
             else:
-                # Include ID even if we can't get the name
-                options.append(ParentOption(parent_id, f"Feature {parent_id}"))
+                # Include ID even if we can't get the name (feature might not exist)
+                options.append(ParentOption(parent_id, f"(not found) {parent_id}"))
+
+        # If no valid features found, show helpful message
+        if all("(not found)" in opt.name for opt in options):
+            _log.warning(
+                "No configured parent Features found. "
+                "Update parent_options in ~/.config/rally-tui/config.json"
+            )
 
         return options
 

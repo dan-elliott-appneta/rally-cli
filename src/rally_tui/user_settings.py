@@ -23,7 +23,8 @@ class UserSettings:
     DEFAULT_THEME_NAME = "textual-dark"
     DEFAULT_LOG_LEVEL = "INFO"
     VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
-    DEFAULT_PARENT_OPTIONS: list[str] = ["F59625", "F59627", "F59628"]
+    # Empty by default - user must configure their own Feature IDs
+    DEFAULT_PARENT_OPTIONS: list[str] = []
 
     def __init__(self) -> None:
         """Initialize user settings, loading from file if exists."""
@@ -90,8 +91,11 @@ class UserSettings:
 
     @property
     def parent_options(self) -> list[str]:
-        """Get the list of quick-select parent Feature IDs."""
-        return self._settings.get("parent_options", self.DEFAULT_PARENT_OPTIONS.copy())
+        """Get the list of quick-select parent Feature IDs.
+
+        Returns a copy to prevent mutation of internal state.
+        """
+        return list(self._settings.get("parent_options", self.DEFAULT_PARENT_OPTIONS))
 
     @parent_options.setter
     def parent_options(self, value: list[str]) -> None:

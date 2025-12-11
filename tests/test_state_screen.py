@@ -397,7 +397,7 @@ class TestParentSelectionIntegration:
             ticket_list = app.query_one(TicketList)
             assert ticket_list._tickets[0].state == "Completed"
 
-    async def test_parent_selection_then_state_update(self) -> None:
+    async def test_parent_selection_then_state_update(self, mock_user_settings) -> None:
         """After selecting parent, state should also be updated."""
         ticket = Ticket(
             formatted_id="US100",
@@ -408,7 +408,7 @@ class TestParentSelectionIntegration:
             object_id="123456",
         )
         client = MockRallyClient(tickets=[ticket])
-        app = RallyTUI(client=client, show_splash=False)
+        app = RallyTUI(client=client, show_splash=False, user_settings=mock_user_settings)
         async with app.run_test() as pilot:
             # Open state screen -> In Progress -> ParentScreen
             await pilot.press("s")
@@ -426,7 +426,7 @@ class TestParentSelectionIntegration:
             assert updated_ticket.parent_id == "F59625"
             assert updated_ticket.state == "In Progress"
 
-    async def test_cancel_parent_selection_cancels_state_change(self) -> None:
+    async def test_cancel_parent_selection_cancels_state_change(self, mock_user_settings) -> None:
         """Cancelling parent selection should not change state."""
         ticket = Ticket(
             formatted_id="US100",
@@ -437,7 +437,7 @@ class TestParentSelectionIntegration:
             object_id="123456",
         )
         client = MockRallyClient(tickets=[ticket])
-        app = RallyTUI(client=client, show_splash=False)
+        app = RallyTUI(client=client, show_splash=False, user_settings=mock_user_settings)
         async with app.run_test() as pilot:
             # Open state screen -> In Progress -> ParentScreen
             await pilot.press("s")
@@ -454,7 +454,7 @@ class TestParentSelectionIntegration:
             assert ticket_list._tickets[0].state == "Defined"
             assert ticket_list._tickets[0].parent_id is None
 
-    async def test_custom_parent_id_updates_ticket(self) -> None:
+    async def test_custom_parent_id_updates_ticket(self, mock_user_settings) -> None:
         """Entering custom parent ID should set parent and update state."""
         ticket = Ticket(
             formatted_id="US100",
@@ -465,7 +465,7 @@ class TestParentSelectionIntegration:
             object_id="123456",
         )
         client = MockRallyClient(tickets=[ticket])
-        app = RallyTUI(client=client, show_splash=False)
+        app = RallyTUI(client=client, show_splash=False, user_settings=mock_user_settings)
         async with app.run_test() as pilot:
             # Open state screen -> In Progress -> ParentScreen
             await pilot.press("s")

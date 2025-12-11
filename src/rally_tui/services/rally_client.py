@@ -718,10 +718,13 @@ class RallyClient:
         _log.debug(f"Fetching feature: {formatted_id}")
 
         try:
+            # Search workspace-wide since Features may be at a higher level
             response = self._rally.get(
                 "PortfolioItem/Feature",
                 fetch="FormattedID,Name",
                 query=f'FormattedID = "{formatted_id}"',
+                projectScopeUp=True,
+                projectScopeDown=True,
             )
 
             item = response.next()
@@ -753,11 +756,13 @@ class RallyClient:
         try:
             entity_type = self._get_entity_type(ticket.formatted_id)
 
-            # Get the Feature's ObjectID for the ref
+            # Get the Feature's ObjectID for the ref (search workspace-wide)
             feature_response = self._rally.get(
                 "PortfolioItem/Feature",
                 fetch="ObjectID",
                 query=f'FormattedID = "{parent_id}"',
+                projectScopeUp=True,
+                projectScopeDown=True,
             )
             feature = feature_response.next()
             feature_object_id = feature.ObjectID
