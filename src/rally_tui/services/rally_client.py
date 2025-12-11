@@ -592,40 +592,53 @@ class RallyClient:
     def get_iterations(self, count: int = 5) -> list[Iteration]:
         """Fetch recent iterations from Rally.
 
-        Queries the Iteration entity and returns iterations that have already
-        started (past + current), sorted by start date descending.
+        Returns the current iteration first (button 1), followed by recent
+        past iterations sorted by start date descending.
 
         Args:
             count: Maximum number of iterations to return.
 
         Returns:
-            List of Iteration objects, sorted by start date descending.
+            List of Iteration objects with current sprint first.
         """
         from datetime import datetime, timezone
 
         _log.debug(f"Fetching {count} recent iterations")
         iterations: list[Iteration] = []
+        current_iteration: Iteration | None = None
 
         try:
-            # Only return iterations that have already started (past + current)
             today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-            response = self._rally.get(
+
+            # First, find the current iteration (today between start and end)
+            current_response = self._rally.get(
                 "Iteration",
                 fetch="ObjectID,Name,StartDate,EndDate,State",
-                query=f'(StartDate <= "{today}")',
+                query=f'((StartDate <= "{today}") AND (EndDate >= "{today}"))',
+                pagesize=1,
+            )
+            for item in current_response:
+                current_iteration = self._to_iteration(item)
+                if current_iteration:
+                    iterations.append(current_iteration)
+                    _log.debug(f"Current iteration: {current_iteration.name}")
+                break
+
+            # Then get recent past iterations (started but already ended)
+            past_response = self._rally.get(
+                "Iteration",
+                fetch="ObjectID,Name,StartDate,EndDate,State",
+                query=f'(EndDate < "{today}")',
                 order="StartDate desc",
-                pagesize=count * 2,  # Fetch extra to account for filtering
+                pagesize=count,
             )
 
-            fetched = 0
-            for item in response:
-                if fetched >= count:
+            for item in past_response:
+                if len(iterations) >= count:
                     break
-
                 iteration = self._to_iteration(item)
                 if iteration:
                     iterations.append(iteration)
-                    fetched += 1
 
             _log.debug(f"Fetched {len(iterations)} iterations")
         except Exception as e:
