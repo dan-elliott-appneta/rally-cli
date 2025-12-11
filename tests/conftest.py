@@ -3,6 +3,7 @@
 import pytest
 
 from rally_tui.models import Ticket
+from rally_tui.services import MockRallyClient
 
 
 @pytest.fixture
@@ -54,4 +55,24 @@ def single_ticket() -> Ticket:
         description="This is a test description.",
         iteration="Sprint 2",
         points=5,
+    )
+
+
+@pytest.fixture
+def mock_client(sample_tickets: list[Ticket]) -> MockRallyClient:
+    """Provide a MockRallyClient with sample tickets."""
+    return MockRallyClient(
+        tickets=sample_tickets,
+        workspace="Test Workspace",
+        project="Test Project",
+    )
+
+
+@pytest.fixture
+def empty_client() -> MockRallyClient:
+    """Provide a MockRallyClient with no tickets."""
+    return MockRallyClient(
+        tickets=[],
+        workspace="Empty Workspace",
+        project="Empty Project",
     )
