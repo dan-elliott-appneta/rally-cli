@@ -15,6 +15,9 @@ def sample_tickets() -> list[Ticket]:
             ticket_type="UserStory",
             state="Defined",
             owner="Test User",
+            description="Test description for story one.",
+            iteration="Sprint 1",
+            points=3,
         ),
         Ticket(
             formatted_id="DE200",
@@ -22,6 +25,9 @@ def sample_tickets() -> list[Ticket]:
             ticket_type="Defect",
             state="Open",
             owner=None,
+            description="Test description for defect.",
+            iteration="Sprint 1",
+            points=2,
         ),
         Ticket(
             formatted_id="TA300",
@@ -29,6 +35,9 @@ def sample_tickets() -> list[Ticket]:
             ticket_type="Task",
             state="In Progress",
             owner="Another User",
+            description="",
+            iteration=None,
+            points=None,
         ),
     ]
 
@@ -42,4 +51,7 @@ def single_ticket() -> Ticket:
         ticket_type="UserStory",
         state="Completed",
         owner="Owner Name",
+        description="This is a test description.",
+        iteration="Sprint 2",
+        points=5,
     )
