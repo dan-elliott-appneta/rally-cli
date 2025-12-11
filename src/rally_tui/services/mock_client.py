@@ -210,3 +210,30 @@ class MockRallyClient:
         self._tickets.append(ticket)
 
         return ticket
+
+    def update_state(self, ticket: Ticket, state: str) -> Ticket | None:
+        """Update a ticket's workflow state.
+
+        Args:
+            ticket: The ticket to update.
+            state: The new state value (e.g., "In Progress", "Completed").
+
+        Returns:
+            The updated Ticket with new state, or None on failure.
+        """
+        for i, t in enumerate(self._tickets):
+            if t.formatted_id == ticket.formatted_id:
+                updated = Ticket(
+                    formatted_id=t.formatted_id,
+                    name=t.name,
+                    ticket_type=t.ticket_type,
+                    state=state,
+                    owner=t.owner,
+                    description=t.description,
+                    iteration=t.iteration,
+                    points=t.points,
+                    object_id=t.object_id,
+                )
+                self._tickets[i] = updated
+                return updated
+        return None

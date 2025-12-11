@@ -1,0 +1,261 @@
+"""Tests for StateScreen."""
+
+import pytest
+
+from rally_tui.app import RallyTUI
+from rally_tui.models import Ticket
+from rally_tui.screens import StateScreen
+from rally_tui.services import MockRallyClient
+from rally_tui.widgets import TicketList
+
+
+@pytest.fixture
+def story_ticket() -> Ticket:
+    """A user story ticket for testing."""
+    return Ticket(
+        formatted_id="US100",
+        name="Test story",
+        ticket_type="UserStory",
+        state="Defined",
+        owner="Test User",
+        description="Test description",
+        iteration="Sprint 1",
+        points=3,
+        object_id="123456",
+    )
+
+
+@pytest.fixture
+def defect_ticket() -> Ticket:
+    """A defect ticket for testing."""
+    return Ticket(
+        formatted_id="DE200",
+        name="Test defect",
+        ticket_type="Defect",
+        state="Open",
+        owner="Test User",
+        description="Bug description",
+        iteration="Sprint 1",
+        points=2,
+        object_id="234567",
+    )
+
+
+class TestStateScreenCompose:
+    """Tests for StateScreen composition."""
+
+    async def test_screen_renders(self, story_ticket: Ticket) -> None:
+        """Screen should render without error."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            app.push_screen(StateScreen(story_ticket))
+            await pilot.pause()
+
+            # Check title is present
+            title = app.screen.query_one("#state-title")
+            assert "Set State" in str(title.render())
+            assert "US100" in str(title.render())
+
+    async def test_screen_shows_current_state(self, story_ticket: Ticket) -> None:
+        """Screen should show the current state."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            app.push_screen(StateScreen(story_ticket))
+            await pilot.pause()
+
+            current = app.screen.query_one("#state-current")
+            assert "Defined" in str(current.render())
+
+    async def test_screen_has_state_buttons(self, story_ticket: Ticket) -> None:
+        """Screen should have state selection buttons."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            app.push_screen(StateScreen(story_ticket))
+            await pilot.pause()
+
+            # Check for state buttons
+            btn1 = app.screen.query_one("#btn-state-1")
+            btn2 = app.screen.query_one("#btn-state-2")
+            btn3 = app.screen.query_one("#btn-state-3")
+            btn4 = app.screen.query_one("#btn-state-4")
+            assert btn1 is not None
+            assert btn2 is not None
+            assert btn3 is not None
+            assert btn4 is not None
+
+
+class TestStateScreenStoryStates:
+    """Tests for User Story state options."""
+
+    async def test_story_has_workflow_states(self, story_ticket: Ticket) -> None:
+        """User stories should show workflow states."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            screen = StateScreen(story_ticket)
+            app.push_screen(screen)
+            await pilot.pause()
+
+            # Check states are workflow states
+            assert screen._states == ["Defined", "In Progress", "Completed", "Accepted"]
+
+    async def test_current_state_button_highlighted(self, story_ticket: Ticket) -> None:
+        """Current state button should be highlighted."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            app.push_screen(StateScreen(story_ticket))
+            await pilot.pause()
+
+            # Defined is the first state, button 1 should be selected
+            btn1 = app.screen.query_one("#btn-state-1")
+            assert "-selected" in btn1.classes
+
+
+class TestStateScreenDefectStates:
+    """Tests for Defect state options."""
+
+    async def test_defect_has_defect_states(self, defect_ticket: Ticket) -> None:
+        """Defects should show defect-specific states."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            screen = StateScreen(defect_ticket)
+            app.push_screen(screen)
+            await pilot.pause()
+
+            # Check states are defect states
+            assert screen._states == ["Submitted", "Open", "Fixed", "Closed"]
+
+
+class TestStateScreenSelection:
+    """Tests for state selection."""
+
+    async def test_click_button_selects_state(self, story_ticket: Ticket) -> None:
+        """Clicking a state button should select that state."""
+        result = None
+
+        def callback(state: str | None) -> None:
+            nonlocal result
+            result = state
+
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            app.push_screen(StateScreen(story_ticket), callback=callback)
+            await pilot.pause()
+
+            # Click "In Progress" button (button 2)
+            btn2 = app.screen.query_one("#btn-state-2")
+            await pilot.click(btn2)
+            await pilot.pause()
+
+            assert result == "In Progress"
+
+    async def test_number_key_selects_state(self, story_ticket: Ticket) -> None:
+        """Pressing number key should select corresponding state."""
+        result = None
+
+        def callback(state: str | None) -> None:
+            nonlocal result
+            result = state
+
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            app.push_screen(StateScreen(story_ticket), callback=callback)
+            await pilot.pause()
+
+            # Press "3" for Completed
+            await pilot.press("3")
+            await pilot.pause()
+
+            assert result == "Completed"
+
+
+class TestStateScreenCancel:
+    """Tests for cancel behavior."""
+
+    async def test_escape_cancels(self, story_ticket: Ticket) -> None:
+        """Pressing escape should cancel and return None."""
+        result = "not_called"
+
+        def callback(state: str | None) -> None:
+            nonlocal result
+            result = state
+
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            app.push_screen(StateScreen(story_ticket), callback=callback)
+            await pilot.pause()
+
+            # Press escape
+            await pilot.press("escape")
+            await pilot.pause()
+
+            assert result is None
+
+
+class TestMockClientUpdateState:
+    """Tests for MockRallyClient.update_state."""
+
+    def test_update_state_returns_updated_ticket(self, story_ticket: Ticket) -> None:
+        """Should return ticket with new state."""
+        client = MockRallyClient(tickets=[story_ticket])
+
+        updated = client.update_state(story_ticket, "In Progress")
+
+        assert updated is not None
+        assert updated.state == "In Progress"
+        assert updated.formatted_id == story_ticket.formatted_id
+
+    def test_update_state_modifies_internal_list(self, story_ticket: Ticket) -> None:
+        """Should update the ticket in the internal list."""
+        client = MockRallyClient(tickets=[story_ticket])
+
+        client.update_state(story_ticket, "Completed")
+
+        # Verify the ticket in the list was updated
+        tickets = client.get_tickets()
+        assert tickets[0].state == "Completed"
+
+    def test_update_state_nonexistent_ticket(self, story_ticket: Ticket) -> None:
+        """Should return None for nonexistent ticket."""
+        client = MockRallyClient(tickets=[])
+
+        result = client.update_state(story_ticket, "In Progress")
+
+        assert result is None
+
+
+class TestStateIntegration:
+    """Integration tests for state change feature."""
+
+    async def test_change_state_updates_list(self, story_ticket: Ticket) -> None:
+        """Changing state should update ticket in list."""
+        client = MockRallyClient(tickets=[story_ticket])
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            # Open state screen
+            await pilot.press("s")
+            await pilot.pause()
+
+            # Select "In Progress" (button 2)
+            await pilot.press("2")
+            await pilot.pause()
+
+            # Check ticket was updated in list
+            ticket_list = app.query_one(TicketList)
+            assert ticket_list._tickets[0].state == "In Progress"
+
+    async def test_cancel_does_not_change_state(self, story_ticket: Ticket) -> None:
+        """Cancelling should not change the state."""
+        client = MockRallyClient(tickets=[story_ticket])
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            # Open state screen
+            await pilot.press("s")
+            await pilot.pause()
+
+            # Cancel
+            await pilot.press("escape")
+            await pilot.pause()
+
+            # Check state unchanged
+            ticket_list = app.query_one(TicketList)
+            assert ticket_list._tickets[0].state == "Defined"

@@ -47,6 +47,7 @@ tests/
 ├── test_discussion_screen.py      # Screen tests for DiscussionScreen
 ├── test_comment_screen.py         # Screen tests for CommentScreen
 ├── test_points_screen.py          # Screen tests for PointsScreen
+├── test_state_screen.py           # Screen tests for StateScreen
 ├── test_quick_ticket_screen.py    # Screen tests for QuickTicketScreen
 ├── test_services.py               # Service layer tests
 ├── test_mock_client_discussions.py # MockClient discussion tests
@@ -60,7 +61,7 @@ tests/
     └── test_snapshots/
 ```
 
-**Current Test Count: 306 tests**
+**Current Test Count: 320 tests**
 
 ## Unit Tests
 

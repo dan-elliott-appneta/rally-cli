@@ -109,3 +109,15 @@ class RallyClientProtocol(Protocol):
             The created Ticket, or None on failure.
         """
         ...
+
+    def update_state(self, ticket: Ticket, state: str) -> Ticket | None:
+        """Update a ticket's workflow state.
+
+        Args:
+            ticket: The ticket to update.
+            state: The new state value (e.g., "In Progress", "Completed").
+
+        Returns:
+            The updated Ticket with new state, or None on failure.
+        """
+        ...

@@ -65,7 +65,7 @@ rally-cli/
 │           ├── protocol.py     # RallyClientProtocol interface
 │           ├── rally_client.py # Real Rally API client (pyral)
 │           └── mock_client.py  # Mock client for testing/offline
-├── tests/                      # 306 tests
+├── tests/                      # 320 tests
 │   ├── conftest.py             # Fixtures, mock Rally client
 │   ├── test_ticket_model.py
 │   ├── test_discussion_model.py
@@ -77,6 +77,7 @@ rally-cli/
 │   ├── test_discussion_screen.py
 │   ├── test_comment_screen.py
 │   ├── test_points_screen.py
+│   ├── test_state_screen.py
 │   ├── test_quick_ticket_screen.py
 │   ├── test_services.py
 │   ├── test_mock_client_discussions.py
@@ -727,7 +728,9 @@ tests/
 - [x] Implement `create_ticket()` in RallyClient and MockRallyClient
 - [x] Auto-assign current iteration and current user to new tickets
 - [x] Fix Rich MarkupError by escaping special characters in descriptions
-- [x] Write tests for all new functionality (82 new tests)
+- [x] Create `StateScreen` for changing ticket state (`s` key)
+- [x] Implement `update_state()` in RallyClient and MockRallyClient
+- [x] Write tests for all new functionality
 
 **Implementation Notes**:
 - SplashScreen auto-dismisses on any keypress
@@ -735,7 +738,7 @@ tests/
 - UserSettings uses Pydantic for JSON serialization
 - Logging uses Python's logging module with RotatingFileHandler
 - QuickTicketScreen prompts for title, type (User Story/Defect), and description
-- 321 total tests passing
+- 320 total tests passing
 
 **Deliverable**: Polished TUI with splash, themes, logging, URL copy, points setting, quick ticket creation
 
@@ -771,7 +774,8 @@ tests/
 | `y` | list/detail | Copy Rally ticket URL to clipboard |
 | `p` | list/detail | Set story points for selected ticket |
 | `n` | list/detail | Toggle description/notes view |
-| `c` | list/detail | Create new ticket (User Story or Defect) |
+| `s` | list/detail | Change ticket state |
+| `w` | list/detail | Create new ticket (User Story or Defect) |
 
 **Key Concepts**:
 - Textual theme system with `self.theme` property and `watch_theme` watcher
