@@ -39,12 +39,13 @@ tests/
 ├── conftest.py              # Shared fixtures (sample_tickets, single_ticket)
 ├── test_ticket_model.py     # Unit tests for Ticket dataclass (10 tests)
 ├── test_ticket_list.py      # Widget tests for TicketList (11 tests)
-├── test_snapshots.py        # Visual regression tests (4 tests)
-└── snapshots/               # SVG snapshot baselines
+├── test_ticket_detail.py    # Widget tests for TicketDetail (13 tests)
+├── test_snapshots.py        # Visual regression tests (7 tests)
+└── __snapshots__/           # SVG snapshot baselines
     └── test_snapshots/
 ```
 
-**Current Test Count: 25 tests**
+**Current Test Count: 41 tests**
 
 ## Unit Tests
 
@@ -181,16 +182,53 @@ Common fixtures are defined in `tests/conftest.py`:
 ```python
 @pytest.fixture
 def sample_tickets() -> list[Ticket]:
-    """Provides a list of test tickets."""
+    """Provides a list of test tickets with all fields."""
     return [
-        Ticket("US100", "Story one", "UserStory", "Open"),
-        Ticket("DE200", "Defect one", "Defect", "Open"),
+        Ticket(
+            formatted_id="US100",
+            name="Test story one",
+            ticket_type="UserStory",
+            state="Defined",
+            owner="Test User",
+            description="Test description for story one.",
+            iteration="Sprint 1",
+            points=3,
+        ),
+        Ticket(
+            formatted_id="DE200",
+            name="Test defect",
+            ticket_type="Defect",
+            state="Open",
+            owner=None,  # Tests "Unassigned" display
+            description="Test description for defect.",
+            iteration="Sprint 1",
+            points=2,
+        ),
+        Ticket(
+            formatted_id="TA300",
+            name="Test task",
+            ticket_type="Task",
+            state="In Progress",
+            owner="Another User",
+            description="",
+            iteration=None,  # Tests "Unscheduled" display
+            points=None,     # Tests "—" display
+        ),
     ]
 
 @pytest.fixture
 def single_ticket() -> Ticket:
-    """Provides a single test ticket."""
-    return Ticket("US999", "Test ticket", "UserStory", "Open")
+    """Provides a single ticket for unit tests."""
+    return Ticket(
+        formatted_id="US999",
+        name="Single test ticket",
+        ticket_type="UserStory",
+        state="Completed",
+        owner="Owner Name",
+        description="This is a test description.",
+        iteration="Sprint 2",
+        points=5,
+    )
 ```
 
 ## Async Testing

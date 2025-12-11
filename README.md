@@ -11,9 +11,9 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 ## Status
 
-**Iteration 1 Complete** - Static ticket list with keyboard navigation is working.
+**Iteration 2 Complete** - Two-panel layout with detail view is working.
 
-Next: Iteration 2 (details panel on right side).
+Next: Iteration 3 (command bar at bottom).
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -69,18 +69,21 @@ rally-cli/
 │   │   ├── ticket.py        # Ticket dataclass
 │   │   └── sample_data.py   # Hardcoded test data
 │   ├── widgets/
-│   │   └── ticket_list.py   # TicketList widget
+│   │   ├── ticket_list.py   # TicketList widget (left panel)
+│   │   └── ticket_detail.py # TicketDetail widget (right panel)
 │   ├── services/            # Rally API client (future)
 │   └── screens/             # Application screens (future)
 ├── tests/
 │   ├── conftest.py          # Pytest fixtures
-│   ├── test_ticket_model.py # Model unit tests
-│   ├── test_ticket_list.py  # Widget tests
-│   └── test_snapshots.py    # Visual regression tests
+│   ├── test_ticket_model.py  # Model unit tests
+│   ├── test_ticket_list.py   # TicketList widget tests
+│   ├── test_ticket_detail.py # TicketDetail widget tests
+│   └── test_snapshots.py     # Visual regression tests
 └── docs/
     ├── API.md               # Rally WSAPI reference
     ├── PLAN.md              # Development roadmap
-    └── ITERATION_1.md       # Iteration 1 guide
+    ├── ITERATION_1.md       # Iteration 1 guide (complete)
+    └── ITERATION_2.md       # Iteration 2 guide (complete)
 ```
 
 ### Running Tests
@@ -102,7 +105,8 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 
 - [API.md](docs/API.md) - Rally WSAPI Python developer guide
 - [PLAN.md](docs/PLAN.md) - Development roadmap and architecture
-- [ITERATION_1.md](docs/ITERATION_1.md) - Current iteration implementation guide
+- [ITERATION_1.md](docs/ITERATION_1.md) - Iteration 1 implementation guide (complete)
+- [ITERATION_2.md](docs/ITERATION_2.md) - Iteration 2 implementation guide (complete)
 
 ## Technology Stack
 
