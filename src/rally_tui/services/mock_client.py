@@ -55,6 +55,14 @@ def _generate_sample_iterations() -> list[Iteration]:
     return iterations
 
 
+# Default mock features for parent selection
+DEFAULT_FEATURES: dict[str, str] = {
+    "F59625": "API Platform Modernization Initiative",
+    "F59627": "Customer Portal Enhancement Phase 2",
+    "F59628": "Infrastructure Reliability Improvements",
+}
+
+
 class MockRallyClient:
     """Mock Rally client for testing and development.
 
@@ -68,6 +76,7 @@ class MockRallyClient:
         tickets: list[Ticket] | None = None,
         discussions: dict[str, list[Discussion]] | None = None,
         iterations: list[Iteration] | None = None,
+        features: dict[str, str] | None = None,
         workspace: str = "My Workspace",
         project: str = "My Project",
         current_user: str | None = None,
@@ -79,6 +88,7 @@ class MockRallyClient:
             tickets: List of tickets to use. Defaults to SAMPLE_TICKETS.
             discussions: Dict mapping formatted_id to discussions. Defaults to SAMPLE_DISCUSSIONS.
             iterations: List of iterations to use. Defaults to generated sample iterations.
+            features: Dict mapping feature ID to name. Defaults to DEFAULT_FEATURES.
             workspace: Workspace name to report.
             project: Project name to report.
             current_user: Current user's display name.
@@ -89,6 +99,7 @@ class MockRallyClient:
             discussions if discussions is not None else dict(SAMPLE_DISCUSSIONS)
         )
         self._iterations = iterations if iterations is not None else _generate_sample_iterations()
+        self._features = features if features is not None else dict(DEFAULT_FEATURES)
         self._workspace = workspace
         self._project = project
         self._current_user = current_user
@@ -210,9 +221,11 @@ class MockRallyClient:
                     state=t.state,
                     owner=t.owner,
                     description=t.description,
+                    notes=t.notes,
                     iteration=t.iteration,
                     points=stored_points,
                     object_id=t.object_id,
+                    parent_id=t.parent_id,
                 )
                 self._tickets[i] = updated
                 return updated
@@ -282,9 +295,11 @@ class MockRallyClient:
                     state=state,
                     owner=t.owner,
                     description=t.description,
+                    notes=t.notes,
                     iteration=t.iteration,
                     points=t.points,
                     object_id=t.object_id,
+                    parent_id=t.parent_id,
                 )
                 self._tickets[i] = updated
                 return updated
@@ -304,3 +319,46 @@ class MockRallyClient:
             self._iterations, key=lambda i: i.start_date, reverse=True
         )
         return sorted_iters[:count]
+
+    def get_feature(self, formatted_id: str) -> tuple[str, str] | None:
+        """Fetch a Feature's name by its formatted ID.
+
+        Args:
+            formatted_id: The Feature's formatted ID (e.g., "F59625").
+
+        Returns:
+            Tuple of (formatted_id, name) if found, None otherwise.
+        """
+        name = self._features.get(formatted_id)
+        if name:
+            return (formatted_id, name)
+        return None
+
+    def set_parent(self, ticket: Ticket, parent_id: str) -> Ticket | None:
+        """Set a ticket's parent Feature.
+
+        Args:
+            ticket: The ticket to update.
+            parent_id: The parent Feature's formatted ID (e.g., "F59625").
+
+        Returns:
+            The updated Ticket with parent_id set, or None on failure.
+        """
+        for i, t in enumerate(self._tickets):
+            if t.formatted_id == ticket.formatted_id:
+                updated = Ticket(
+                    formatted_id=t.formatted_id,
+                    name=t.name,
+                    ticket_type=t.ticket_type,
+                    state=t.state,
+                    owner=t.owner,
+                    description=t.description,
+                    notes=t.notes,
+                    iteration=t.iteration,
+                    points=t.points,
+                    object_id=t.object_id,
+                    parent_id=parent_id,
+                )
+                self._tickets[i] = updated
+                return updated
+        return None
