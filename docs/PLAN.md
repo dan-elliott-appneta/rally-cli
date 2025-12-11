@@ -30,15 +30,17 @@ A Python TUI (Text User Interface) application for interacting with Rally (Broad
 rally-cli/
 ├── pyproject.toml
 ├── README.md
+├── TESTING.md                  # Testing guide
 ├── src/
 │   └── rally_tui/
 │       ├── __init__.py
 │       ├── app.py              # Main Textual application
 │       ├── app.tcss            # CSS stylesheet
 │       ├── config.py           # Configuration (pydantic-settings)
+│       ├── user_settings.py    # User preferences (~/.config/rally-tui/)
 │       ├── widgets/
 │       │   ├── __init__.py
-│       │   ├── ticket_list.py  # Left panel - scrollable ticket list
+│       │   ├── ticket_list.py  # Left panel - state sorting, filtering
 │       │   ├── ticket_detail.py # Right panel - ticket details view
 │       │   ├── command_bar.py  # Bottom panel - context commands
 │       │   ├── status_bar.py   # Top bar - workspace/project/status
@@ -46,33 +48,51 @@ rally-cli/
 │       ├── models/
 │       │   ├── __init__.py
 │       │   ├── ticket.py       # Ticket data models (decoupled from pyral)
+│       │   ├── discussion.py   # Discussion dataclass
 │       │   └── sample_data.py  # Sample tickets for offline mode
+│       ├── screens/
+│       │   ├── __init__.py
+│       │   ├── splash_screen.py      # ASCII art startup screen
+│       │   ├── discussion_screen.py  # Ticket discussions view
+│       │   ├── comment_screen.py     # Add new comment
+│       │   ├── points_screen.py      # Set story points
+│       │   └── quick_ticket_screen.py # Quick ticket creation
 │       ├── utils/
 │       │   ├── __init__.py
-│       │   └── html_to_text.py # HTML to plain text converter
+│       │   ├── html_to_text.py # HTML to plain text converter
+│       │   └── logging.py      # File logging with rotation
 │       └── services/
 │           ├── __init__.py
 │           ├── protocol.py     # RallyClientProtocol interface
 │           ├── rally_client.py # Real Rally API client (pyral)
 │           └── mock_client.py  # Mock client for testing/offline
-├── tests/
+├── tests/                      # 321 tests
 │   ├── conftest.py             # Fixtures, mock Rally client
 │   ├── test_ticket_model.py
+│   ├── test_discussion_model.py
 │   ├── test_ticket_list.py
 │   ├── test_ticket_detail.py
 │   ├── test_command_bar.py
 │   ├── test_status_bar.py
 │   ├── test_search_input.py
+│   ├── test_splash_screen.py
+│   ├── test_discussion_screen.py
+│   ├── test_comment_screen.py
+│   ├── test_points_screen.py
+│   ├── test_quick_ticket_screen.py
 │   ├── test_services.py
+│   ├── test_mock_client_discussions.py
 │   ├── test_config.py
+│   ├── test_user_settings.py
 │   ├── test_rally_client.py
-│   ├── test_html_to_text.py    # HTML conversion tests
+│   ├── test_html_to_text.py
+│   ├── test_logging.py
 │   ├── test_snapshots.py
 │   └── __snapshots__/          # SVG snapshots for visual tests
 └── docs/
     ├── API.md                  # Rally WSAPI reference
     ├── PLAN.md                 # This file
-    └── ITERATION_*.md          # Implementation guides (1-7)
+    └── ITERATION_*.md          # Implementation guides (1-8)
 ```
 
 ### Testability Strategy
@@ -688,24 +708,99 @@ tests/
 
 ---
 
+### Iteration 8+: UI Polish & Additional Features ✅ COMPLETE
+
+**Goal**: Additional features for improved UX - splash screen, themes, logging, quick actions
+
+**Tasks**:
+- [x] Create `SplashScreen` with ASCII art "RALLY TUI" on startup
+- [x] Add state-based ticket sorting (Ideas at top, Accepted at bottom)
+- [x] Add state indicators with colored symbols (`.` not started, `+` in progress, `-` done, `✓` accepted)
+- [x] Full Textual theme support (catppuccin, nord, dracula, etc.) via command palette
+- [x] Create `UserSettings` for persistent preferences (~/.config/rally-tui/config.json)
+- [x] Theme persistence between sessions (stores full theme_name like "catppuccin-mocha")
+- [x] Add `y` key binding to copy Rally ticket URL to clipboard
+- [x] Add notes field to Ticket model with toggle (`n` key) between description/notes
+- [x] Create `PointsScreen` for setting story points (`p` key)
+- [x] Implement `update_points()` in RallyClient and MockRallyClient
+- [x] Add file-based logging with rotation (~/.config/rally-tui/rally-tui.log)
+- [x] Configurable log level (DEBUG, INFO, WARNING, ERROR, CRITICAL) in user settings
+- [x] Create `QuickTicketScreen` for rapid ticket creation (`c` key)
+- [x] Implement `create_ticket()` in RallyClient and MockRallyClient
+- [x] Auto-assign current iteration and current user to new tickets
+- [x] Fix Rich MarkupError by escaping special characters in descriptions
+- [x] Write tests for all new functionality (82 new tests)
+
+**Implementation Notes**:
+- SplashScreen auto-dismisses on any keypress
+- State sorting uses STATE_ORDER dict for workflow ordering
+- UserSettings uses Pydantic for JSON serialization
+- Logging uses Python's logging module with RotatingFileHandler
+- QuickTicketScreen prompts for title, type (User Story/Defect), and description
+- 321 total tests passing
+
+**Deliverable**: Polished TUI with splash, themes, logging, URL copy, points setting, quick ticket creation
+
+**Key Files**:
+```
+src/rally_tui/
+├── user_settings.py           # UserSettings class for persistent prefs
+├── screens/
+│   ├── splash_screen.py       # ASCII art startup screen
+│   ├── points_screen.py       # Story points input screen
+│   └── quick_ticket_screen.py # Quick ticket creation screen
+├── widgets/
+│   └── ticket_list.py         # State sorting, STATE_ORDER, symbols, colors
+├── utils/
+│   └── logging.py             # File-based logging setup
+└── services/
+    ├── protocol.py            # Add update_points, create_ticket
+    ├── rally_client.py        # Implement update_points, create_ticket
+    └── mock_client.py         # Mock implementations
+
+tests/
+├── test_splash_screen.py      # Splash screen tests
+├── test_points_screen.py      # Points screen tests
+├── test_quick_ticket_screen.py # Quick ticket screen tests (16 tests)
+├── test_user_settings.py      # User settings tests
+└── test_logging.py            # Logging module tests
+```
+
+**Key Bindings**:
+| Key | Context | Action |
+|-----|---------|--------|
+| `t` | any | Toggle dark/light theme |
+| `y` | list/detail | Copy Rally ticket URL to clipboard |
+| `p` | list/detail | Set story points for selected ticket |
+| `n` | list/detail | Toggle description/notes view |
+| `c` | list/detail | Create new ticket (User Story or Defect) |
+
+**Key Concepts**:
+- Textual theme system with `self.theme` property and `watch_theme` watcher
+- UserSettings persists theme_name for full theme restoration
+- STATE_ORDER dict for workflow-based sorting
+- Ticket.rally_url() method constructs Rally detail URLs
+- RotatingFileHandler for log rotation (5MB max, 3 backups)
+- QuickTicketData dataclass for form result passing
+
+---
+
 ### Iteration 9: CRUD Operations
 
-**Goal**: Create, edit, update tickets from TUI
+**Goal**: Edit tickets from TUI (create via QuickTicket already complete)
 
 **Tasks**:
 - [ ] Edit mode for ticket details (e key)
 - [ ] Form widgets for editable fields
 - [ ] Save changes to Rally (Enter)
 - [ ] Cancel edits (Esc)
-- [ ] Create new ticket dialog (c key)
-- [ ] Delete with confirmation (d key)
+- [ ] Delete with confirmation (x key)
 - [ ] Optimistic UI updates
 
-**Deliverable**: Full CRUD operations from within TUI
+**Deliverable**: Full CRUD operations from within TUI (Create already done in 8+)
 
 **Test Coverage**:
 - Snapshot: Edit mode appearance
-- Snapshot: Create dialog
 - Unit: Form validation
 - Integration: Mock client receives correct update calls
 
@@ -784,7 +879,7 @@ def test_ticket_list_navigation(snap_compare, mock_tickets):
 [project]
 name = "rally-tui"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "textual>=0.40.0",
     "pyral>=1.6.0",
