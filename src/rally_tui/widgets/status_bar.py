@@ -1,6 +1,13 @@
 """Status bar widget for displaying workspace/project info."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from textual.widgets import Static
+
+if TYPE_CHECKING:
+    from rally_tui.widgets.ticket_list import SortMode
 
 
 class StatusBar(Static):
@@ -49,6 +56,7 @@ class StatusBar(Static):
         self._filter_info = ""
         self._iteration_filter: str | None = None
         self._user_filter_active = False
+        self._sort_mode: str | None = None  # Display name of current sort mode
 
     def on_mount(self) -> None:
         """Set initial content when mounted."""
@@ -68,6 +76,10 @@ class StatusBar(Static):
             filters.append("[cyan]My Items[/]")
         if filters:
             parts.append(" ".join(filters))
+
+        # Show sort mode if not default (State)
+        if self._sort_mode:
+            parts.append(f"Sort: {self._sort_mode}")
 
         if self._filter_info:
             parts.append(self._filter_info)
@@ -176,3 +188,26 @@ class StatusBar(Static):
     def user_filter_active(self) -> bool:
         """Get whether the user filter is active."""
         return self._user_filter_active
+
+    def set_sort_mode(self, mode: SortMode) -> None:
+        """Set the current sort mode display.
+
+        Args:
+            mode: The sort mode to display. STATE mode is considered
+                  default and won't be shown in the status bar.
+        """
+        # Import here to avoid circular import
+        from rally_tui.widgets.ticket_list import SortMode
+
+        mode_names = {
+            SortMode.STATE: None,  # Default, don't show
+            SortMode.CREATED: "Recent",
+            SortMode.OWNER: "Owner",
+        }
+        self._sort_mode = mode_names.get(mode)
+        self._update_display()
+
+    @property
+    def sort_mode_display(self) -> str | None:
+        """Get the current sort mode display string."""
+        return self._sort_mode

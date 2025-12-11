@@ -4,7 +4,13 @@ import pytest
 
 from rally_tui.app import RallyTUI
 from rally_tui.models import Ticket
-from rally_tui.widgets import TicketList
+from rally_tui.widgets import SortMode, TicketList
+from rally_tui.widgets.ticket_list import (
+    sort_tickets,
+    sort_tickets_by_created,
+    sort_tickets_by_owner,
+    sort_tickets_by_state,
+)
 
 
 class TestTicketListWidget:
@@ -312,3 +318,173 @@ class TestTicketListFilter:
             # Should not crash when owner is None
             ticket_list.filter_tickets("none")
             assert ticket_list.filtered_count == 0  # "None" shouldn't match None value
+
+
+class TestTicketListSorting:
+    """Tests for ticket list sorting functionality."""
+
+    @pytest.fixture
+    def sort_tickets_fixture(self) -> list[Ticket]:
+        """Create sample tickets for sort tests."""
+        return [
+            Ticket(
+                formatted_id="US1005",
+                name="Fifth story",
+                ticket_type="HierarchicalRequirement",
+                state="In Progress",
+                owner="Alice",
+            ),
+            Ticket(
+                formatted_id="US1001",
+                name="First story",
+                ticket_type="HierarchicalRequirement",
+                state="Defined",
+                owner="Charlie",
+            ),
+            Ticket(
+                formatted_id="US1003",
+                name="Third story",
+                ticket_type="HierarchicalRequirement",
+                state="Completed",
+                owner=None,
+            ),
+            Ticket(
+                formatted_id="DE502",
+                name="Second defect",
+                ticket_type="Defect",
+                state="Open",
+                owner="Bob",
+            ),
+            Ticket(
+                formatted_id="US1002",
+                name="Second story",
+                ticket_type="HierarchicalRequirement",
+                state="Defined",
+                owner=None,
+            ),
+        ]
+
+    def test_sort_by_state(self, sort_tickets_fixture: list[Ticket]) -> None:
+        """Sorting by state should order by workflow."""
+        sorted_list = sort_tickets_by_state(sort_tickets_fixture)
+        states = [t.state for t in sorted_list]
+        # Defined < Open < In Progress < Completed
+        assert states == ["Defined", "Defined", "Open", "In Progress", "Completed"]
+
+    def test_sort_by_created(self, sort_tickets_fixture: list[Ticket]) -> None:
+        """Sorting by created should order by ID (newest first)."""
+        sorted_list = sort_tickets_by_created(sort_tickets_fixture)
+        ids = [t.formatted_id for t in sorted_list]
+        # Higher ID = newer, should be first
+        assert ids == ["US1005", "US1003", "US1002", "US1001", "DE502"]
+
+    def test_sort_by_owner(self, sort_tickets_fixture: list[Ticket]) -> None:
+        """Sorting by owner should put unassigned first, then alphabetical."""
+        sorted_list = sort_tickets_by_owner(sort_tickets_fixture)
+        owners = [t.owner for t in sorted_list]
+        # None first (2 tickets), then alphabetical
+        assert owners == [None, None, "Alice", "Bob", "Charlie"]
+
+    def test_sort_tickets_function_state(self, sort_tickets_fixture: list[Ticket]) -> None:
+        """sort_tickets with STATE mode should use state sorting."""
+        sorted_list = sort_tickets(sort_tickets_fixture, SortMode.STATE)
+        states = [t.state for t in sorted_list]
+        assert states == ["Defined", "Defined", "Open", "In Progress", "Completed"]
+
+    def test_sort_tickets_function_created(self, sort_tickets_fixture: list[Ticket]) -> None:
+        """sort_tickets with CREATED mode should use created sorting."""
+        sorted_list = sort_tickets(sort_tickets_fixture, SortMode.CREATED)
+        ids = [t.formatted_id for t in sorted_list]
+        assert ids == ["US1005", "US1003", "US1002", "US1001", "DE502"]
+
+    def test_sort_tickets_function_owner(self, sort_tickets_fixture: list[Ticket]) -> None:
+        """sort_tickets with OWNER mode should use owner sorting."""
+        sorted_list = sort_tickets(sort_tickets_fixture, SortMode.OWNER)
+        owners = [t.owner for t in sorted_list]
+        assert owners == [None, None, "Alice", "Bob", "Charlie"]
+
+    def test_default_sort_mode_is_state(self) -> None:
+        """TicketList should default to STATE sort mode."""
+        ticket_list = TicketList([])
+        assert ticket_list.sort_mode == SortMode.STATE
+
+    def test_custom_sort_mode_on_init(self, sort_tickets_fixture: list[Ticket]) -> None:
+        """TicketList should accept custom sort mode on init."""
+        ticket_list = TicketList(sort_tickets_fixture, sort_mode=SortMode.OWNER)
+        assert ticket_list.sort_mode == SortMode.OWNER
+
+    async def test_sort_mode_change_in_app(self) -> None:
+        """Pressing 'o' should cycle through sort modes."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            ticket_list = app.query_one(TicketList)
+            assert ticket_list.sort_mode == SortMode.STATE
+
+            # First press: STATE -> CREATED
+            await pilot.press("o")
+            assert ticket_list.sort_mode == SortMode.CREATED
+
+            # Second press: CREATED -> OWNER
+            await pilot.press("o")
+            assert ticket_list.sort_mode == SortMode.OWNER
+
+            # Third press: OWNER -> STATE
+            await pilot.press("o")
+            assert ticket_list.sort_mode == SortMode.STATE
+
+    async def test_sort_mode_persists_with_filter(self) -> None:
+        """Sort mode should be preserved when filtering."""
+        from rally_tui.services import MockRallyClient
+
+        tickets = [
+            Ticket(
+                formatted_id="US1005",
+                name="Login feature",
+                ticket_type="HierarchicalRequirement",
+                state="In Progress",
+                owner="Alice",
+            ),
+            Ticket(
+                formatted_id="US1001",
+                name="Logout feature",
+                ticket_type="HierarchicalRequirement",
+                state="Defined",
+                owner="Bob",
+            ),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            ticket_list = app.query_one(TicketList)
+
+            # Change to CREATED sort
+            await pilot.press("o")
+            assert ticket_list.sort_mode == SortMode.CREATED
+
+            # Apply filter
+            ticket_list.filter_tickets("Log")
+            assert ticket_list.filtered_count == 2
+            assert ticket_list.sort_mode == SortMode.CREATED
+
+    async def test_set_sort_mode_method(self, sort_tickets_fixture: list[Ticket]) -> None:
+        """set_sort_mode should change mode and re-sort."""
+        from textual.app import App, ComposeResult
+
+        class SortTestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield TicketList(sort_tickets_fixture, id="ticket-list")
+
+        app = SortTestApp()
+        async with app.run_test() as pilot:
+            ticket_list = app.query_one(TicketList)
+            assert ticket_list.sort_mode == SortMode.STATE
+
+            ticket_list.set_sort_mode(SortMode.OWNER)
+            assert ticket_list.sort_mode == SortMode.OWNER
+
+    def test_set_sort_mode_same_mode_no_op(self) -> None:
+        """set_sort_mode with same mode on unmounted widget should be a no-op."""
+        ticket_list = TicketList([], sort_mode=SortMode.STATE)
+        # This should not raise - same mode returns early before calling clear()
+        ticket_list.set_sort_mode(SortMode.STATE)
+        assert ticket_list.sort_mode == SortMode.STATE

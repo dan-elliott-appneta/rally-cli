@@ -65,7 +65,7 @@ rally-cli/
 │           ├── protocol.py     # RallyClientProtocol interface
 │           ├── rally_client.py # Real Rally API client (pyral)
 │           └── mock_client.py  # Mock client for testing/offline
-├── tests/                      # 386 tests
+├── tests/                      # 397 tests
 │   ├── conftest.py             # Fixtures, mock Rally client
 │   ├── test_ticket_model.py
 │   ├── test_discussion_model.py
@@ -807,9 +807,9 @@ tests/
 
 ---
 
-### Iteration 10: Iteration & User Filtering ✅ COMPLETE
+### Iteration 10: Iteration & User Filtering + Sorting ✅ COMPLETE
 
-**Goal**: Navigate between iterations and toggle user filter
+**Goal**: Navigate between iterations, toggle user filter, and sort ticket list
 
 **Detailed Guide**: See [ITERATION_10.md](./ITERATION_10.md) for step-by-step implementation.
 
@@ -822,22 +822,33 @@ tests/
 - [x] Update StatusBar to show current iteration and user filter
 - [x] Add Backlog view (unscheduled items) via `b` key in IterationScreen
 - [x] Update MockRallyClient with sample iterations
-- [x] Write tests for all new functionality (70+ new tests)
+- [x] Add `SortMode` enum with STATE, CREATED, OWNER options
+- [x] Add `o` key binding to cycle through sort modes
+- [x] Update StatusBar to show current sort mode
+- [x] Add sorting functions for each mode
+- [x] Write tests for all new functionality (85+ new tests)
 
 **Implementation Notes**:
 - IterationScreen shows recent iterations with number key shortcuts (1-5)
 - Special options: 0 for All, b for Backlog
 - Status bar displays "Sprint: X" and "My Items" when filters active
 - Combined filters work together (e.g., "My backlog items")
-- 386 total tests passing
+- Current sprint always appears as button 1 in iteration picker
+- **Sorting**: Three sort modes cycle via 'o' key:
+  - **State Flow**: Defined → In Progress → Completed (default)
+  - **Recently Created**: Newest tickets first (by FormattedID)
+  - **Owner**: Unassigned first, then alphabetical by owner name
+- StatusBar shows "Sort: Recent" or "Sort: Owner" when not default
+- 397 total tests passing
 
-**Deliverable**: User can switch iterations, toggle between My/All tickets, view backlog
+**Deliverable**: User can switch iterations, toggle between My/All tickets, view backlog, sort tickets
 
 **Key Bindings**:
 | Key | Action |
 |-----|--------|
 | `i` | Open iteration picker |
 | `u` | Toggle My/All tickets |
+| `o` | Cycle sort mode (State → Recent → Owner) |
 | `0` | Show all iterations (in picker) |
 | `b` | Show backlog only (in picker) |
 
