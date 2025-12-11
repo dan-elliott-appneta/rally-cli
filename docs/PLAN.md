@@ -889,17 +889,17 @@ tests/
 **Goal**: Require parent Feature assignment when moving tickets to "In Progress" state
 
 **Tasks**:
-- [ ] Add `parent_id` field to Ticket model
-- [ ] Add `parent_options` property to UserSettings (default: F59625, F59627, F59628)
-- [ ] Add `get_feature()` and `set_parent()` methods to RallyClientProtocol
-- [ ] Implement `get_feature()` and `set_parent()` in RallyClient
-- [ ] Implement `get_feature()` and `set_parent()` in MockRallyClient
-- [ ] Create `ParentScreen` modal for parent selection
-- [ ] Modify `_handle_state_result()` to intercept "In Progress" transitions
-- [ ] Update `_to_ticket()` to include parent_id from PortfolioItem
-- [ ] Write comprehensive tests
-- [ ] Update documentation
-- [ ] Bump version to 0.3.0
+- [x] Add `parent_id` field to Ticket model
+- [x] Add `parent_options` property to UserSettings (default: F59625, F59627, F59628)
+- [x] Add `get_feature()` and `set_parent()` methods to RallyClientProtocol
+- [x] Implement `get_feature()` and `set_parent()` in RallyClient
+- [x] Implement `get_feature()` and `set_parent()` in MockRallyClient
+- [x] Create `ParentScreen` modal for parent selection
+- [x] Modify `_handle_state_result()` to intercept "In Progress" transitions
+- [x] Update `_to_ticket()` to include parent_id from PortfolioItem
+- [x] Write comprehensive tests (435 total, 21+ new for parent selection)
+- [x] Update documentation
+- [x] Bump version to 0.3.0
 
 **Implementation Notes**:
 - **Parent Options**: User-configurable list of 3 Feature IDs stored in `~/.config/rally-tui/config.json`
