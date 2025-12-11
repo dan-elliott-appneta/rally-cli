@@ -33,6 +33,7 @@ class RallyTUI(App[None]):
         Binding("/", "start_search", "Search", show=False),
         Binding("d", "open_discussions", "Discussions", show=False),
         Binding("t", "toggle_theme", "Toggle Theme", show=False),
+        Binding("y", "copy_ticket_url", "Copy URL", show=False),
     ]
 
     def __init__(
@@ -54,6 +55,7 @@ class RallyTUI(App[None]):
         super().__init__()
         self._show_splash = show_splash
         self._user_settings = user_settings or UserSettings()
+        self._server = config.server if config else "rally1.rallydev.com"
 
         if client is not None:
             # Explicit client provided (e.g., for testing)
@@ -216,6 +218,15 @@ class RallyTUI(App[None]):
         """Toggle between dark and light theme and persist setting."""
         self.dark = not self.dark
         self._user_settings.theme = "dark" if self.dark else "light"
+
+    def action_copy_ticket_url(self) -> None:
+        """Copy the selected ticket's Rally URL to clipboard."""
+        detail = self.query_one(TicketDetail)
+        if detail.ticket:
+            url = detail.ticket.rally_url(self._server)
+            if url:
+                self.copy_to_clipboard(url)
+                self.notify(f"Copied: {url}", timeout=2)
 
 
 def main() -> None:
