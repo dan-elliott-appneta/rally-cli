@@ -12,6 +12,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Sorted by workflow**: Tickets sorted by state progression (Ideas at top, Accepted at bottom)
 - **Splash screen**: ASCII art "RALLY TUI" greeting on startup
 - **Theme toggle**: Switch between dark/light themes with `t` key (persisted)
+- **Copy URL**: Press `y` to copy Rally ticket URL to clipboard
 - **User settings**: Preferences saved to `~/.config/rally-tui/config.json`
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
 - **Discussions**: View ticket discussions and add comments
@@ -23,6 +24,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - State indicators show workflow progress with colored symbols
 - Tickets sorted by workflow state (earlier states at top)
 - Theme preference persisted to user config file
+- Copy ticket URL to clipboard with `y` key
 - View ticket discussions with `d` key
 - Add comments with `c` key from discussion screen
 - HTML content converted to readable plain text
