@@ -24,6 +24,7 @@ class Ticket:
     iteration: str | None = None
     points: int | float | None = None
     object_id: str | None = None  # Rally ObjectID for API calls
+    parent_id: str | None = None  # Parent Feature formatted ID (e.g., "F59625")
 
     @property
     def display_text(self) -> str:

@@ -141,7 +141,7 @@ class TestTicketListFilter:
                 formatted_id="US1001",
                 name="User login feature",
                 ticket_type="UserStory",
-                state="In Progress",
+                state="In-Progress",
                 owner="John Smith",
             ),
             Ticket(
@@ -331,7 +331,7 @@ class TestTicketListSorting:
                 formatted_id="US1005",
                 name="Fifth story",
                 ticket_type="HierarchicalRequirement",
-                state="In Progress",
+                state="In-Progress",
                 owner="Alice",
             ),
             Ticket(
@@ -368,8 +368,8 @@ class TestTicketListSorting:
         """Sorting by state should order by workflow."""
         sorted_list = sort_tickets_by_state(sort_tickets_fixture)
         states = [t.state for t in sorted_list]
-        # Defined < Open < In Progress < Completed
-        assert states == ["Defined", "Defined", "Open", "In Progress", "Completed"]
+        # Defined < Open < In-Progress < Completed
+        assert states == ["Defined", "Defined", "Open", "In-Progress", "Completed"]
 
     def test_sort_by_created(self, sort_tickets_fixture: list[Ticket]) -> None:
         """Sorting by created should order by ID (newest first)."""
@@ -389,7 +389,7 @@ class TestTicketListSorting:
         """sort_tickets with STATE mode should use state sorting."""
         sorted_list = sort_tickets(sort_tickets_fixture, SortMode.STATE)
         states = [t.state for t in sorted_list]
-        assert states == ["Defined", "Defined", "Open", "In Progress", "Completed"]
+        assert states == ["Defined", "Defined", "Open", "In-Progress", "Completed"]
 
     def test_sort_tickets_function_created(self, sort_tickets_fixture: list[Ticket]) -> None:
         """sort_tickets with CREATED mode should use created sorting."""
@@ -441,7 +441,7 @@ class TestTicketListSorting:
                 formatted_id="US1005",
                 name="Login feature",
                 ticket_type="HierarchicalRequirement",
-                state="In Progress",
+                state="In-Progress",
                 owner="Alice",
             ),
             Ticket(

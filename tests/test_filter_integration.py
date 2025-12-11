@@ -25,7 +25,7 @@ def tickets_with_iterations() -> list[Ticket]:
             formatted_id="US101",
             name="Story in Sprint 26 by Bob",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
             owner="Bob",
             iteration="Sprint 26",
         ),

@@ -18,7 +18,7 @@ class TestMockClientGetDiscussions:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
             object_id="100001",
         )
         result = client.get_discussions(ticket)
@@ -32,7 +32,7 @@ class TestMockClientGetDiscussions:
             formatted_id="US1234",
             name="User login feature",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
             object_id="100001",
         )
         discussions = client.get_discussions(ticket)
@@ -59,7 +59,7 @@ class TestMockClientGetDiscussions:
             formatted_id="US1234",
             name="User login feature",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
             object_id="100001",
         )
         discussions = client.get_discussions(ticket)
@@ -101,7 +101,7 @@ class TestMockClientAddComment:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
             object_id="100001",
         )
         result = client.add_comment(ticket, "New comment")

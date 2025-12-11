@@ -338,3 +338,88 @@ class TestMockRallyClientIterations:
         client = MockRallyClient()
         assert hasattr(client, "get_iterations")
         assert callable(client.get_iterations)
+
+
+class TestMockRallyClientFeatures:
+    """Tests for MockRallyClient get_feature and set_parent methods."""
+
+    def test_get_feature_returns_tuple(self) -> None:
+        """get_feature should return (formatted_id, name) tuple."""
+        client = MockRallyClient()
+        result = client.get_feature("F59625")
+        assert result is not None
+        assert result[0] == "F59625"
+        assert result[1] == "API Platform Modernization Initiative"
+
+    def test_get_feature_not_found(self) -> None:
+        """get_feature should return None for unknown ID."""
+        client = MockRallyClient()
+        result = client.get_feature("F99999")
+        assert result is None
+
+    def test_get_feature_custom_features(self) -> None:
+        """get_feature should use custom features dict."""
+        custom_features = {"F111": "Custom Feature One"}
+        client = MockRallyClient(features=custom_features)
+        result = client.get_feature("F111")
+        assert result == ("F111", "Custom Feature One")
+        # Default should not be available
+        assert client.get_feature("F59625") is None
+
+    def test_set_parent_updates_ticket(self) -> None:
+        """set_parent should return updated ticket with parent_id."""
+        ticket = Ticket("US1234", "Test Story", "UserStory", "Defined")
+        client = MockRallyClient(tickets=[ticket])
+
+        result = client.set_parent(ticket, "F59625")
+
+        assert result is not None
+        assert result.parent_id == "F59625"
+        assert result.formatted_id == "US1234"
+
+    def test_set_parent_not_found(self) -> None:
+        """set_parent should return None if ticket not in list."""
+        ticket = Ticket("US9999", "Unknown Story", "UserStory", "Defined")
+        client = MockRallyClient(tickets=[])
+
+        result = client.set_parent(ticket, "F59625")
+
+        assert result is None
+
+    def test_set_parent_preserves_fields(self) -> None:
+        """set_parent should preserve all other ticket fields."""
+        ticket = Ticket(
+            "US1234",
+            "Test Story",
+            "UserStory",
+            "In Progress",
+            owner="John Doe",
+            description="Test description",
+            notes="Test notes",
+            iteration="Sprint 1",
+            points=5,
+            object_id="12345",
+        )
+        client = MockRallyClient(tickets=[ticket])
+
+        result = client.set_parent(ticket, "F59627")
+
+        assert result is not None
+        assert result.parent_id == "F59627"
+        assert result.owner == "John Doe"
+        assert result.description == "Test description"
+        assert result.notes == "Test notes"
+        assert result.iteration == "Sprint 1"
+        assert result.points == 5
+
+    def test_has_get_feature_method(self) -> None:
+        """MockRallyClient should have get_feature method."""
+        client = MockRallyClient()
+        assert hasattr(client, "get_feature")
+        assert callable(client.get_feature)
+
+    def test_has_set_parent_method(self) -> None:
+        """MockRallyClient should have set_parent method."""
+        client = MockRallyClient()
+        assert hasattr(client, "set_parent")
+        assert callable(client.set_parent)
