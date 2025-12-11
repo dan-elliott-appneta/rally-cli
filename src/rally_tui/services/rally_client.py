@@ -227,11 +227,13 @@ class RallyClient:
                 item.Iteration, "_refObjectName", None
             )
 
-        # Extract points (PlanEstimate)
+        # Extract points (PlanEstimate) - preserve decimals
         points = None
         if hasattr(item, "PlanEstimate") and item.PlanEstimate is not None:
             try:
-                points = int(item.PlanEstimate)
+                raw_points = float(item.PlanEstimate)
+                # Convert to int if whole number for cleaner display
+                points = int(raw_points) if raw_points == int(raw_points) else raw_points
             except (ValueError, TypeError):
                 points = None
 

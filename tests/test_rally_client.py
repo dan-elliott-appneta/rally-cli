@@ -184,7 +184,7 @@ class TestRallyClientTicketMapping:
         assert ticket.description == ""
 
     def test_map_with_float_points(self, client: RallyClient) -> None:
-        """Float points are converted to int."""
+        """Float points are preserved."""
         entity = MockRallyEntity(
             FormattedID="US100",
             Name="Story with points",
@@ -197,7 +197,7 @@ class TestRallyClientTicketMapping:
 
         ticket = client._to_ticket(entity, "HierarchicalRequirement")
 
-        assert ticket.points == 3
+        assert ticket.points == 3.5
 
     def test_map_uses_schedule_state_for_stories(self, client: RallyClient) -> None:
         """Stories use ScheduleState for state."""
