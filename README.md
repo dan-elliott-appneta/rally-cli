@@ -11,8 +11,13 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 ## Status
 
-**Iteration 6 Complete** - Real Rally API integration.
+**Iteration 7 Complete** - Search & Filtering.
 
+- Search/filter tickets with `/` key (vim-style)
+- Real-time filtering as you type
+- Case-insensitive search across ID, name, owner, state
+- Filter count displayed in status bar (Filtered: X/Y)
+- Escape clears filter, Enter confirms and returns to list
 - Connect to Rally API using pyral
 - Environment variable configuration (RALLY_APIKEY, RALLY_WORKSPACE, etc.)
 - Automatic fallback to offline mode with sample data
@@ -20,9 +25,9 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Two-panel layout with ticket list and detail view
 - Tab to switch between panels
 - Context-sensitive keyboard shortcuts
-- 134 tests passing
+- 161 tests passing
 
-Next: Iteration 7 (Search & Filtering).
+Next: Iteration 8 (CRUD Operations).
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -84,7 +89,9 @@ rally-tui
 | k / ↑ | Move up |
 | g | Jump to top |
 | G | Jump to bottom |
-| Enter | Select item |
+| / | Search/filter tickets |
+| Enter | Select item (or confirm search) |
+| Esc | Clear search filter |
 | Tab | Switch panel |
 | q | Quit |
 
@@ -105,7 +112,8 @@ rally-cli/
 │   │   ├── ticket_list.py   # TicketList widget (left panel)
 │   │   ├── ticket_detail.py # TicketDetail widget (right panel)
 │   │   ├── command_bar.py   # CommandBar widget (bottom)
-│   │   └── status_bar.py    # StatusBar widget (top)
+│   │   ├── status_bar.py    # StatusBar widget (top)
+│   │   └── search_input.py  # SearchInput widget (search mode)
 │   ├── config.py            # Configuration (pydantic-settings)
 │   └── services/            # Rally API client layer
 │       ├── protocol.py      # RallyClientProtocol interface
@@ -118,6 +126,7 @@ rally-cli/
 │   ├── test_ticket_detail.py # TicketDetail widget tests
 │   ├── test_command_bar.py   # CommandBar widget tests
 │   ├── test_status_bar.py    # StatusBar widget tests
+│   ├── test_search_input.py  # SearchInput widget tests
 │   ├── test_services.py      # Service layer tests
 │   ├── test_config.py        # Configuration tests
 │   ├── test_rally_client.py  # RallyClient tests
@@ -125,7 +134,7 @@ rally-cli/
 └── docs/
     ├── API.md               # Rally WSAPI reference
     ├── PLAN.md              # Development roadmap
-    └── ITERATION_*.md       # Implementation guides (1-6)
+    └── ITERATION_*.md       # Implementation guides (1-7)
 ```
 
 ### Running Tests

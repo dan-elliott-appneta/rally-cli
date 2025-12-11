@@ -41,7 +41,8 @@ rally-cli/
 │       │   ├── ticket_list.py  # Left panel - scrollable ticket list
 │       │   ├── ticket_detail.py # Right panel - ticket details view
 │       │   ├── command_bar.py  # Bottom panel - context commands
-│       │   └── status_bar.py   # Top bar - workspace/project/status
+│       │   ├── status_bar.py   # Top bar - workspace/project/status
+│       │   └── search_input.py # Search input for filtering
 │       ├── models/
 │       │   ├── __init__.py
 │       │   ├── ticket.py       # Ticket data models (decoupled from pyral)
@@ -58,6 +59,7 @@ rally-cli/
 │   ├── test_ticket_detail.py
 │   ├── test_command_bar.py
 │   ├── test_status_bar.py
+│   ├── test_search_input.py
 │   ├── test_services.py
 │   ├── test_config.py
 │   ├── test_rally_client.py
@@ -66,7 +68,7 @@ rally-cli/
 └── docs/
     ├── API.md                  # Rally WSAPI reference
     ├── PLAN.md                 # This file
-    └── ITERATION_*.md          # Implementation guides (1-6)
+    └── ITERATION_*.md          # Implementation guides (1-7)
 ```
 
 ### Testability Strategy
@@ -491,23 +493,75 @@ tests/
 
 ---
 
-### Iteration 7: Search & Filtering
+### Iteration 7: Search & Filtering ✅ COMPLETE
 
-**Goal**: Filter ticket list with search
+**Goal**: Filter ticket list with search input and real-time filtering
+
+**Detailed Guide**: See [ITERATION_7.md](./ITERATION_7.md) for step-by-step implementation.
 
 **Tasks**:
-- [ ] Add search input (activated with `/`)
-- [ ] Filter list as user types
-- [ ] Highlight matching text in list
-- [ ] Clear search with Esc
-- [ ] Persist last search
+- [x] Create `SearchInput` widget (extends Input)
+- [x] Add filter logic to `TicketList` (filter_tickets method)
+- [x] Add filter info to `StatusBar` (Filtered: X/Y)
+- [x] Add search context to `CommandBar`
+- [x] Add `/` key binding to activate search
+- [x] Add `Esc` to clear search and return to list
+- [x] Add `Enter` to confirm search and focus list
+- [x] Write tests for all new functionality
+- [x] Update documentation
 
-**Deliverable**: User can search/filter the ticket list
+**Implementation Notes**:
+- SearchInput uses Textual's Input widget with custom messages
+- Filter is case-insensitive, searches formatted_id, name, owner, state
+- TicketList maintains `_all_tickets` for unfiltered list
+- StatusBar shows "Filtered: X/Y" when filter is active
+- 161 total tests passing (134 from Iteration 6 + 27 new)
+
+**Deliverable**: User can press `/` to search, type to filter in real-time, Esc to clear
 
 **Test Coverage**:
-- Snapshot: Search input visible
-- Snapshot: Filtered list results
-- Unit: Filter logic correctness
+- Unit: SearchInput widget messages (SearchChanged, SearchSubmitted, SearchCleared)
+- Unit: TicketList.filter_tickets() with various queries
+- Unit: TicketList case-insensitive matching
+- Unit: TicketList.clear_filter() restores all tickets
+- Unit: StatusBar.set_filter_info() and clear_filter_info()
+- Unit: CommandBar search context
+- Integration: App search activation and filtering
+- Snapshot: Updated layouts with search input placement
+
+**Key Files**:
+```
+src/rally_tui/widgets/
+└── search_input.py     # New SearchInput widget
+
+src/rally_tui/
+├── app.py              # Search bindings and handlers
+├── app.tcss            # Search input styling, list-container
+└── widgets/
+    ├── __init__.py     # Export SearchInput
+    ├── ticket_list.py  # Add filter_tickets method
+    ├── status_bar.py   # Add filter info display
+    └── command_bar.py  # Add search context
+
+tests/
+├── test_search_input.py  # New tests (9 tests)
+├── test_ticket_list.py   # Add filter tests (11 new)
+├── test_status_bar.py    # Add filter info tests (5 new)
+└── test_command_bar.py   # Add search context tests (2 new)
+```
+
+**Key Bindings**:
+| Key | Context | Action |
+|-----|---------|--------|
+| `/` | list | Activate search input |
+| `Esc` | search | Clear search, return to list |
+| `Enter` | search | Confirm search, focus list |
+
+**Key Concepts**:
+- Vertical container to group TicketList and SearchInput
+- Custom messages for widget communication (SearchChanged, SearchSubmitted, SearchCleared)
+- Rich markup escaping (`\\[/\\]` for `/` key display)
+- Conditional display with `display = False/True`
 
 ---
 
