@@ -307,6 +307,7 @@ class TestTicketDetailMarkupEscape:
 
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
+            await pilot.pause()  # Allow initial ticket to load
             detail = app.query_one(TicketDetail)
 
             # Set ticket with notes containing markup-like syntax
@@ -320,6 +321,7 @@ class TestTicketDetailMarkupEscape:
                 ticket_type="HierarchicalRequirement",
             )
             detail.ticket = ticket
+            await pilot.pause()  # Allow UI to update with new ticket
 
             # Toggle to notes view
             await pilot.press("n")

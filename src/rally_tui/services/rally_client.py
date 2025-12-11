@@ -1,12 +1,12 @@
 """Rally API client implementation."""
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from pyral import Rally
 
 from rally_tui.config import RallyConfig
-from rally_tui.models import Discussion, Ticket
+from rally_tui.models import Discussion, Iteration, Ticket
 from rally_tui.utils import get_logger
 
 _log = get_logger("rally_tui.services.rally_client")
@@ -586,5 +586,114 @@ class RallyClient:
             )
         except Exception as e:
             _log.error(f"Error updating state for {ticket.formatted_id}: {e}")
+
+        return None
+
+    def get_iterations(self, count: int = 5) -> list[Iteration]:
+        """Fetch recent iterations from Rally.
+
+        Returns the current iteration first (button 1), followed by recent
+        past iterations sorted by start date descending.
+
+        Args:
+            count: Maximum number of iterations to return.
+
+        Returns:
+            List of Iteration objects with current sprint first.
+        """
+        from datetime import datetime, timezone
+
+        _log.debug(f"Fetching {count} recent iterations")
+        iterations: list[Iteration] = []
+        current_iteration: Iteration | None = None
+
+        try:
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+            # First, find the current iteration (today between start and end)
+            current_response = self._rally.get(
+                "Iteration",
+                fetch="ObjectID,Name,StartDate,EndDate,State",
+                query=f'((StartDate <= "{today}") AND (EndDate >= "{today}"))',
+                pagesize=1,
+            )
+            for item in current_response:
+                current_iteration = self._to_iteration(item)
+                if current_iteration:
+                    iterations.append(current_iteration)
+                    _log.debug(f"Current iteration: {current_iteration.name}")
+                break
+
+            # Then get recent past iterations (started but already ended)
+            past_response = self._rally.get(
+                "Iteration",
+                fetch="ObjectID,Name,StartDate,EndDate,State",
+                query=f'(EndDate < "{today}")',
+                order="StartDate desc",
+                pagesize=count,
+            )
+
+            for item in past_response:
+                if len(iterations) >= count:
+                    break
+                iteration = self._to_iteration(item)
+                if iteration:
+                    iterations.append(iteration)
+
+            _log.debug(f"Fetched {len(iterations)} iterations")
+        except Exception as e:
+            _log.error(f"Error fetching iterations: {e}")
+
+        return iterations
+
+    def _to_iteration(self, item: Any) -> Iteration | None:
+        """Convert a pyral Iteration entity to our Iteration model.
+
+        Args:
+            item: The pyral Iteration object.
+
+        Returns:
+            An Iteration instance, or None if conversion fails.
+        """
+        try:
+            # Parse dates from Rally format
+            start_date = self._parse_rally_date(getattr(item, "StartDate", None))
+            end_date = self._parse_rally_date(getattr(item, "EndDate", None))
+
+            if not start_date or not end_date:
+                _log.warning(f"Missing dates for iteration: {item.Name}")
+                return None
+
+            return Iteration(
+                object_id=str(item.ObjectID),
+                name=item.Name,
+                start_date=start_date,
+                end_date=end_date,
+                state=getattr(item, "State", "Planning") or "Planning",
+            )
+        except Exception as e:
+            _log.warning(f"Failed to convert iteration: {e}")
+            return None
+
+    def _parse_rally_date(self, date_str: str | None) -> date | None:
+        """Parse a Rally date string to a date object.
+
+        Args:
+            date_str: Rally date string (e.g., "2024-01-15T00:00:00.000Z").
+
+        Returns:
+            A date object, or None if parsing fails.
+        """
+        if not date_str:
+            return None
+
+        try:
+            # Rally returns ISO format: 2024-01-15T00:00:00.000Z
+            if isinstance(date_str, str):
+                # Strip time portion and parse date
+                date_part = date_str.split("T")[0]
+                return date.fromisoformat(date_part)
+        except (ValueError, TypeError) as e:
+            _log.warning(f"Failed to parse date '{date_str}': {e}")
 
         return None

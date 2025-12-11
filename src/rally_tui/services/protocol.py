@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from rally_tui.models import Discussion, Ticket
+from rally_tui.models import Discussion, Iteration, Ticket
 
 
 class RallyClientProtocol(Protocol):
@@ -119,5 +119,19 @@ class RallyClientProtocol(Protocol):
 
         Returns:
             The updated Ticket with new state, or None on failure.
+        """
+        ...
+
+    def get_iterations(self, count: int = 5) -> list[Iteration]:
+        """Fetch recent iterations (sprints).
+
+        Returns iterations centered around the current iteration:
+        previous iterations, current, and upcoming iterations.
+
+        Args:
+            count: Maximum number of iterations to return.
+
+        Returns:
+            List of iterations, sorted by start date (newest first).
         """
         ...

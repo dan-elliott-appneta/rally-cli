@@ -15,8 +15,10 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Copy URL**: Press `y` to copy Rally ticket URL to clipboard
 - **Set Points**: Press `p` to set story points on selected ticket
 - **Set State**: Press `s` to change ticket state (Defined, In Progress, Completed, etc.)
-- **Quick Create**: Press `c` to create a new ticket (User Story or Defect)
+- **Quick Create**: Press `w` to create a new workitem (User Story or Defect)
 - **Toggle Notes**: Press `n` to toggle between description and notes view
+- **Sprint Filter**: Press `i` to filter tickets by iteration/sprint
+- **My Items Filter**: Press `u` to toggle showing only your tickets
 - **User settings**: Preferences saved to `~/.config/rally-tui/config.json`
 - **File logging**: Logs to `~/.config/rally-tui/rally-tui.log` with configurable log level
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
@@ -24,14 +26,18 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 ## Status
 
-**Iteration 8+ Complete** - Discussions, Comments, and UI Polish.
+**Iteration 10 Complete** - Iteration & User Filtering.
 
+- **NEW**: Filter by iteration/sprint with `i` key
+- **NEW**: Toggle "My Items" filter with `u` key to show only your tickets
+- **NEW**: Filter to Backlog (unscheduled items) from iteration picker
+- **NEW**: Status bar shows active filters (Sprint: X, My Items)
 - State indicators show workflow progress with colored symbols
 - Tickets sorted by workflow state (earlier states at top)
 - Theme preference persisted to user config file
 - Copy ticket URL to clipboard with `y` key
 - Set story points with `p` key
-- Create tickets with `c` key (User Story or Defect, auto-assigns to you and current iteration)
+- Create tickets with `w` key (User Story or Defect, auto-assigns to you and current iteration)
 - View ticket discussions with `d` key
 - Add comments with `c` key from discussion screen
 - HTML content converted to readable plain text
@@ -50,9 +56,9 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 321 tests passing
+- 386 tests passing
 
-Next: Iteration 9 (CRUD Operations).
+Next: Iteration 11 (Batch Operations / Multi-select).
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -77,6 +83,13 @@ pip install -e ".[dev]"
 ```
 
 ## Usage
+
+### Check Version
+
+```bash
+rally-tui --version
+# Output: rally-tui 0.1.0
+```
 
 ### Running with Rally API
 
@@ -125,6 +138,8 @@ rally-tui
 | p | list/detail | Set story points |
 | n | list/detail | Toggle description/notes |
 | d | list/detail | Open discussions |
+| i | list/detail | Filter by iteration/sprint |
+| u | list/detail | Toggle My Items filter |
 | w | list/detail | New workitem |
 | c | discussion | Add comment |
 | Ctrl+S | comment | Submit comment |
@@ -163,6 +178,7 @@ rally-cli/
 │   ├── models/
 │   │   ├── ticket.py        # Ticket dataclass
 │   │   ├── discussion.py    # Discussion dataclass
+│   │   ├── iteration.py     # Iteration dataclass
 │   │   └── sample_data.py   # Sample data for offline mode
 │   ├── screens/
 │   │   ├── splash_screen.py      # SplashScreen (startup)
@@ -170,6 +186,7 @@ rally-cli/
 │   │   ├── comment_screen.py     # CommentScreen
 │   │   ├── points_screen.py      # PointsScreen (set story points)
 │   │   ├── state_screen.py       # StateScreen (change ticket state)
+│   │   ├── iteration_screen.py   # IterationScreen (filter by sprint)
 │   │   └── quick_ticket_screen.py # QuickTicketScreen (create tickets)
 │   ├── widgets/
 │   │   ├── ticket_list.py   # TicketList widget (left panel, state sorting)
@@ -187,6 +204,7 @@ rally-cli/
 │   ├── conftest.py               # Pytest fixtures
 │   ├── test_ticket_model.py      # Model unit tests
 │   ├── test_discussion_model.py  # Discussion model tests
+│   ├── test_iteration_model.py   # Iteration model tests
 │   ├── test_ticket_list.py       # TicketList widget tests
 │   ├── test_ticket_detail.py     # TicketDetail widget tests
 │   ├── test_splash_screen.py     # SplashScreen tests
@@ -194,7 +212,9 @@ rally-cli/
 │   ├── test_comment_screen.py    # CommentScreen tests
 │   ├── test_points_screen.py     # PointsScreen tests
 │   ├── test_state_screen.py      # StateScreen tests
+│   ├── test_iteration_screen.py  # IterationScreen tests
 │   ├── test_quick_ticket_screen.py # QuickTicketScreen tests
+│   ├── test_filter_integration.py # Filter integration tests
 │   ├── test_status_bar.py        # StatusBar widget tests
 │   ├── test_search_input.py      # SearchInput widget tests
 │   ├── test_services.py          # Service layer tests
@@ -208,7 +228,7 @@ rally-cli/
 └── docs/
     ├── API.md               # Rally WSAPI reference
     ├── PLAN.md              # Development roadmap
-    └── ITERATION_*.md       # Implementation guides (1-8)
+    └── ITERATION_*.md       # Implementation guides (1-10)
 ```
 
 ### Running Tests
@@ -237,12 +257,26 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 - [ITERATION_5.md](docs/ITERATION_5.md) - Iteration 5 implementation guide (complete)
 - [ITERATION_6.md](docs/ITERATION_6.md) - Iteration 6 implementation guide (complete)
 - [ITERATION_8.md](docs/ITERATION_8.md) - Iteration 8 implementation guide (Discussions & Comments)
+- [ITERATION_10.md](docs/ITERATION_10.md) - Iteration 10 implementation guide (Iteration & User Filtering)
 
 ## Technology Stack
 
 - **[Textual](https://textual.textualize.io/)** - Modern Python TUI framework
 - **[pyral](https://pyral.readthedocs.io/)** - Rally REST API toolkit
 - **[pytest-textual-snapshot](https://github.com/Textualize/pytest-textual-snapshot)** - Visual regression testing
+
+## Versioning
+
+This project uses [Semantic Versioning](https://semver.org/):
+- Version is defined in `pyproject.toml`
+- Accessible as `rally_tui.__version__` in code
+- Displayed with `rally-tui --version`
+- Shown on splash screen at startup
+
+Version format: `MAJOR.MINOR.PATCH`
+- **MAJOR**: Incompatible API changes
+- **MINOR**: New features (backwards compatible)
+- **PATCH**: Bug fixes (backwards compatible)
 
 ## License
 

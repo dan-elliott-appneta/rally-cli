@@ -81,6 +81,42 @@ class TestStatusBarUnit:
         bar.clear_filter_info()
         assert bar.filter_info == ""
 
+    def test_default_iteration_filter_is_none(self) -> None:
+        """Default iteration_filter should be None."""
+        bar = StatusBar()
+        assert bar.iteration_filter is None
+
+    def test_set_iteration_filter(self) -> None:
+        """set_iteration_filter should update iteration_filter."""
+        bar = StatusBar()
+        bar.set_iteration_filter("Sprint 26")
+        assert bar.iteration_filter == "Sprint 26"
+
+    def test_set_iteration_filter_none(self) -> None:
+        """set_iteration_filter with None should clear the filter."""
+        bar = StatusBar()
+        bar.set_iteration_filter("Sprint 26")
+        bar.set_iteration_filter(None)
+        assert bar.iteration_filter is None
+
+    def test_default_user_filter_is_false(self) -> None:
+        """Default user_filter_active should be False."""
+        bar = StatusBar()
+        assert bar.user_filter_active is False
+
+    def test_set_user_filter_true(self) -> None:
+        """set_user_filter(True) should activate user filter."""
+        bar = StatusBar()
+        bar.set_user_filter(True)
+        assert bar.user_filter_active is True
+
+    def test_set_user_filter_false(self) -> None:
+        """set_user_filter(False) should deactivate user filter."""
+        bar = StatusBar()
+        bar.set_user_filter(True)
+        bar.set_user_filter(False)
+        assert bar.user_filter_active is False
+
 
 class TestStatusBarWidget:
     """Integration tests for StatusBar widget behavior."""
@@ -258,6 +294,83 @@ class TestStatusBarWidget:
             assert "Filtered: 3/10" in status_bar.display_content
             status_bar.clear_filter_info()
             assert "Filtered:" not in status_bar.display_content
+
+    async def test_status_bar_shows_iteration_filter(self) -> None:
+        """StatusBar should show iteration filter when set."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            status_bar.set_iteration_filter("Sprint 26")
+            assert "Sprint: Sprint 26" in status_bar.display_content
+
+    async def test_status_bar_clears_iteration_filter(self) -> None:
+        """StatusBar should clear iteration filter when set to None."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            status_bar.set_iteration_filter("Sprint 26")
+            assert "Sprint:" in status_bar.display_content
+            status_bar.set_iteration_filter(None)
+            assert "Sprint:" not in status_bar.display_content
+
+    async def test_status_bar_shows_user_filter(self) -> None:
+        """StatusBar should show 'My Items' when user filter is active."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            status_bar.set_user_filter(True)
+            assert "My Items" in status_bar.display_content
+
+    async def test_status_bar_hides_user_filter(self) -> None:
+        """StatusBar should hide 'My Items' when user filter is inactive."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            status_bar.set_user_filter(True)
+            assert "My Items" in status_bar.display_content
+            status_bar.set_user_filter(False)
+            assert "My Items" not in status_bar.display_content
+
+    async def test_status_bar_shows_both_filters(self) -> None:
+        """StatusBar should show both filters when both are active."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            status_bar.set_iteration_filter("Sprint 26")
+            status_bar.set_user_filter(True)
+            content = status_bar.display_content
+            assert "Sprint: Sprint 26" in content
+            assert "My Items" in content
 
 
 class TestStatusBarInApp:

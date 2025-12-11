@@ -1,9 +1,11 @@
 """Tests for the service layer."""
 
+from datetime import date
+
 import pytest
 
 from rally_tui.app import RallyTUI
-from rally_tui.models import Ticket
+from rally_tui.models import Iteration, Ticket
 from rally_tui.models.sample_data import SAMPLE_TICKETS
 from rally_tui.services import MockRallyClient
 from rally_tui.widgets import StatusBar, TicketDetail, TicketList
@@ -271,3 +273,68 @@ class TestRallyTUIWithClient:
             # First ticket after sorting is US1235 (Defined state)
             assert detail.ticket is not None
             assert detail.ticket.formatted_id == "US1235"
+
+
+class TestMockRallyClientIterations:
+    """Tests for MockRallyClient iteration support."""
+
+    def test_get_iterations_returns_list(self) -> None:
+        """get_iterations() should return a list."""
+        client = MockRallyClient()
+        iterations = client.get_iterations()
+        assert isinstance(iterations, list)
+
+    def test_get_iterations_returns_iteration_objects(self) -> None:
+        """get_iterations() should return Iteration objects."""
+        client = MockRallyClient()
+        iterations = client.get_iterations()
+        assert all(isinstance(i, Iteration) for i in iterations)
+
+    def test_get_iterations_default_returns_sample_iterations(self) -> None:
+        """Default client should return generated sample iterations."""
+        client = MockRallyClient()
+        iterations = client.get_iterations()
+        assert len(iterations) >= 3  # At least prev, current, next
+
+    def test_get_iterations_sorted_by_date_descending(self) -> None:
+        """Iterations should be sorted by start date (most recent first)."""
+        client = MockRallyClient()
+        iterations = client.get_iterations()
+        # Check that dates are in descending order
+        for i in range(len(iterations) - 1):
+            assert iterations[i].start_date >= iterations[i + 1].start_date
+
+    def test_get_iterations_respects_count(self) -> None:
+        """get_iterations(count) should limit results."""
+        client = MockRallyClient()
+        iterations = client.get_iterations(count=2)
+        assert len(iterations) <= 2
+
+    def test_get_iterations_custom_iterations(self) -> None:
+        """Client should accept custom iterations."""
+        custom_iterations = [
+            Iteration(
+                object_id="1",
+                name="Custom Sprint 1",
+                start_date=date(2024, 1, 1),
+                end_date=date(2024, 1, 14),
+            ),
+            Iteration(
+                object_id="2",
+                name="Custom Sprint 2",
+                start_date=date(2024, 1, 15),
+                end_date=date(2024, 1, 28),
+            ),
+        ]
+        client = MockRallyClient(iterations=custom_iterations)
+        iterations = client.get_iterations()
+        assert len(iterations) == 2
+        # Should be sorted descending
+        assert iterations[0].name == "Custom Sprint 2"
+        assert iterations[1].name == "Custom Sprint 1"
+
+    def test_has_get_iterations_method(self) -> None:
+        """MockRallyClient should have get_iterations method."""
+        client = MockRallyClient()
+        assert hasattr(client, "get_iterations")
+        assert callable(client.get_iterations)

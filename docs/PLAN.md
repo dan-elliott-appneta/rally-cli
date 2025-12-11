@@ -65,7 +65,7 @@ rally-cli/
 │           ├── protocol.py     # RallyClientProtocol interface
 │           ├── rally_client.py # Real Rally API client (pyral)
 │           └── mock_client.py  # Mock client for testing/offline
-├── tests/                      # 321 tests
+├── tests/                      # 397 tests
 │   ├── conftest.py             # Fixtures, mock Rally client
 │   ├── test_ticket_model.py
 │   ├── test_discussion_model.py
@@ -787,35 +787,110 @@ tests/
 
 ---
 
-### Iteration 9: CRUD Operations
+### Iteration 9: Configurable Keybindings
 
-**Goal**: Edit tickets from TUI (create via QuickTicket already complete)
+**Goal**: Allow users to customize keyboard shortcuts
 
 **Tasks**:
-- [ ] Edit mode for ticket details (e key)
-- [ ] Form widgets for editable fields
-- [ ] Save changes to Rally (Enter)
-- [ ] Cancel edits (Esc)
-- [ ] Delete with confirmation (x key)
-- [ ] Optimistic UI updates
+- [ ] Create keybindings schema in UserSettings
+- [ ] Load custom keybindings from config file
+- [ ] KeybindingsScreen for viewing/editing bindings
+- [ ] Default bindings with override support
+- [ ] Vim/Emacs preset profiles
 
-**Deliverable**: Full CRUD operations from within TUI (Create already done in 8+)
+**Deliverable**: Users can customize keyboard shortcuts via config or UI
 
 **Test Coverage**:
-- Snapshot: Edit mode appearance
-- Unit: Form validation
-- Integration: Mock client receives correct update calls
+- Unit: Keybinding loading and defaults
+- Unit: Override precedence
+- Integration: Custom bindings work in app
+
+---
+
+### Iteration 10: Iteration & User Filtering + Sorting ✅ COMPLETE
+
+**Goal**: Navigate between iterations, toggle user filter, and sort ticket list
+
+**Detailed Guide**: See [ITERATION_10.md](./ITERATION_10.md) for step-by-step implementation.
+
+**Tasks**:
+- [x] Create `Iteration` model with name, dates, is_current, short_name
+- [x] Add `get_iterations()` method to RallyClientProtocol
+- [x] Create `IterationScreen` modal for iteration selection
+- [x] Add `i` key binding to open iteration picker
+- [x] Add `u` key binding to toggle My/All tickets filter
+- [x] Update StatusBar to show current iteration and user filter
+- [x] Add Backlog view (unscheduled items) via `b` key in IterationScreen
+- [x] Update MockRallyClient with sample iterations
+- [x] Add `SortMode` enum with STATE, CREATED, OWNER options
+- [x] Add `o` key binding to cycle through sort modes
+- [x] Update StatusBar to show current sort mode
+- [x] Add sorting functions for each mode
+- [x] Write tests for all new functionality (85+ new tests)
+
+**Implementation Notes**:
+- IterationScreen shows recent iterations with number key shortcuts (1-5)
+- Special options: 0 for All, b for Backlog
+- Status bar displays "Sprint: X" and "My Items" when filters active
+- Combined filters work together (e.g., "My backlog items")
+- Current sprint always appears as button 1 in iteration picker
+- **Sorting**: Three sort modes cycle via 'o' key:
+  - **State Flow**: Defined → In Progress → Completed (default)
+  - **Recently Created**: Newest tickets first (by FormattedID)
+  - **Owner**: Unassigned first, then alphabetical by owner name
+- StatusBar shows "Sort: Recent" or "Sort: Owner" when not default
+- 397 total tests passing
+
+**Deliverable**: User can switch iterations, toggle between My/All tickets, view backlog, sort tickets
+
+**Key Bindings**:
+| Key | Action |
+|-----|--------|
+| `i` | Open iteration picker |
+| `u` | Toggle My/All tickets |
+| `o` | Cycle sort mode (State → Recent → Owner) |
+| `0` | Show all iterations (in picker) |
+| `b` | Show backlog only (in picker) |
+
+**Key Files**:
+```
+src/rally_tui/
+├── models/
+│   └── iteration.py         # Iteration dataclass
+├── screens/
+│   └── iteration_screen.py  # IterationScreen modal
+├── widgets/
+│   └── status_bar.py        # Add filter display methods
+├── services/
+│   ├── protocol.py          # Add get_iterations()
+│   └── mock_client.py       # Sample iteration generation
+└── app.py                   # Filter state and key bindings
+
+tests/
+├── test_iteration_model.py      # 13 tests
+├── test_iteration_screen.py     # 23 tests
+├── test_filter_integration.py   # 11 tests
+├── test_services.py             # 7 new iteration tests
+└── test_status_bar.py           # 13 new filter tests
+```
+
+**Test Coverage**:
+- Unit: Iteration model (is_current, formatted_dates, short_name)
+- Unit: IterationScreen selection and highlighting
+- Unit: StatusBar filter display
+- Integration: Filter state management
+- Integration: Combined filters
+- Snapshot: Updated footer with new bindings
 
 ---
 
 ### Future Iterations
 
-- **Iteration 10**: Iteration/Release scoping and filtering
 - **Iteration 11**: Bulk operations (multi-select with Space)
 - **Iteration 12**: Attachment viewing/adding
 - **Iteration 13**: Custom fields support
 - **Iteration 14**: Caching and offline mode
-- **Iteration 15**: Configurable keybindings
+- **Iteration 15**: CRUD Operations (edit tickets, delete with confirmation)
 
 ---
 

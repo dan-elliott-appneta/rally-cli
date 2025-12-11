@@ -6,6 +6,8 @@ from textual.containers import Center, Middle
 from textual.screen import Screen
 from textual.widgets import Static
 
+from rally_tui import __version__
+
 
 RALLY_TUI_ART = r"""
 
@@ -16,8 +18,14 @@ RALLY_TUI_ART = r"""
  ██║  ██║██║  ██║███████╗███████╗██║          ██║   ╚██████╔╝██║
  ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝╚═╝          ╚═╝    ╚═════╝ ╚═╝
 
+"""
 
+
+def get_splash_text() -> str:
+    """Get the splash screen text with version."""
+    return f"""{RALLY_TUI_ART}
             Terminal UI for Rally Work Items
+                       v{__version__}
 
                 Press any key to continue...
 """
@@ -44,7 +52,7 @@ class SplashScreen(Screen[None]):
     def compose(self) -> ComposeResult:
         with Middle():
             with Center():
-                yield Static(RALLY_TUI_ART, id="splash-art")
+                yield Static(get_splash_text(), id="splash-art")
 
     def on_key(self, event) -> None:
         """Dismiss splash on any key press."""
