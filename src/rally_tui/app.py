@@ -125,12 +125,12 @@ class RallyTUI(App[None]):
         # Hide search input initially
         self.query_one("#search-input").display = False
 
-        # Set first ticket in detail panel
-        tickets = self._client.get_tickets()
-        _log.debug(f"Loaded {len(tickets)} tickets")
-        if tickets:
+        # Set first ticket in detail panel (reuse tickets from TicketList, don't call API again)
+        ticket_list = self.query_one(TicketList)
+        _log.debug(f"Loaded {len(ticket_list._tickets)} tickets")
+        if ticket_list._tickets:
             detail = self.query_one(TicketDetail)
-            detail.ticket = tickets[0]
+            detail.ticket = ticket_list._tickets[0]
 
         # Focus the ticket list initially
         self.query_one(TicketList).focus()
