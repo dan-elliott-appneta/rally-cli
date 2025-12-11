@@ -248,3 +248,83 @@ class TestTicketDetailNotesToggle:
             assert detail.content_view == "notes"
             detail.toggle_content_view()
             assert detail.content_view == "description"
+
+
+class TestTicketDetailMarkupEscape:
+    """Tests for Rich markup escaping in ticket detail."""
+
+    async def test_content_with_brackets_is_escaped(self) -> None:
+        """Content with brackets should be escaped to prevent Rich markup errors."""
+        from rally_tui.models import Ticket
+
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            detail = app.query_one(TicketDetail)
+
+            # Set ticket with content containing Rich markup-like syntax
+            ticket = Ticket(
+                formatted_id="US9999",
+                name="Test ticket",
+                description="Install with [signed-by=/etc/apt/keyrings/docker.asc]",
+                state="Defined",
+                owner="Test User",
+                ticket_type="HierarchicalRequirement",
+            )
+            detail.ticket = ticket
+
+            # Should not raise MarkupError
+            content = app.query_one("#detail-description")
+            rendered = str(content.render())
+            assert "signed-by" in rendered
+
+    async def test_content_with_dollar_parens_is_escaped(self) -> None:
+        """Content with $(command) syntax should be escaped."""
+        from rally_tui.models import Ticket
+
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            detail = app.query_one(TicketDetail)
+
+            # Set ticket with shell-style command substitution
+            ticket = Ticket(
+                formatted_id="US9999",
+                name="Test ticket",
+                description="Run $(dpkg --print-architecture) to get arch",
+                state="Defined",
+                owner="Test User",
+                ticket_type="HierarchicalRequirement",
+            )
+            detail.ticket = ticket
+
+            # Should not raise MarkupError
+            content = app.query_one("#detail-description")
+            rendered = str(content.render())
+            assert "dpkg" in rendered
+
+    async def test_notes_with_markup_chars_is_escaped(self) -> None:
+        """Notes with Rich markup-like characters should be escaped."""
+        from rally_tui.models import Ticket
+
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            detail = app.query_one(TicketDetail)
+
+            # Set ticket with notes containing markup-like syntax
+            ticket = Ticket(
+                formatted_id="US9999",
+                name="Test ticket",
+                description="Normal description",
+                notes="Add [arch=$(dpkg)] to /etc/apt",
+                state="Defined",
+                owner="Test User",
+                ticket_type="HierarchicalRequirement",
+            )
+            detail.ticket = ticket
+
+            # Toggle to notes view
+            await pilot.press("n")
+
+            # Should not raise MarkupError
+            content = app.query_one("#detail-description")
+            rendered = str(content.render())
+            assert "arch=" in rendered or "dpkg" in rendered

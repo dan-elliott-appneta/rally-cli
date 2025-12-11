@@ -2,6 +2,7 @@
 
 from typing import Literal
 
+from rich.markup import escape
 from textual.app import ComposeResult
 from textual.containers import VerticalScroll
 from textual.reactive import reactive
@@ -92,7 +93,7 @@ class TicketDetail(VerticalScroll):
             content = html_to_text(content) or "No notes available."
 
         self.query_one("#detail-description-label", Static).update(label)
-        self.query_one("#detail-description", Static).update(content)
+        self.query_one("#detail-description", Static).update(escape(content))
 
     def toggle_content_view(self) -> None:
         """Toggle between description and notes view."""
