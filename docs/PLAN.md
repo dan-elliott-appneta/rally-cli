@@ -980,13 +980,72 @@ tests/
 
 ---
 
+### Iteration 12: Configuration View ✅ COMPLETE
+
+**Goal**: Allow users to edit settings from within the TUI
+
+**Tasks**:
+- [x] Create ConfigScreen with form for theme, log_level, parent_options
+- [x] Add `F2` keybinding to open settings screen
+- [x] Theme selector using Select widget with all available themes
+- [x] Log level selector using Select widget
+- [x] Parent options editor with 3 Input fields
+- [x] Save button (Ctrl+S) persists settings immediately
+- [x] Cancel button (Escape) closes without saving
+- [x] Show config file path at bottom of screen
+- [x] Apply theme immediately on save
+- [x] Export ConfigScreen and ConfigData from screens module
+- [x] Write comprehensive tests (24 tests)
+- [x] Update documentation
+- [x] Bump version to 0.4.0
+
+**Implementation Notes**:
+- ConfigScreen extends Screen[ConfigData | None]
+- Uses Textual's Select widget for theme and log level dropdowns
+- Parent options are uppercased on save and empty values filtered out
+- Settings are saved directly to UserSettings which persists to JSON
+- Theme change is applied immediately after save
+- 459 total tests passing
+
+**Key Files**:
+```
+src/rally_tui/screens/
+└── config_screen.py        # ConfigScreen modal
+
+src/rally_tui/
+└── app.py                  # F2 keybinding and handler
+
+tests/
+└── test_config_screen.py   # 24 tests
+```
+
+**Key Bindings**:
+| Key | Action |
+|-----|--------|
+| `F2` | Open settings screen |
+| `Ctrl+S` | Save settings |
+| `Escape` | Cancel without saving |
+
+**Test Coverage**:
+- Unit: ConfigScreen displays title, selectors, inputs
+- Unit: ConfigScreen has save/cancel buttons
+- Unit: ConfigData dataclass creation
+- Unit: Constants (AVAILABLE_THEMES, LOG_LEVELS)
+- Integration: F2 opens settings screen
+- Integration: Escape cancels without saving
+- Integration: Save persists theme, log level, parent options
+- Integration: Empty parent options filtered
+- Integration: Parent options uppercased
+
+---
+
 ### Future Iterations
 
-- **Iteration 12**: Bulk operations (multi-select with Space)
-- **Iteration 13**: Attachment viewing/adding
-- **Iteration 14**: Custom fields support
-- **Iteration 15**: Caching and offline mode
-- **Iteration 16**: CRUD Operations (edit tickets, delete with confirmation)
+- **Iteration 13**: Bulk operations (multi-select with Space)
+- **Iteration 14**: Attachment viewing/adding
+- **Iteration 15**: Custom fields support
+- **Iteration 16**: Caching and offline mode
+- **Iteration 17**: CRUD Operations (edit tickets, delete with confirmation)
 
 ---
 
