@@ -284,3 +284,83 @@ class TestUserSettingsLogLevel:
 
         settings = UserSettings()
         assert settings.log_level == "INFO"
+
+
+class TestUserSettingsParentOptions:
+    """Tests for parent_options property."""
+
+    def test_default_parent_options(self, tmp_path: Path, monkeypatch) -> None:
+        """Default parent_options should be F59625, F59627, F59628."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        assert settings.parent_options == ["F59625", "F59627", "F59628"]
+
+    def test_set_parent_options(self, tmp_path: Path, monkeypatch) -> None:
+        """Should be able to set custom parent options."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.parent_options = ["F111", "F222", "F333"]
+        assert settings.parent_options == ["F111", "F222", "F333"]
+
+    def test_parent_options_persists_to_file(self, tmp_path: Path, monkeypatch) -> None:
+        """parent_options should persist to config file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        settings = UserSettings()
+        settings.parent_options = ["F100", "F200"]
+
+        # Read file directly
+        with config_file.open() as f:
+            data = json.load(f)
+        assert data["parent_options"] == ["F100", "F200"]
+
+    def test_parent_options_loads_from_file(self, tmp_path: Path, monkeypatch) -> None:
+        """parent_options should load from config file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        # Write config file
+        with config_file.open("w") as f:
+            json.dump({"parent_options": ["F777", "F888"]}, f)
+
+        settings = UserSettings()
+        assert settings.parent_options == ["F777", "F888"]
+
+    def test_invalid_parent_options_raises(self, tmp_path: Path, monkeypatch) -> None:
+        """Invalid parent_options should raise ValueError."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        with pytest.raises(ValueError, match="Parent options must be a list of strings"):
+            settings.parent_options = "not a list"  # type: ignore[assignment]
+
+    def test_invalid_parent_options_non_strings_raises(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """parent_options with non-strings should raise ValueError."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        with pytest.raises(ValueError, match="Parent options must be a list of strings"):
+            settings.parent_options = [1, 2, 3]  # type: ignore[list-item]
+
+    def test_parent_options_returns_copy(self, tmp_path: Path, monkeypatch) -> None:
+        """parent_options should return a copy to prevent mutation."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        options = settings.parent_options
+        options.append("F999")
+
+        # Original should not be modified
+        assert settings.parent_options == ["F59625", "F59627", "F59628"]

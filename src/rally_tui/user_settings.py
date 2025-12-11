@@ -23,6 +23,7 @@ class UserSettings:
     DEFAULT_THEME_NAME = "textual-dark"
     DEFAULT_LOG_LEVEL = "INFO"
     VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+    DEFAULT_PARENT_OPTIONS: list[str] = ["F59625", "F59627", "F59628"]
 
     def __init__(self) -> None:
         """Initialize user settings, loading from file if exists."""
@@ -85,6 +86,19 @@ class UserSettings:
         if value not in self.VALID_LOG_LEVELS:
             raise ValueError(f"Log level must be one of: {', '.join(self.VALID_LOG_LEVELS)}")
         self._settings["log_level"] = value
+        self._save()
+
+    @property
+    def parent_options(self) -> list[str]:
+        """Get the list of quick-select parent Feature IDs."""
+        return self._settings.get("parent_options", self.DEFAULT_PARENT_OPTIONS.copy())
+
+    @parent_options.setter
+    def parent_options(self, value: list[str]) -> None:
+        """Set and persist the parent options list."""
+        if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+            raise ValueError("Parent options must be a list of strings")
+        self._settings["parent_options"] = value
         self._save()
 
     def get(self, key: str, default: Any = None) -> Any:
