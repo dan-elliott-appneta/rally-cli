@@ -55,7 +55,7 @@ See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
 ## Requirements
 
-- Python 3.12+
+- Python 3.11+
 - A modern terminal with color support
 
 ## Installation
