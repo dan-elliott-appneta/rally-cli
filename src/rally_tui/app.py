@@ -14,6 +14,8 @@ from textual.worker import Worker, WorkerState
 from rally_tui import __version__
 from rally_tui.config import RallyConfig
 from rally_tui.screens import (
+    BulkAction,
+    BulkActionsScreen,
     ConfigData,
     ConfigScreen,
     DiscussionScreen,
@@ -28,7 +30,8 @@ from rally_tui.screens import (
     SplashScreen,
     StateScreen,
 )
-from rally_tui.services import MockRallyClient, RallyClient, RallyClientProtocol
+from rally_tui.models import Ticket
+from rally_tui.services import BulkResult, MockRallyClient, RallyClient, RallyClientProtocol
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils import get_logger, setup_logging
 from rally_tui.widgets import (
@@ -58,6 +61,7 @@ class RallyTUI(App[None]):
         Binding("d", "open_discussions", "Discuss"),
         Binding("i", "iteration_filter", "Sprint"),
         Binding("u", "toggle_user_filter", "My Items"),
+        Binding("m", "bulk_actions", "Bulk"),
         Binding("/", "start_search", "Search"),
         Binding("f2", "open_settings", "Settings"),
         Binding("q", "quit", "Quit"),
@@ -340,6 +344,13 @@ class RallyTUI(App[None]):
     ) -> None:
         """Handle ticket selection (Enter key)."""
         self.log.info(f"Selected: {event.ticket.formatted_id}")
+
+    def on_ticket_list_selection_changed(
+        self, event: TicketList.SelectionChanged
+    ) -> None:
+        """Update status bar when multi-select changes."""
+        status_bar = self.query_one(StatusBar)
+        status_bar.set_selection_count(event.count)
 
     def action_switch_panel(self) -> None:
         """Switch focus between the list and detail panels."""
@@ -720,6 +731,173 @@ class RallyTUI(App[None]):
         }
         self.notify(f"Sort: {mode_names[next_mode]}", timeout=2)
         _log.info(f"Sort mode changed to {next_mode.value}")
+
+    def action_bulk_actions(self) -> None:
+        """Open bulk actions menu if tickets are selected."""
+        ticket_list = self.query_one(TicketList)
+        if ticket_list.selection_count == 0:
+            self.notify("No tickets selected. Use Space to select.", timeout=2)
+            return
+
+        self.push_screen(
+            BulkActionsScreen(ticket_list.selection_count),
+            callback=self._handle_bulk_action_result,
+        )
+
+    def _handle_bulk_action_result(self, action: BulkAction | None) -> None:
+        """Handle the selected bulk action."""
+        if action is None:
+            _log.debug("Bulk action cancelled")
+            return
+
+        ticket_list = self.query_one(TicketList)
+        selected = ticket_list.selected_tickets
+
+        if not selected:
+            self.notify("No tickets selected", severity="warning", timeout=2)
+            return
+
+        _log.info(f"Bulk action {action.value} on {len(selected)} tickets")
+
+        if action == BulkAction.SET_PARENT:
+            self._bulk_set_parent(selected)
+        elif action == BulkAction.SET_STATE:
+            self._bulk_set_state(selected)
+        elif action == BulkAction.SET_ITERATION:
+            self._bulk_set_iteration(selected)
+        elif action == BulkAction.SET_POINTS:
+            self._bulk_set_points(selected)
+
+    def _bulk_set_parent(self, tickets: list[Ticket]) -> None:
+        """Set parent on multiple tickets."""
+        # Get parent options from settings
+        parent_ids = self._user_settings.parent_options
+        parent_options: list[ParentOption] = []
+
+        for pid in parent_ids:
+            feature = self._client.get_feature(pid)
+            if feature:
+                parent_options.append(ParentOption(formatted_id=feature[0], name=feature[1]))
+
+        # Use the first ticket for display purposes
+        self.push_screen(
+            ParentScreen(tickets[0], parent_options),
+            callback=lambda parent_id: self._execute_bulk_parent(tickets, parent_id),
+        )
+
+    def _execute_bulk_parent(self, tickets: list[Ticket], parent_id: str | None) -> None:
+        """Execute bulk parent assignment."""
+        if parent_id is None:
+            _log.debug("Bulk parent cancelled")
+            return
+
+        self.notify(f"Setting parent {parent_id} on {len(tickets)} tickets...", timeout=2)
+
+        result = self._client.bulk_set_parent(tickets, parent_id)
+        self._handle_bulk_result(result, "parent")
+
+    def _bulk_set_state(self, tickets: list[Ticket]) -> None:
+        """Set state on multiple tickets."""
+        # Use the first ticket for display purposes
+        self.push_screen(
+            StateScreen(tickets[0]),
+            callback=lambda state: self._execute_bulk_state(tickets, state),
+        )
+
+    def _execute_bulk_state(self, tickets: list[Ticket], state: str | None) -> None:
+        """Execute bulk state update."""
+        if state is None:
+            _log.debug("Bulk state cancelled")
+            return
+
+        # For In-Progress state, filter to only tickets with parents
+        if state == "In-Progress":
+            eligible = [t for t in tickets if t.parent_id]
+            skipped = len(tickets) - len(eligible)
+            if skipped > 0:
+                self.notify(f"Skipping {skipped} tickets without parent", timeout=2)
+            if not eligible:
+                self.notify("No tickets have parents set", severity="warning", timeout=3)
+                return
+            tickets = eligible
+
+        self.notify(f"Setting state to {state} on {len(tickets)} tickets...", timeout=2)
+
+        result = self._client.bulk_update_state(tickets, state)
+        self._handle_bulk_result(result, "state")
+
+    def _bulk_set_iteration(self, tickets: list[Ticket]) -> None:
+        """Set iteration on multiple tickets."""
+        iterations = self._client.get_iterations()
+        self.push_screen(
+            IterationScreen(iterations, current_filter=None),
+            callback=lambda iter_name: self._execute_bulk_iteration(tickets, iter_name),
+        )
+
+    def _execute_bulk_iteration(self, tickets: list[Ticket], iteration: str | None) -> None:
+        """Execute bulk iteration update."""
+        if iteration is None:
+            _log.debug("Bulk iteration cancelled")
+            return
+
+        # Handle special filter values
+        if iteration == FILTER_ALL:
+            iteration = None  # Remove iteration (backlog)
+        elif iteration == FILTER_BACKLOG:
+            iteration = None  # Same as backlog
+
+        iter_name = iteration or "Backlog"
+        self.notify(f"Moving {len(tickets)} tickets to {iter_name}...", timeout=2)
+
+        result = self._client.bulk_set_iteration(tickets, iteration)
+        self._handle_bulk_result(result, "iteration")
+
+    def _bulk_set_points(self, tickets: list[Ticket]) -> None:
+        """Set points on multiple tickets."""
+        # Use the first ticket for display purposes
+        self.push_screen(
+            PointsScreen(tickets[0]),
+            callback=lambda points: self._execute_bulk_points(tickets, points),
+        )
+
+    def _execute_bulk_points(self, tickets: list[Ticket], points: float | None) -> None:
+        """Execute bulk points update."""
+        if points is None:
+            _log.debug("Bulk points cancelled")
+            return
+
+        self.notify(f"Setting {points} points on {len(tickets)} tickets...", timeout=2)
+
+        result = self._client.bulk_update_points(tickets, points)
+        self._handle_bulk_result(result, "points")
+
+    def _handle_bulk_result(self, result: BulkResult, operation: str) -> None:
+        """Handle the result of a bulk operation."""
+        ticket_list = self.query_one(TicketList)
+
+        # Update tickets in the list
+        for updated in result.updated_tickets:
+            ticket_list.update_ticket(updated)
+
+        # Clear selection after bulk operation
+        ticket_list.clear_selection()
+
+        # Notify user of result
+        if result.failed_count == 0:
+            self.notify(
+                f"Updated {operation} on {result.success_count} tickets",
+                timeout=3,
+            )
+            _log.info(f"Bulk {operation}: {result.success_count} success")
+        else:
+            self.notify(
+                f"{result.success_count} updated, {result.failed_count} failed",
+                severity="warning",
+                timeout=5,
+            )
+            _log.warning(f"Bulk {operation}: {result.success_count} success, {result.failed_count} failed")
+            for error in result.errors[:3]:  # Show first 3 errors
+                _log.warning(f"  {error}")
 
     def action_open_settings(self) -> None:
         """Open the settings configuration screen."""
