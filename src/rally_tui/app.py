@@ -46,7 +46,7 @@ class RallyTUI(App[None]):
         Binding("y", "copy_ticket_url", "Copy URL", show=False),
         Binding("p", "set_points", "Set Points", show=False),
         Binding("n", "toggle_notes", "Toggle Notes", show=False),
-        Binding("c", "quick_ticket", "Create Ticket", show=False),
+        Binding("w", "quick_ticket", "New Workitem", show=False),
     ]
 
     def __init__(

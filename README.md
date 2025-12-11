@@ -123,7 +123,7 @@ rally-tui
 | p | list/detail | Set story points |
 | n | list/detail | Toggle description/notes |
 | d | list/detail | Open discussions |
-| c | list/detail | Create new ticket |
+| w | list/detail | New workitem |
 | c | discussion | Add comment |
 | Ctrl+S | comment | Submit comment |
 | q | any | Quit |

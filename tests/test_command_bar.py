@@ -32,7 +32,7 @@ class TestCommandBarWidget:
             assert command_bar.context == "list"
             # Verify the list context has expected commands
             list_commands = CommandBar.CONTEXTS["list"]
-            assert "Create" in list_commands
+            assert "Workitem" in list_commands
             assert "Points" in list_commands
             assert "Notes" in list_commands
 
@@ -67,14 +67,14 @@ class TestCommandBarWidget:
             # Verify list context has action commands
             assert command_bar.context == "list"
             list_commands = CommandBar.CONTEXTS["list"]
-            assert "Create" in list_commands
+            assert "Workitem" in list_commands
 
             await pilot.press("tab")
 
             # Verify detail context has same action commands
             assert command_bar.context == "detail"
             detail_commands = CommandBar.CONTEXTS["detail"]
-            assert "Create" in detail_commands
+            assert "Workitem" in detail_commands
             assert "Points" in detail_commands
             assert "Notes" in detail_commands
             # Should have Tab and quit
@@ -112,7 +112,7 @@ class TestCommandBarUnit:
     def test_list_context_has_action_commands(self) -> None:
         """List context should include action keys."""
         list_commands = CommandBar.CONTEXTS["list"]
-        assert "[c] Create" in list_commands
+        assert "[w] Workitem" in list_commands
         assert "[p] Points" in list_commands
         assert "[n] Notes" in list_commands
         assert "[d] Discuss" in list_commands
@@ -122,7 +122,7 @@ class TestCommandBarUnit:
     def test_detail_context_has_action_commands(self) -> None:
         """Detail context should have action commands and Tab."""
         detail_commands = CommandBar.CONTEXTS["detail"]
-        assert "[c] Create" in detail_commands
+        assert "[w] Workitem" in detail_commands
         assert "[p] Points" in detail_commands
         assert "[n] Notes" in detail_commands
         assert "[d] Discuss" in detail_commands
