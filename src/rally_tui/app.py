@@ -4,12 +4,18 @@ from __future__ import annotations
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal
+from textual.containers import Horizontal, Vertical
 from textual.widgets import Header
 
 from rally_tui.config import RallyConfig
 from rally_tui.services import MockRallyClient, RallyClient, RallyClientProtocol
-from rally_tui.widgets import CommandBar, StatusBar, TicketDetail, TicketList
+from rally_tui.widgets import (
+    CommandBar,
+    SearchInput,
+    StatusBar,
+    TicketDetail,
+    TicketList,
+)
 
 
 class RallyTUI(App[None]):
@@ -22,6 +28,7 @@ class RallyTUI(App[None]):
         Binding("q", "quit", "Quit"),
         Binding("tab", "switch_panel", "Switch Panel", show=False, priority=True),
         Binding("?", "help", "Help", show=False),
+        Binding("/", "start_search", "Search", show=False),
     ]
 
     def __init__(
@@ -67,7 +74,9 @@ class RallyTUI(App[None]):
         )
         tickets = self._client.get_tickets()
         with Horizontal(id="main-container"):
-            yield TicketList(tickets, id="ticket-list")
+            with Vertical(id="list-container"):
+                yield TicketList(tickets, id="ticket-list")
+                yield SearchInput(id="search-input")
             yield TicketDetail(id="ticket-detail")
         yield CommandBar(id="command-bar")
 
@@ -76,6 +85,9 @@ class RallyTUI(App[None]):
         # Set panel titles
         self.query_one("#ticket-list").border_title = "Tickets"
         self.query_one("#ticket-detail").border_title = "Details"
+
+        # Hide search input initially
+        self.query_one("#search-input").display = False
 
         # Set first ticket in detail panel
         tickets = self._client.get_tickets()
@@ -104,6 +116,11 @@ class RallyTUI(App[None]):
         ticket_list = self.query_one(TicketList)
         ticket_detail = self.query_one(TicketDetail)
         command_bar = self.query_one(CommandBar)
+        search_input = self.query_one(SearchInput)
+
+        # If search is active, don't switch panels
+        if search_input.has_focus:
+            return
 
         if ticket_list.has_focus:
             ticket_detail.focus()
@@ -111,6 +128,65 @@ class RallyTUI(App[None]):
         else:
             ticket_list.focus()
             command_bar.set_context("list")
+
+    def action_start_search(self) -> None:
+        """Activate search mode."""
+        search_input = self.query_one(SearchInput)
+        search_input.display = True
+        search_input.focus()
+        self.query_one(CommandBar).set_context("search")
+
+    def _end_search(self, clear: bool = False) -> None:
+        """End search mode and return to list.
+
+        Args:
+            clear: If True, also clear the filter.
+        """
+        search_input = self.query_one(SearchInput)
+        ticket_list = self.query_one(TicketList)
+        command_bar = self.query_one(CommandBar)
+        status_bar = self.query_one(StatusBar)
+
+        if clear:
+            search_input.value = ""
+            ticket_list.clear_filter()
+            status_bar.clear_filter_info()
+
+        search_input.display = False
+        ticket_list.focus()
+        command_bar.set_context("list")
+
+    def on_search_input_search_changed(
+        self, event: SearchInput.SearchChanged
+    ) -> None:
+        """Filter list as user types."""
+        ticket_list = self.query_one(TicketList)
+        ticket_list.filter_tickets(event.query)
+        self._update_filter_status()
+
+    def on_search_input_search_submitted(
+        self, event: SearchInput.SearchSubmitted
+    ) -> None:
+        """Confirm search and focus list."""
+        self._end_search(clear=False)
+
+    def on_search_input_search_cleared(
+        self, event: SearchInput.SearchCleared
+    ) -> None:
+        """Clear filter and return to list."""
+        self._end_search(clear=True)
+
+    def _update_filter_status(self) -> None:
+        """Update status bar with filter info."""
+        ticket_list = self.query_one(TicketList)
+        status_bar = self.query_one(StatusBar)
+
+        if ticket_list.filter_query:
+            status_bar.set_filter_info(
+                ticket_list.filtered_count, ticket_list.total_count
+            )
+        else:
+            status_bar.clear_filter_info()
 
 
 def main() -> None:
