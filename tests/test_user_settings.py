@@ -203,3 +203,84 @@ class TestUserSettingsErrorHandling:
         # Should not raise, should use defaults
         settings = UserSettings()
         assert settings.theme == "dark"
+
+
+class TestUserSettingsLogLevel:
+    """Tests for log_level property."""
+
+    def test_default_log_level(self, tmp_path: Path, monkeypatch) -> None:
+        """Default log_level should be INFO."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        assert settings.log_level == "INFO"
+
+    def test_set_log_level_debug(self, tmp_path: Path, monkeypatch) -> None:
+        """Should be able to set log_level to DEBUG."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.log_level = "DEBUG"
+        assert settings.log_level == "DEBUG"
+
+    def test_set_log_level_lowercase(self, tmp_path: Path, monkeypatch) -> None:
+        """log_level should accept lowercase and normalize to uppercase."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.log_level = "warning"
+        assert settings.log_level == "WARNING"
+
+    def test_log_level_persists_to_file(self, tmp_path: Path, monkeypatch) -> None:
+        """log_level should persist to config file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        settings = UserSettings()
+        settings.log_level = "ERROR"
+
+        # Read file directly
+        with config_file.open() as f:
+            data = json.load(f)
+        assert data["log_level"] == "ERROR"
+
+    def test_log_level_loads_from_file(self, tmp_path: Path, monkeypatch) -> None:
+        """log_level should load from config file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        # Write config file
+        with config_file.open("w") as f:
+            json.dump({"log_level": "CRITICAL"}, f)
+
+        settings = UserSettings()
+        assert settings.log_level == "CRITICAL"
+
+    def test_invalid_log_level_raises(self, tmp_path: Path, monkeypatch) -> None:
+        """Invalid log_level should raise ValueError."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        with pytest.raises(ValueError, match="Log level must be one of"):
+            settings.log_level = "INVALID"
+
+    def test_invalid_stored_log_level_returns_default(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Invalid stored log_level should return default INFO."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        # Write invalid log level to file
+        with config_file.open("w") as f:
+            json.dump({"log_level": "INVALID"}, f)
+
+        settings = UserSettings()
+        assert settings.log_level == "INFO"

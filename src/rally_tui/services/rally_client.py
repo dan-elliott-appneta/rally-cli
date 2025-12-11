@@ -7,6 +7,9 @@ from pyral import Rally
 
 from rally_tui.config import RallyConfig
 from rally_tui.models import Discussion, Ticket
+from rally_tui.utils import get_logger
+
+_log = get_logger("rally_tui.services.rally_client")
 
 
 class RallyClient:
@@ -25,22 +28,31 @@ class RallyClient:
         Raises:
             Exception: If connection to Rally fails.
         """
+        _log.debug(f"Initializing Rally client for server: {config.server}")
         self._config = config
-        self._rally = Rally(
-            config.server,
-            apikey=config.apikey,
-            workspace=config.workspace or None,
-            project=config.project or None,
-        )
-        # Cache workspace/project names from connection
-        self._workspace = config.workspace or self._rally.getWorkspace().Name
-        self._project = config.project or self._rally.getProject().Name
+
+        try:
+            self._rally = Rally(
+                config.server,
+                apikey=config.apikey,
+                workspace=config.workspace or None,
+                project=config.project or None,
+            )
+            # Cache workspace/project names from connection
+            self._workspace = config.workspace or self._rally.getWorkspace().Name
+            self._project = config.project or self._rally.getProject().Name
+            _log.info(f"Connected to Rally workspace: {self._workspace}, project: {self._project}")
+        except Exception as e:
+            _log.error(f"Failed to initialize Rally connection: {e}")
+            raise
 
         # Get current user from API
         self._current_user = self._fetch_current_user()
+        _log.debug(f"Current user: {self._current_user}")
 
         # Get current iteration from API
         self._current_iteration = self._fetch_current_iteration()
+        _log.debug(f"Current iteration: {self._current_iteration}")
 
     def _fetch_current_user(self) -> str | None:
         """Fetch the current user's display name from the API.
@@ -58,8 +70,8 @@ class RallyClient:
             )
             for user in response:
                 return user.DisplayName
-        except Exception:
-            pass
+        except Exception as e:
+            _log.warning(f"Failed to fetch current user: {e}")
         return None
 
     def _fetch_current_iteration(self) -> str | None:
@@ -84,8 +96,8 @@ class RallyClient:
             )
             for iteration in response:
                 return iteration.Name
-        except Exception:
-            pass
+        except Exception as e:
+            _log.warning(f"Failed to fetch current iteration: {e}")
         return None
 
     @property
@@ -150,6 +162,7 @@ class RallyClient:
 
         # Use provided query or build default filter
         effective_query = query if query is not None else self._build_default_query()
+        _log.debug(f"Fetching tickets with query: {effective_query}")
 
         # Fetch different artifact types
         for entity_type in ["HierarchicalRequirement", "Defect", "Task"]:
@@ -161,12 +174,17 @@ class RallyClient:
                     pagesize=200,
                 )
 
+                count = 0
                 for item in response:
                     tickets.append(self._to_ticket(item, entity_type))
-            except Exception:
+                    count += 1
+                _log.debug(f"Fetched {count} {entity_type} items")
+            except Exception as e:
                 # Skip entity types that fail (e.g., no permission)
+                _log.warning(f"Failed to fetch {entity_type}: {e}")
                 continue
 
+        _log.info(f"Fetched {len(tickets)} total tickets")
         return tickets
 
     def get_ticket(self, formatted_id: str) -> Ticket | None:
@@ -178,6 +196,7 @@ class RallyClient:
         Returns:
             The ticket if found, None otherwise.
         """
+        _log.debug(f"Fetching ticket: {formatted_id}")
         entity_type = self._get_entity_type(formatted_id)
 
         try:
@@ -188,10 +207,13 @@ class RallyClient:
             )
 
             item = response.next()
+            _log.debug(f"Found ticket: {formatted_id}")
             return self._to_ticket(item, entity_type)
         except StopIteration:
+            _log.warning(f"Ticket not found: {formatted_id}")
             return None
-        except Exception:
+        except Exception as e:
+            _log.error(f"Error fetching ticket {formatted_id}: {e}")
             return None
 
     def _to_ticket(self, item: Any, entity_type: str) -> Ticket:
@@ -301,8 +323,10 @@ class RallyClient:
             List of discussions, ordered by creation date (oldest first).
         """
         if not ticket.object_id:
+            _log.debug(f"No object_id for ticket {ticket.formatted_id}, skipping discussions")
             return []
 
+        _log.debug(f"Fetching discussions for {ticket.formatted_id}")
         discussions: list[Discussion] = []
 
         try:
@@ -317,8 +341,9 @@ class RallyClient:
 
             for post in response:
                 discussions.append(self._to_discussion(post, ticket.formatted_id))
-        except Exception:
-            pass
+            _log.debug(f"Fetched {len(discussions)} discussions for {ticket.formatted_id}")
+        except Exception as e:
+            _log.error(f"Error fetching discussions for {ticket.formatted_id}: {e}")
 
         return discussions
 
@@ -375,7 +400,10 @@ class RallyClient:
             The created Discussion, or None on failure.
         """
         if not ticket.object_id:
+            _log.warning(f"Cannot add comment: no object_id for {ticket.formatted_id}")
             return None
+
+        _log.info(f"Adding comment to {ticket.formatted_id}")
 
         try:
             # Get entity type for the ref
@@ -390,9 +418,10 @@ class RallyClient:
             created = self._rally.create("ConversationPost", post_data)
 
             if created:
+                _log.info(f"Comment added successfully to {ticket.formatted_id}")
                 return self._to_discussion(created, ticket.formatted_id)
-        except Exception:
-            pass
+        except Exception as e:
+            _log.error(f"Error adding comment to {ticket.formatted_id}: {e}")
 
         return None
 
@@ -409,7 +438,10 @@ class RallyClient:
             The updated Ticket with new points, or None on failure.
         """
         if not ticket.object_id:
+            _log.warning(f"Cannot update points: no object_id for {ticket.formatted_id}")
             return None
+
+        _log.info(f"Updating points for {ticket.formatted_id} to {points}")
 
         try:
             entity_type = self._get_entity_type(ticket.formatted_id)
@@ -421,6 +453,7 @@ class RallyClient:
             }
 
             self._rally.update(entity_type, update_data)
+            _log.info(f"Points updated successfully for {ticket.formatted_id}")
 
             # Return updated ticket (convert to int if whole number)
             stored_points = int(points) if points == int(points) else points
@@ -436,7 +469,7 @@ class RallyClient:
                 points=stored_points,
                 object_id=ticket.object_id,
             )
-        except Exception:
-            pass
+        except Exception as e:
+            _log.error(f"Error updating points for {ticket.formatted_id}: {e}")
 
         return None

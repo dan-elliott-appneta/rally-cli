@@ -16,6 +16,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Set Points**: Press `p` to set story points on selected ticket
 - **Toggle Notes**: Press `n` to toggle between description and notes view
 - **User settings**: Preferences saved to `~/.config/rally-tui/config.json`
+- **File logging**: Logs to `~/.config/rally-tui/rally-tui.log` with configurable log level
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
 - **Discussions**: View ticket discussions and add comments
 
@@ -45,7 +46,8 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Context-sensitive keyboard shortcuts
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
-- 287 tests passing
+- File-based logging with configurable log level
+- 302 tests passing
 
 Next: Iteration 9 (CRUD Operations).
 
@@ -130,11 +132,16 @@ Settings are stored in `~/.config/rally-tui/config.json`:
 ```json
 {
   "theme": "dark",
-  "theme_name": "catppuccin-mocha"
+  "theme_name": "catppuccin-mocha",
+  "log_level": "INFO"
 }
 ```
 
 Available themes: `textual-dark`, `textual-light`, `catppuccin-mocha`, `catppuccin-latte`, `nord`, `gruvbox`, `dracula`, `tokyo-night`, `monokai`, `flexoki`, `solarized-light`
+
+Log levels: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
+
+Logs are written to `~/.config/rally-tui/rally-tui.log` with automatic rotation (5MB max, 3 backups).
 
 ## Development
 
@@ -164,7 +171,8 @@ rally-cli/
 │   │   ├── status_bar.py    # StatusBar widget (rally-tui banner, project, status)
 │   │   └── search_input.py  # SearchInput widget (search mode)
 │   ├── utils/               # Utility functions
-│   │   └── html_to_text.py  # HTML to plain text converter
+│   │   ├── html_to_text.py  # HTML to plain text converter
+│   │   └── logging.py       # File-based logging configuration
 │   └── services/            # Rally API client layer
 │       ├── protocol.py      # RallyClientProtocol interface
 │       ├── rally_client.py  # Real Rally API client
@@ -188,6 +196,7 @@ rally-cli/
 │   ├── test_user_settings.py     # User settings tests
 │   ├── test_rally_client.py      # RallyClient tests
 │   ├── test_html_to_text.py      # HTML conversion tests
+│   ├── test_logging.py           # Logging module tests
 │   └── test_snapshots.py         # Visual regression tests
 └── docs/
     ├── API.md               # Rally WSAPI reference

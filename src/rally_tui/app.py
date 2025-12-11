@@ -11,6 +11,7 @@ from rally_tui.config import RallyConfig
 from rally_tui.screens import DiscussionScreen, PointsScreen, SplashScreen
 from rally_tui.services import MockRallyClient, RallyClient, RallyClientProtocol
 from rally_tui.user_settings import UserSettings
+from rally_tui.utils import get_logger, setup_logging
 from rally_tui.widgets import (
     CommandBar,
     SearchInput,
@@ -18,6 +19,9 @@ from rally_tui.widgets import (
     TicketDetail,
     TicketList,
 )
+
+# Module logger
+_log = get_logger("rally_tui.app")
 
 
 class RallyTUI(App[None]):
@@ -59,21 +63,28 @@ class RallyTUI(App[None]):
         self._user_settings = user_settings or UserSettings()
         self._server = config.server if config else "rally1.rallydev.com"
 
+        _log.debug("Initializing RallyTUI application")
+
         if client is not None:
             # Explicit client provided (e.g., for testing)
             self._client = client
             self._connected = isinstance(client, RallyClient)
+            _log.debug("Using provided client (test mode)")
         elif config is not None and config.is_configured:
             # Try to connect with provided config
             try:
+                _log.info(f"Connecting to Rally server: {config.server}")
                 self._client = RallyClient(config)
                 self._connected = True
-            except Exception:
+                _log.info(f"Connected to Rally as {self._client.current_user}")
+            except Exception as e:
                 # Fall back to mock client on connection failure
+                _log.error(f"Failed to connect to Rally: {e}")
                 self._client = MockRallyClient()
                 self._connected = False
         else:
             # No config or not configured - use mock client
+            _log.info("No Rally config provided, using offline mode")
             self._client = MockRallyClient()
             self._connected = False
 
@@ -97,10 +108,13 @@ class RallyTUI(App[None]):
 
     def on_mount(self) -> None:
         """Initialize the app state."""
+        _log.debug("App mounted, initializing state")
+
         # Apply saved theme name (e.g., catppuccin-mocha)
         saved_theme = self._user_settings.theme_name
         if saved_theme in self.available_themes:
             self.theme = saved_theme
+            _log.debug(f"Applied saved theme: {saved_theme}")
         else:
             self.dark = self._user_settings.theme == "dark"
 
@@ -113,6 +127,7 @@ class RallyTUI(App[None]):
 
         # Set first ticket in detail panel
         tickets = self._client.get_tickets()
+        _log.debug(f"Loaded {len(tickets)} tickets")
         if tickets:
             detail = self.query_one(TicketDetail)
             detail.ticket = tickets[0]
@@ -123,6 +138,8 @@ class RallyTUI(App[None]):
         # Show splash screen on startup
         if self._show_splash:
             self.push_screen(SplashScreen())
+
+        _log.info("Rally TUI started successfully")
 
     def on_ticket_list_ticket_highlighted(
         self, event: TicketList.TicketHighlighted
@@ -255,23 +272,33 @@ class RallyTUI(App[None]):
     def _handle_points_result(self, points: float | None) -> None:
         """Handle the result from PointsScreen."""
         if points is None:
+            _log.debug("Points update cancelled")
             return
 
         detail = self.query_one(TicketDetail)
         if not detail.ticket:
             return
 
-        updated = self._client.update_points(detail.ticket, points)
-        if updated:
-            # Update the detail panel with new ticket data
-            detail.ticket = updated
-            # Update the ticket in the list
-            ticket_list = self.query_one(TicketList)
-            ticket_list.update_ticket(updated)
-            # Display as int if whole number
-            display_points = int(points) if points == int(points) else points
-            self.notify(f"Points set to {display_points}", timeout=2)
-        else:
+        ticket_id = detail.ticket.formatted_id
+        _log.info(f"Updating points for {ticket_id} to {points}")
+
+        try:
+            updated = self._client.update_points(detail.ticket, points)
+            if updated:
+                # Update the detail panel with new ticket data
+                detail.ticket = updated
+                # Update the ticket in the list
+                ticket_list = self.query_one(TicketList)
+                ticket_list.update_ticket(updated)
+                # Display as int if whole number
+                display_points = int(points) if points == int(points) else points
+                self.notify(f"Points set to {display_points}", timeout=2)
+                _log.info(f"Points updated successfully for {ticket_id}")
+            else:
+                _log.error(f"Failed to update points for {ticket_id}")
+                self.notify("Failed to update points", severity="error", timeout=3)
+        except Exception as e:
+            _log.exception(f"Error updating points for {ticket_id}: {e}")
             self.notify("Failed to update points", severity="error", timeout=3)
 
 
@@ -282,9 +309,21 @@ def main() -> None:
     If RALLY_APIKEY is set, attempts to connect to Rally.
     Otherwise, runs in offline mode with sample data.
     """
-    config = RallyConfig()
-    app = RallyTUI(config=config)
-    app.run()
+    # Initialize logging first
+    user_settings = UserSettings()
+    setup_logging(user_settings)
+
+    _log.info("Starting Rally TUI")
+
+    try:
+        config = RallyConfig()
+        app = RallyTUI(config=config, user_settings=user_settings)
+        app.run()
+    except Exception as e:
+        _log.exception(f"Fatal error: {e}")
+        raise
+    finally:
+        _log.info("Rally TUI shutdown")
 
 
 if __name__ == "__main__":
