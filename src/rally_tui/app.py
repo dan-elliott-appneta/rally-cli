@@ -293,9 +293,9 @@ class RallyTUI(App[None]):
             if updated:
                 # Update the detail panel with new ticket data
                 detail.ticket = updated
-                # Update the ticket in the list
+                # Update the ticket in the list (no resort needed for points)
                 ticket_list = self.query_one(TicketList)
-                ticket_list.update_ticket(updated)
+                ticket_list.update_ticket(updated, resort=False)
                 # Display as int if whole number
                 display_points = int(points) if points == int(points) else points
                 self.notify(f"Points set to {display_points}", timeout=2)

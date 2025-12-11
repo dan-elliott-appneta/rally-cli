@@ -61,7 +61,7 @@ tests/
     └── test_snapshots/
 ```
 
-**Current Test Count: 320 tests**
+**Current Test Count: 321 tests**
 
 ## Unit Tests
 

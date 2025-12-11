@@ -259,3 +259,45 @@ class TestStateIntegration:
             # Check state unchanged
             ticket_list = app.query_one(TicketList)
             assert ticket_list._tickets[0].state == "Defined"
+
+    async def test_state_change_resorts_list(self) -> None:
+        """Changing state should re-sort the ticket list."""
+        # Create tickets in different states
+        ticket1 = Ticket(
+            formatted_id="US100",
+            name="First ticket",
+            ticket_type="UserStory",
+            state="Defined",  # Early state (order 10)
+            owner="Test User",
+            object_id="100",
+        )
+        ticket2 = Ticket(
+            formatted_id="US200",
+            name="Second ticket",
+            ticket_type="UserStory",
+            state="Completed",  # Late state (order 40)
+            owner="Test User",
+            object_id="200",
+        )
+
+        client = MockRallyClient(tickets=[ticket1, ticket2])
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            ticket_list = app.query_one(TicketList)
+
+            # Initially: Defined (US100) should be first, Completed (US200) second
+            assert ticket_list._tickets[0].formatted_id == "US100"
+            assert ticket_list._tickets[1].formatted_id == "US200"
+
+            # Open state screen for US100
+            await pilot.press("s")
+            await pilot.pause()
+
+            # Change US100 to "Accepted" (order 50, after Completed)
+            await pilot.press("4")  # Accepted is the 4th option
+            await pilot.pause()
+
+            # Now: Completed (US200) should be first, Accepted (US100) second
+            assert ticket_list._tickets[0].formatted_id == "US200"
+            assert ticket_list._tickets[1].formatted_id == "US100"
+            assert ticket_list._tickets[1].state == "Accepted"

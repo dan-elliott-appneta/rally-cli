@@ -65,7 +65,7 @@ rally-cli/
 │           ├── protocol.py     # RallyClientProtocol interface
 │           ├── rally_client.py # Real Rally API client (pyral)
 │           └── mock_client.py  # Mock client for testing/offline
-├── tests/                      # 320 tests
+├── tests/                      # 321 tests
 │   ├── conftest.py             # Fixtures, mock Rally client
 │   ├── test_ticket_model.py
 │   ├── test_discussion_model.py
@@ -738,7 +738,7 @@ tests/
 - UserSettings uses Pydantic for JSON serialization
 - Logging uses Python's logging module with RotatingFileHandler
 - QuickTicketScreen prompts for title, type (User Story/Defect), and description
-- 320 total tests passing
+- 321 total tests passing
 
 **Deliverable**: Polished TUI with splash, themes, logging, URL copy, points setting, quick ticket creation
 
