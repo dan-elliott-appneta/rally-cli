@@ -65,7 +65,7 @@ rally-cli/
 │           ├── protocol.py     # RallyClientProtocol interface
 │           ├── rally_client.py # Real Rally API client (pyral)
 │           └── mock_client.py  # Mock client for testing/offline
-├── tests/                      # 397 tests
+├── tests/                      # 435 tests
 │   ├── conftest.py             # Fixtures, mock Rally client
 │   ├── test_ticket_model.py
 │   ├── test_discussion_model.py
@@ -884,20 +884,20 @@ tests/
 
 ---
 
-### Iteration 11: Parent Selection Feature
+### Iteration 11: Parent Selection Feature ✅ COMPLETE
 
-**Goal**: Require parent Feature assignment when moving tickets to "In Progress" state
+**Goal**: Require parent Feature assignment when moving tickets to "In-Progress" state
 
 **Tasks**:
 - [x] Add `parent_id` field to Ticket model
 - [x] Add `parent_options` property to UserSettings (default: F59625, F59627, F59628)
 - [x] Add `get_feature()` and `set_parent()` methods to RallyClientProtocol
-- [x] Implement `get_feature()` and `set_parent()` in RallyClient
+- [x] Implement `get_feature()` and `set_parent()` in RallyClient (with workspace-wide search)
 - [x] Implement `get_feature()` and `set_parent()` in MockRallyClient
 - [x] Create `ParentScreen` modal for parent selection
-- [x] Modify `_handle_state_result()` to intercept "In Progress" transitions
+- [x] Modify `_handle_state_result()` to intercept "In-Progress" transitions
 - [x] Update `_to_ticket()` to include parent_id from PortfolioItem
-- [x] Write comprehensive tests (435 total, 21+ new for parent selection)
+- [x] Write comprehensive tests (435 total, 38+ new for parent selection)
 - [x] Update documentation
 - [x] Bump version to 0.3.0
 
@@ -905,8 +905,11 @@ tests/
 - **Parent Options**: User-configurable list of 3 Feature IDs stored in `~/.config/rally-tui/config.json`
 - **ParentScreen UI**: Shows 3 configured parents with truncated titles (40 chars max) + 4th option for custom ID
 - **Rally API**: Features are `PortfolioItem/Feature` entities; User Stories have `PortfolioItem` field
-- **Flow**: When selecting "In Progress" and ticket has no parent, ParentScreen appears before state change
+- **Workspace-wide Search**: Uses `projectScopeUp=True, projectScopeDown=True` to find Features across Rally hierarchy
+- **State Names**: Rally WSAPI uses hyphenated "In-Progress" (not "In Progress" with space)
+- **Flow**: When selecting "In-Progress" and ticket has no parent, ParentScreen appears before state change
 - **Number Keys**: 1-3 for configured parents, 4 for custom input, Esc to cancel
+- 435 total tests passing
 
 **UI Layout**:
 ```
