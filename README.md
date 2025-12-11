@@ -107,11 +107,10 @@ rally-cli/
 │   │   ├── command_bar.py   # CommandBar widget (bottom)
 │   │   └── status_bar.py    # StatusBar widget (top)
 │   ├── config.py            # Configuration (pydantic-settings)
-│   ├── services/            # Rally API client layer
-│   │   ├── protocol.py      # RallyClientProtocol interface
-│   │   ├── rally_client.py  # Real Rally API client
-│   │   └── mock_client.py   # MockRallyClient for testing
-│   └── screens/             # Application screens (future)
+│   └── services/            # Rally API client layer
+│       ├── protocol.py      # RallyClientProtocol interface
+│       ├── rally_client.py  # Real Rally API client
+│       └── mock_client.py   # MockRallyClient for testing
 ├── tests/
 │   ├── conftest.py          # Pytest fixtures
 │   ├── test_ticket_model.py  # Model unit tests
@@ -126,10 +125,7 @@ rally-cli/
 └── docs/
     ├── API.md               # Rally WSAPI reference
     ├── PLAN.md              # Development roadmap
-    ├── ITERATION_1.md       # Iteration 1 guide (complete)
-    ├── ITERATION_2.md       # Iteration 2 guide (complete)
-    ├── ITERATION_3.md       # Iteration 3 guide (complete)
-    └── ITERATION_4.md       # Iteration 4 guide (complete)
+    └── ITERATION_*.md       # Implementation guides (1-6)
 ```
 
 ### Running Tests

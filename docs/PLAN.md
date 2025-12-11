@@ -29,35 +29,44 @@ A Python TUI (Text User Interface) application for interacting with Rally (Broad
 ```
 rally-cli/
 ├── pyproject.toml
+├── README.md
 ├── src/
 │   └── rally_tui/
 │       ├── __init__.py
 │       ├── app.py              # Main Textual application
-│       ├── screens/
-│       │   └── main.py         # Main screen with 3-panel layout
+│       ├── app.tcss            # CSS stylesheet
+│       ├── config.py           # Configuration (pydantic-settings)
 │       ├── widgets/
 │       │   ├── __init__.py
 │       │   ├── ticket_list.py  # Left panel - scrollable ticket list
 │       │   ├── ticket_detail.py # Right panel - ticket details view
-│       │   └── command_bar.py  # Bottom panel - context commands
+│       │   ├── command_bar.py  # Bottom panel - context commands
+│       │   └── status_bar.py   # Top bar - workspace/project/status
 │       ├── models/
 │       │   ├── __init__.py
-│       │   └── ticket.py       # Ticket data models (decoupled from pyral)
-│       ├── services/
-│       │   ├── __init__.py
-│       │   ├── rally_client.py # Rally API wrapper (injectable)
-│       │   └── mock_client.py  # Mock client for testing
-│       └── config.py           # Configuration management
+│       │   ├── ticket.py       # Ticket data models (decoupled from pyral)
+│       │   └── sample_data.py  # Sample tickets for offline mode
+│       └── services/
+│           ├── __init__.py
+│           ├── protocol.py     # RallyClientProtocol interface
+│           ├── rally_client.py # Real Rally API client (pyral)
+│           └── mock_client.py  # Mock client for testing/offline
 ├── tests/
 │   ├── conftest.py             # Fixtures, mock Rally client
+│   ├── test_ticket_model.py
 │   ├── test_ticket_list.py
 │   ├── test_ticket_detail.py
 │   ├── test_command_bar.py
-│   ├── test_integration.py
-│   └── snapshots/              # SVG snapshots for visual tests
+│   ├── test_status_bar.py
+│   ├── test_services.py
+│   ├── test_config.py
+│   ├── test_rally_client.py
+│   ├── test_snapshots.py
+│   └── __snapshots__/          # SVG snapshots for visual tests
 └── docs/
-    ├── API.md
-    └── PLAN.md
+    ├── API.md                  # Rally WSAPI reference
+    ├── PLAN.md                 # This file
+    └── ITERATION_*.md          # Implementation guides (1-6)
 ```
 
 ### Testability Strategy
