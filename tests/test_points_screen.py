@@ -18,7 +18,7 @@ class TestPointsScreenBasic:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
         )
 
         app = RallyTUI(show_splash=False)
@@ -35,7 +35,7 @@ class TestPointsScreenBasic:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
             points=5,
         )
 
@@ -53,7 +53,7 @@ class TestPointsScreenBasic:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
         )
 
         app = RallyTUI(show_splash=False)
@@ -70,7 +70,7 @@ class TestPointsScreenBasic:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
         )
 
         app = RallyTUI(show_splash=False)
@@ -86,7 +86,7 @@ class TestPointsScreenBasic:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
             points=8,
         )
 
@@ -108,7 +108,7 @@ class TestPointsScreenNavigation:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
         )
 
         app = RallyTUI(show_splash=False)
@@ -136,7 +136,7 @@ class TestPointsScreenSubmission:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
             object_id="12345",
         )
 
@@ -167,7 +167,7 @@ class TestPointsScreenSubmission:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
             object_id="12345",
         )
 
@@ -198,7 +198,7 @@ class TestPointsScreenSubmission:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
         )
 
         received_points = []
@@ -224,7 +224,7 @@ class TestPointsScreenSubmission:
             formatted_id="US1234",
             name="Test ticket",
             ticket_type="UserStory",
-            state="In Progress",
+            state="In-Progress",
             points=5,
         )
 

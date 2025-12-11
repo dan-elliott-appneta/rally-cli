@@ -36,7 +36,7 @@ def sample_tickets() -> list[Ticket]:
             formatted_id="TA300",
             name="Test task",
             ticket_type="Task",
-            state="In Progress",
+            state="In-Progress",
             owner="Another User",
             description="",
             iteration=None,
