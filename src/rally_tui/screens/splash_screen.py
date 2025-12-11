@@ -36,7 +36,7 @@ class SplashScreen(Screen[None]):
     }
 
     #splash-art {
-        color: $success;
+        color: orange;
         text-align: center;
     }
     """
