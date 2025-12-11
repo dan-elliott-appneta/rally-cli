@@ -36,16 +36,32 @@ pytest -k "navigation"
 
 ```
 tests/
-├── conftest.py              # Shared fixtures (sample_tickets, single_ticket)
-├── test_ticket_model.py     # Unit tests for Ticket dataclass (10 tests)
-├── test_ticket_list.py      # Widget tests for TicketList (11 tests)
-├── test_ticket_detail.py    # Widget tests for TicketDetail (13 tests)
-├── test_snapshots.py        # Visual regression tests (7 tests)
-└── __snapshots__/           # SVG snapshot baselines
+├── conftest.py                    # Shared fixtures (sample_tickets, single_ticket)
+├── test_ticket_model.py           # Unit tests for Ticket dataclass
+├── test_discussion_model.py       # Unit tests for Discussion dataclass
+├── test_ticket_list.py            # Widget tests for TicketList (state sorting, filtering)
+├── test_ticket_detail.py          # Widget tests for TicketDetail
+├── test_command_bar.py            # Widget tests for CommandBar
+├── test_status_bar.py             # Widget tests for StatusBar
+├── test_search_input.py           # Widget tests for SearchInput
+├── test_splash_screen.py          # Screen tests for SplashScreen
+├── test_discussion_screen.py      # Screen tests for DiscussionScreen
+├── test_comment_screen.py         # Screen tests for CommentScreen
+├── test_points_screen.py          # Screen tests for PointsScreen
+├── test_quick_ticket_screen.py    # Screen tests for QuickTicketScreen
+├── test_services.py               # Service layer tests
+├── test_mock_client_discussions.py # MockClient discussion tests
+├── test_config.py                 # Configuration tests
+├── test_user_settings.py          # User settings tests
+├── test_rally_client.py           # RallyClient tests
+├── test_html_to_text.py           # HTML conversion tests
+├── test_logging.py                # Logging module tests
+├── test_snapshots.py              # Visual regression tests
+└── __snapshots__/                 # SVG snapshot baselines
     └── test_snapshots/
 ```
 
-**Current Test Count: 41 tests**
+**Current Test Count: 321 tests**
 
 ## Unit Tests
 
