@@ -47,6 +47,22 @@ class TestStatusBarUnit:
         bar.set_project("New Project")
         assert bar.project == "New Project"
 
+    def test_default_connected_is_false(self) -> None:
+        """Default connected status should be False."""
+        bar = StatusBar()
+        assert bar.connected is False
+
+    def test_custom_connected(self) -> None:
+        """StatusBar should accept custom connected status."""
+        bar = StatusBar(connected=True)
+        assert bar.connected is True
+
+    def test_set_connected_updates_value(self) -> None:
+        """set_connected should update the connected property."""
+        bar = StatusBar()
+        bar.set_connected(True)
+        assert bar.connected is True
+
 
 class TestStatusBarWidget:
     """Integration tests for StatusBar widget behavior."""
@@ -163,6 +179,35 @@ class TestStatusBarWidget:
             content = status_bar.display_content
             assert "Workspace: WS" in content
             assert "Project:" not in content
+
+    async def test_status_bar_shows_connected(self) -> None:
+        """StatusBar should show 'Connected' when connected=True."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(connected=True, id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            assert "Connected" in status_bar.display_content
+            assert "Offline" not in status_bar.display_content
+
+    async def test_status_bar_set_connected_updates_display(self) -> None:
+        """StatusBar should update display when set_connected is called."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            assert "Offline" in status_bar.display_content
+            status_bar.set_connected(True)
+            assert "Connected" in status_bar.display_content
 
 
 class TestStatusBarInApp:
