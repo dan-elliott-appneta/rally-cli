@@ -47,14 +47,19 @@ class RallyClient:
     def _fetch_current_user(self) -> str | None:
         """Fetch the current user's display name from the API.
 
+        Queries the User entity - Rally returns the API key's user first.
+
         Returns:
             The current user's display name, or None if not available.
         """
         try:
-            user = self._rally.getUserInfo()
-            if user:
-                # getUserInfo returns a list with the current user
-                return user[0].DisplayName
+            response = self._rally.get(
+                "User",
+                fetch="DisplayName",
+                pagesize=1,
+            )
+            for user in response:
+                return user.DisplayName
         except Exception:
             pass
         return None
@@ -71,10 +76,11 @@ class RallyClient:
 
         try:
             today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            # Rally WSAPI requires nested parentheses for AND queries
             response = self._rally.get(
                 "Iteration",
                 fetch="Name,StartDate,EndDate",
-                query=f'(StartDate <= "{today}") AND (EndDate >= "{today}")',
+                query=f'((StartDate <= "{today}") AND (EndDate >= "{today}"))',
                 order="StartDate desc",
                 pagesize=1,
             )
@@ -125,6 +131,7 @@ class RallyClient:
         if len(conditions) == 1:
             return conditions[0]
 
+        # Rally WSAPI requires format: ((condition1) AND (condition2))
         return f"({conditions[0]} AND {conditions[1]})"
 
     def get_tickets(self, query: str | None = None) -> list[Ticket]:

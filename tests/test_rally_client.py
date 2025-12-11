@@ -280,15 +280,16 @@ class TestRallyClientCurrentUserAndIteration:
     """Tests for current user and iteration fetching."""
 
     def test_current_user_from_api(self) -> None:
-        """Current user is fetched from API."""
+        """Current user is fetched from API via User entity query."""
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
             mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
-            mock_instance.getUserInfo.return_value = [
-                MockRallyEntity(DisplayName="John Doe")
+            # First get() call is for User, second for Iteration
+            mock_instance.get.side_effect = [
+                iter([MockRallyEntity(DisplayName="John Doe")]),  # User query
+                iter([]),  # Iteration query
             ]
-            mock_instance.get.return_value = iter([])
             mock_rally.return_value = mock_instance
 
             config = RallyConfig(apikey="test_key")
@@ -302,7 +303,6 @@ class TestRallyClientCurrentUserAndIteration:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
             mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
-            mock_instance.getUserInfo.return_value = []
             mock_instance.get.return_value = iter([])
             mock_rally.return_value = mock_instance
 
@@ -317,8 +317,7 @@ class TestRallyClientCurrentUserAndIteration:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
             mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
-            mock_instance.getUserInfo.side_effect = Exception("API error")
-            mock_instance.get.return_value = iter([])
+            mock_instance.get.side_effect = Exception("API error")
             mock_rally.return_value = mock_instance
 
             config = RallyConfig(apikey="test_key")
@@ -327,15 +326,16 @@ class TestRallyClientCurrentUserAndIteration:
             assert client.current_user is None
 
     def test_current_iteration_from_api(self) -> None:
-        """Current iteration is fetched from API."""
+        """Current iteration is fetched from API via Iteration entity query."""
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
             mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
-            mock_instance.getUserInfo.return_value = []
-            mock_instance.get.return_value = iter([
-                MockRallyEntity(Name="Sprint 5")
-            ])
+            # First get() call is for User, second for Iteration
+            mock_instance.get.side_effect = [
+                iter([]),  # User query
+                iter([MockRallyEntity(Name="Sprint 5")]),  # Iteration query
+            ]
             mock_rally.return_value = mock_instance
 
             config = RallyConfig(apikey="test_key")
@@ -349,7 +349,6 @@ class TestRallyClientCurrentUserAndIteration:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
             mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
-            mock_instance.getUserInfo.return_value = []
             mock_instance.get.return_value = iter([])
             mock_rally.return_value = mock_instance
 
@@ -364,7 +363,6 @@ class TestRallyClientCurrentUserAndIteration:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
             mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
-            mock_instance.getUserInfo.return_value = []
             mock_instance.get.side_effect = Exception("API error")
             mock_rally.return_value = mock_instance
 
@@ -383,12 +381,11 @@ class TestRallyClientDefaultQuery:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
             mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
-            mock_instance.getUserInfo.return_value = [
-                MockRallyEntity(DisplayName="John Doe")
+            # First get() call is for User, second for Iteration
+            mock_instance.get.side_effect = [
+                iter([MockRallyEntity(DisplayName="John Doe")]),  # User query
+                iter([MockRallyEntity(Name="Sprint 5")]),  # Iteration query
             ]
-            mock_instance.get.return_value = iter([
-                MockRallyEntity(Name="Sprint 5")
-            ])
             mock_rally.return_value = mock_instance
 
             config = RallyConfig(apikey="test_key")
@@ -399,6 +396,9 @@ class TestRallyClientDefaultQuery:
             assert 'Iteration.Name = "Sprint 5"' in query
             assert 'Owner.DisplayName = "John Doe"' in query
             assert "AND" in query
+            # Rally requires format: ((condition1) AND (condition2))
+            assert query.startswith("((")
+            assert ") AND (" in query
 
     def test_build_default_query_only_iteration(self) -> None:
         """Query includes only iteration when user not available."""
@@ -406,10 +406,11 @@ class TestRallyClientDefaultQuery:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
             mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
-            mock_instance.getUserInfo.return_value = []
-            mock_instance.get.return_value = iter([
-                MockRallyEntity(Name="Sprint 5")
-            ])
+            # First get() call is for User, second for Iteration
+            mock_instance.get.side_effect = [
+                iter([]),  # User query - empty
+                iter([MockRallyEntity(Name="Sprint 5")]),  # Iteration query
+            ]
             mock_rally.return_value = mock_instance
 
             config = RallyConfig(apikey="test_key")
@@ -427,10 +428,11 @@ class TestRallyClientDefaultQuery:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
             mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
-            mock_instance.getUserInfo.return_value = [
-                MockRallyEntity(DisplayName="John Doe")
+            # First get() call is for User, second for Iteration
+            mock_instance.get.side_effect = [
+                iter([MockRallyEntity(DisplayName="John Doe")]),  # User query
+                iter([]),  # Iteration query - empty
             ]
-            mock_instance.get.return_value = iter([])
             mock_rally.return_value = mock_instance
 
             config = RallyConfig(apikey="test_key")
@@ -448,7 +450,6 @@ class TestRallyClientDefaultQuery:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
             mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
-            mock_instance.getUserInfo.return_value = []
             mock_instance.get.return_value = iter([])
             mock_rally.return_value = mock_instance
 
