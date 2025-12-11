@@ -4,8 +4,79 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.message import Message
 from textual.widgets import Label, ListItem, ListView
+from textual.containers import Horizontal
 
 from rally_tui.models import Ticket
+
+
+# State ordering from earliest (top) to latest (bottom) in workflow
+# Lower number = earlier in workflow = displayed first
+STATE_ORDER: dict[str, int] = {
+    # Idea/Backlog states
+    "Idea": 0,
+    "Submitted": 1,
+    "Backlog": 2,
+    # Definition states
+    "Defined": 10,
+    "Ready": 11,
+    "Groomed": 12,
+    # Open/Active states
+    "Open": 20,
+    "In Progress": 30,
+    "In Development": 31,
+    "In Review": 32,
+    "In Test": 33,
+    # Completed states
+    "Completed": 40,
+    "Done": 41,
+    "Closed": 42,
+    "Accepted": 50,
+}
+
+# Colors for each state (first letter indicator)
+STATE_COLORS: dict[str, str] = {
+    # Idea/Backlog - gray
+    "Idea": "gray",
+    "Submitted": "gray",
+    "Backlog": "gray",
+    # Definition - blue
+    "Defined": "dodger_blue",
+    "Ready": "dodger_blue",
+    "Groomed": "dodger_blue",
+    # Open - yellow/orange
+    "Open": "orange",
+    "In Progress": "yellow",
+    "In Development": "yellow",
+    "In Review": "cyan",
+    "In Test": "magenta",
+    # Completed - green
+    "Completed": "green",
+    "Done": "green",
+    "Closed": "green",
+    "Accepted": "bright_green",
+}
+
+DEFAULT_STATE_ORDER = 99  # Unknown states go at the bottom
+DEFAULT_STATE_COLOR = "white"
+
+
+def get_state_order(state: str | None) -> int:
+    """Get sort order for a state. Lower = earlier in workflow."""
+    if not state:
+        return DEFAULT_STATE_ORDER
+    return STATE_ORDER.get(state, DEFAULT_STATE_ORDER)
+
+
+def get_state_color(state: str | None) -> str:
+    """Get color for a state indicator."""
+    if not state:
+        return DEFAULT_STATE_COLOR
+    return STATE_COLORS.get(state, DEFAULT_STATE_COLOR)
+
+
+def sort_tickets_by_state(tickets: list[Ticket]) -> list[Ticket]:
+    """Sort tickets by state order (earliest first)."""
+    return sorted(tickets, key=lambda t: get_state_order(t.state))
 
 
 class TicketListItem(ListItem):
@@ -16,12 +87,20 @@ class TicketListItem(ListItem):
         self.ticket = ticket
 
     def compose(self) -> ComposeResult:
-        """Create the ticket display label."""
+        """Create the ticket display with state indicator."""
         type_class = f"ticket-{self.ticket.type_prefix.lower()}"
-        yield Label(
-            self.ticket.display_text,
-            classes=type_class,
-        )
+        state_color = get_state_color(self.ticket.state)
+        state_letter = (self.ticket.state or "?")[0].upper()
+
+        with Horizontal(classes="ticket-row"):
+            yield Label(
+                f"[{state_color}]{state_letter}[/]",
+                classes="state-indicator",
+            )
+            yield Label(
+                self.ticket.display_text,
+                classes=f"ticket-text {type_class}",
+            )
 
 
 class TicketList(ListView):
@@ -75,8 +154,10 @@ class TicketList(ListView):
             classes: CSS classes to apply.
         """
         super().__init__(id=id, classes=classes)
-        self._tickets = tickets or []
-        self._all_tickets = list(self._tickets)
+        # Sort tickets by state order
+        sorted_tickets = sort_tickets_by_state(tickets or [])
+        self._tickets = sorted_tickets
+        self._all_tickets = list(sorted_tickets)
         self._filter_query = ""
 
     def compose(self) -> ComposeResult:
@@ -115,11 +196,12 @@ class TicketList(ListView):
 
     def set_tickets(self, tickets: list[Ticket]) -> None:
         """Replace the ticket list with new data."""
-        self._tickets = tickets
-        self._all_tickets = list(tickets)
+        sorted_tickets = sort_tickets_by_state(tickets)
+        self._tickets = sorted_tickets
+        self._all_tickets = list(sorted_tickets)
         self._filter_query = ""
         self.clear()
-        for ticket in tickets:
+        for ticket in sorted_tickets:
             self.append(TicketListItem(ticket))
 
     def filter_tickets(self, query: str) -> None:
