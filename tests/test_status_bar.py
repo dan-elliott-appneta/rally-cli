@@ -500,20 +500,20 @@ class TestStatusBarLoading:
     def test_default_loading_is_false(self) -> None:
         """Default loading should be False."""
         bar = StatusBar()
-        assert bar.loading is False
+        assert bar.is_loading is False
 
     def test_set_loading_true(self) -> None:
         """set_loading(True) should set loading to True."""
         bar = StatusBar()
         bar.set_loading(True)
-        assert bar.loading is True
+        assert bar.is_loading is True
 
     def test_set_loading_false(self) -> None:
         """set_loading(False) should set loading to False."""
         bar = StatusBar()
         bar.set_loading(True)
         bar.set_loading(False)
-        assert bar.loading is False
+        assert bar.is_loading is False
 
     async def test_loading_indicator_display(self) -> None:
         """Loading indicator should show 'Loading...' when active."""

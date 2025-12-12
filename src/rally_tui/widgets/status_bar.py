@@ -315,6 +315,6 @@ class StatusBar(Static):
         self._update_display()
 
     @property
-    def loading(self) -> bool:
+    def is_loading(self) -> bool:
         """Get the current loading state."""
         return self._loading

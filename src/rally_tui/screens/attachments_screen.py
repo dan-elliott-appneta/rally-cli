@@ -364,8 +364,8 @@ class AttachmentsScreen(ModalScreen[AttachmentsResult | None]):
                 container.mount(AttachmentItem(att, number))
                 number += 1
             # Then show embedded images
-            for img in self._embedded_images:
-                container.mount(EmbeddedImageItem(img, number))
+            for embedded_img in self._embedded_images:
+                container.mount(EmbeddedImageItem(embedded_img, number))
                 number += 1
 
     def _download_attachment(self, number: int) -> None:

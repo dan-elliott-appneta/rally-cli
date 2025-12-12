@@ -360,7 +360,8 @@ class RallyTUI(App[None]):
         if event.worker.name in ("_load_initial_tickets", "_load_initial_tickets_async"):
             # Initial tickets loaded - update UI
             tickets = event.worker.result
-            self._all_tickets = tickets
+            if tickets is not None:
+                self._all_tickets = tickets
             self._on_initial_tickets_loaded()
 
             # Now load ALL tickets in background for filter changes
@@ -381,7 +382,8 @@ class RallyTUI(App[None]):
         elif event.worker.name in ("_fetch_filtered_tickets", "_fetch_filtered_tickets_async"):
             # Filtered tickets fetched - update UI directly
             tickets = event.worker.result
-            self._on_filtered_tickets_loaded(tickets)
+            if tickets is not None:
+                self._on_filtered_tickets_loaded(tickets)
 
         elif event.worker.name in ("_refresh_all_tickets", "_refresh_all_tickets_async"):
             # Manual refresh complete - update cache and UI
@@ -1265,7 +1267,9 @@ class RallyTUI(App[None]):
 
     def _bulk_yank(self, tickets: list[Ticket]) -> None:
         """Copy comma-separated list of ticket URLs to clipboard."""
-        urls = [t.rally_url(self._server) for t in tickets if t.rally_url(self._server)]
+        urls: list[str] = [
+            url for t in tickets if (url := t.rally_url(self._server)) is not None
+        ]
         if not urls:
             self.notify("No valid URLs to copy", severity="warning", timeout=4)
             return
@@ -1439,9 +1443,9 @@ class RallyTUI(App[None]):
             callback=self._handle_keybindings_result,
         )
 
-    def _handle_keybindings_result(self, changed: bool) -> None:
+    def _handle_keybindings_result(self, changed: bool | None) -> None:
         """Handle the result from KeybindingsScreen."""
-        if changed:
+        if changed is True:
             _log.info("Keybindings updated")
             self.notify(
                 "Keybindings saved. Restart for full effect.",

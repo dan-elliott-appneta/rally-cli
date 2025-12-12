@@ -259,7 +259,9 @@ class RallyClient:
                 points = None
 
         # Get state - use ScheduleState for stories/tasks, State for defects
-        state = getattr(item, "ScheduleState", None) or getattr(item, "State", "Unknown")
+        state: str = (
+            getattr(item, "ScheduleState", None) or getattr(item, "State", None) or "Unknown"
+        )
 
         # Get description, handle None
         description = getattr(item, "Description", "") or ""
