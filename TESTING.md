@@ -39,6 +39,8 @@ tests/
 ├── conftest.py                    # Shared fixtures (sample_tickets, single_ticket)
 ├── test_ticket_model.py           # Unit tests for Ticket dataclass
 ├── test_discussion_model.py       # Unit tests for Discussion dataclass
+├── test_iteration_model.py        # Unit tests for Iteration dataclass
+├── test_attachment_model.py       # Unit tests for Attachment dataclass
 ├── test_ticket_list.py            # Widget tests for TicketList (state sorting, filtering)
 ├── test_ticket_detail.py          # Widget tests for TicketDetail
 ├── test_status_bar.py             # Widget tests for StatusBar
@@ -49,6 +51,12 @@ tests/
 ├── test_points_screen.py          # Screen tests for PointsScreen
 ├── test_state_screen.py           # Screen tests for StateScreen
 ├── test_quick_ticket_screen.py    # Screen tests for QuickTicketScreen
+├── test_iteration_screen.py       # Screen tests for IterationScreen
+├── test_parent_screen.py          # Screen tests for ParentScreen
+├── test_config_screen.py          # Screen tests for ConfigScreen
+├── test_keybindings_screen.py     # Screen tests for KeybindingsScreen
+├── test_bulk_actions_screen.py    # Screen tests for BulkActionsScreen
+├── test_attachments_screen.py     # Screen tests for AttachmentsScreen
 ├── test_services.py               # Service layer tests
 ├── test_mock_client_discussions.py # MockClient discussion tests
 ├── test_config.py                 # Configuration tests
@@ -56,12 +64,16 @@ tests/
 ├── test_rally_client.py           # RallyClient tests
 ├── test_html_to_text.py           # HTML conversion tests
 ├── test_logging.py                # Logging module tests
+├── test_keybindings.py            # Keybinding utilities tests
+├── test_filter_integration.py     # Filter integration tests
+├── test_cache_manager.py          # CacheManager tests
+├── test_caching_client.py         # CachingRallyClient tests
 ├── test_snapshots.py              # Visual regression tests
 └── __snapshots__/                 # SVG snapshot baselines
     └── test_snapshots/
 ```
 
-**Current Test Count: 321 tests**
+**Current Test Count: 737 tests**
 
 ## Unit Tests
 

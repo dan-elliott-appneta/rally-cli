@@ -48,24 +48,36 @@ rally-cli/
 │       │   ├── __init__.py
 │       │   ├── ticket.py       # Ticket data models (decoupled from pyral)
 │       │   ├── discussion.py   # Discussion dataclass
+│       │   ├── iteration.py    # Iteration dataclass
+│       │   ├── attachment.py   # Attachment dataclass
 │       │   └── sample_data.py  # Sample tickets for offline mode
 │       ├── screens/
 │       │   ├── __init__.py
-│       │   ├── splash_screen.py      # ASCII art startup screen
-│       │   ├── discussion_screen.py  # Ticket discussions view
-│       │   ├── comment_screen.py     # Add new comment
-│       │   ├── points_screen.py      # Set story points
+│       │   ├── splash_screen.py       # ASCII art startup screen
+│       │   ├── discussion_screen.py   # Ticket discussions view
+│       │   ├── comment_screen.py      # Add new comment
+│       │   ├── points_screen.py       # Set story points
+│       │   ├── state_screen.py        # Change ticket state
+│       │   ├── iteration_screen.py    # Filter by sprint
+│       │   ├── parent_screen.py       # Select parent Feature
+│       │   ├── config_screen.py       # Edit settings
+│       │   ├── keybindings_screen.py  # Edit keyboard shortcuts
+│       │   ├── bulk_actions_screen.py # Multi-select operations
+│       │   ├── attachments_screen.py  # View/download attachments
 │       │   └── quick_ticket_screen.py # Quick ticket creation
 │       ├── utils/
 │       │   ├── __init__.py
-│       │   ├── html_to_text.py # HTML to plain text converter
-│       │   └── logging.py      # File logging with rotation
+│       │   ├── html_to_text.py  # HTML to plain text converter
+│       │   ├── logging.py       # File logging with rotation
+│       │   └── keybindings.py   # Keybinding profiles and utilities
 │       └── services/
 │           ├── __init__.py
-│           ├── protocol.py     # RallyClientProtocol interface
-│           ├── rally_client.py # Real Rally API client (pyral)
-│           └── mock_client.py  # Mock client for testing/offline
-├── tests/                      # 591 tests
+│           ├── protocol.py      # RallyClientProtocol interface
+│           ├── rally_client.py  # Real Rally API client (pyral)
+│           ├── mock_client.py   # Mock client for testing/offline
+│           ├── cache_manager.py # Local file caching for tickets
+│           └── caching_client.py # CachingRallyClient wrapper
+├── tests/                       # 737 tests
 │   ├── conftest.py             # Fixtures, mock Rally client
 │   ├── test_ticket_model.py
 │   ├── test_discussion_model.py
@@ -79,6 +91,15 @@ rally-cli/
 │   ├── test_points_screen.py
 │   ├── test_state_screen.py
 │   ├── test_quick_ticket_screen.py
+│   ├── test_iteration_screen.py
+│   ├── test_parent_screen.py
+│   ├── test_config_screen.py
+│   ├── test_bulk_actions_screen.py
+│   ├── test_attachments_screen.py
+│   ├── test_attachment_model.py
+│   ├── test_keybindings.py
+│   ├── test_keybindings_screen.py
+│   ├── test_filter_integration.py
 │   ├── test_services.py
 │   ├── test_mock_client_discussions.py
 │   ├── test_config.py
@@ -86,12 +107,14 @@ rally-cli/
 │   ├── test_rally_client.py
 │   ├── test_html_to_text.py
 │   ├── test_logging.py
+│   ├── test_cache_manager.py
+│   ├── test_caching_client.py
 │   ├── test_snapshots.py
 │   └── __snapshots__/          # SVG snapshots for visual tests
 └── docs/
     ├── API.md                  # Rally WSAPI reference
     ├── PLAN.md                 # This file
-    └── ITERATION_*.md          # Implementation guides (1-12)
+    └── ITERATION_*.md          # Implementation guides (1-14)
 ```
 
 ### Testability Strategy
