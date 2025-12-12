@@ -973,11 +973,28 @@ class RallyTUI(App[None]):
         from rally_tui.widgets import ViewMode
 
         list_container = self.query_one("#list-container")
+        detail_pane = self.query_one(TicketDetail)
+
         if event.mode == ViewMode.WIDE:
-            list_container.add_class("wide")
-            self.notify("Wide view enabled", timeout=2)
+            # Calculate if detail pane would be too narrow
+            # Wide view uses 75% width (max 250), leaving 25% for detail
+            main_container = self.query_one("#main-container")
+            available_width = main_container.size.width
+            wide_list_width = min(int(available_width * 0.75), 250)
+            detail_width = available_width - wide_list_width
+
+            if detail_width < 30:
+                # Detail pane too narrow, use full width
+                list_container.add_class("wide-full")
+                detail_pane.display = False
+                self.notify("Wide view (full width)", timeout=2)
+            else:
+                list_container.add_class("wide")
+                self.notify("Wide view enabled", timeout=2)
         else:
             list_container.remove_class("wide")
+            list_container.remove_class("wide-full")
+            detail_pane.display = True
             self.notify("Normal view enabled", timeout=2)
 
     def action_refresh_cache(self) -> None:

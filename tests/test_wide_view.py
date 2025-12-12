@@ -236,6 +236,50 @@ class TestWideViewIntegration:
             # Selection should be preserved
             assert ticket_list._selected_ids == selected_ids_before
 
+    async def test_wide_view_restores_detail_pane(self) -> None:
+        """Toggling back to normal view should restore detail pane visibility."""
+        from rally_tui.widgets import TicketDetail
+
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            detail_pane = app.query_one(TicketDetail)
+
+            # Detail pane should be visible initially
+            assert detail_pane.display is True
+
+            # Toggle to wide view
+            await pilot.press("v")
+            await pilot.pause()
+
+            # Toggle back to normal
+            await pilot.press("v")
+            await pilot.pause()
+
+            # Detail pane should be visible again
+            assert detail_pane.display is True
+
+    async def test_wide_view_removes_classes_on_normal(self) -> None:
+        """Toggling to normal view should remove wide classes."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            list_container = app.query_one("#list-container")
+
+            # Toggle to wide view
+            await pilot.press("v")
+            await pilot.pause()
+
+            # Toggle back to normal
+            await pilot.press("v")
+            await pilot.pause()
+
+            # Neither wide class should be present
+            assert "wide" not in list_container.classes
+            assert "wide-full" not in list_container.classes
+
 
 class TestWideViewItemDisplay:
     """Tests for WideTicketListItem display formatting."""

@@ -38,6 +38,13 @@ Header {
     max-width: 250;
 }
 
+/* Full width wide view when detail pane would be too narrow */
+#list-container.wide-full {
+    width: 100%;
+    min-width: 80;
+    max-width: 100%;
+}
+
 /* Ticket list styling - left panel */
 #ticket-list {
     height: 1fr;
