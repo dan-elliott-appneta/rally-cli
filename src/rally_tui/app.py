@@ -22,6 +22,7 @@ from rally_tui.screens import (
     FILTER_ALL,
     FILTER_BACKLOG,
     IterationScreen,
+    KeybindingsScreen,
     ParentOption,
     ParentScreen,
     PointsScreen,
@@ -64,6 +65,7 @@ class RallyTUI(App[None]):
         Binding("m", "bulk_actions", "Bulk"),
         Binding("/", "start_search", "Search"),
         Binding("f2", "open_settings", "Settings"),
+        Binding("f3", "open_keybindings", "Keys"),
         Binding("q", "quit", "Quit"),
         Binding("tab", "switch_panel", "Switch Panel", show=False, priority=True),
         Binding("t", "toggle_theme", "Theme", show=False),
@@ -919,6 +921,24 @@ class RallyTUI(App[None]):
 
         # Note: Log level change takes effect on next startup
         self.notify("Settings saved", timeout=2)
+
+    def action_open_keybindings(self) -> None:
+        """Open the keybindings configuration screen."""
+        self.push_screen(
+            KeybindingsScreen(self._user_settings),
+            callback=self._handle_keybindings_result,
+        )
+
+    def _handle_keybindings_result(self, changed: bool) -> None:
+        """Handle the result from KeybindingsScreen."""
+        if changed:
+            _log.info("Keybindings updated")
+            self.notify(
+                "Keybindings saved. Restart for full effect.",
+                timeout=3,
+            )
+        else:
+            _log.debug("Keybindings cancelled")
 
     def _apply_filters(self) -> None:
         """Apply iteration and user filters to the ticket list."""
