@@ -1115,7 +1115,7 @@ class RallyTUI(App[None]):
         if not urls:
             self.notify("No valid URLs to copy", severity="warning", timeout=4)
             return
-        result = ", ".join(urls)
+        result = " ".join(urls)
         self.copy_to_clipboard(result)
         self.notify(f"Copied {len(urls)} URLs", timeout=4)
         _log.info(f"Yanked {len(urls)} ticket URLs to clipboard")

@@ -27,7 +27,7 @@ class BulkActionsScreen(Screen[BulkAction | None]):
     - Set State: Change state of all selected tickets
     - Set Iteration: Move all selected tickets to an iteration
     - Set Points: Set story points on all selected tickets
-    - Yank: Copy comma-separated list of ticket URLs to clipboard
+    - Yank: Copy space-separated list of ticket URLs to clipboard
     """
 
     BINDINGS = [
