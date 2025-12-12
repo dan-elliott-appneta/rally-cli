@@ -138,7 +138,7 @@ class StatusBar(Static):
             age_str = f" ({self._cache_age_minutes}m)" if self._cache_age_minutes else ""
             return f"[yellow]○ Cached{age_str}[/]"
         elif self._cache_status == CacheStatusDisplay.REFRESHING:
-            return "[blue]◌ Refreshing...[/]"
+            return "[cyan]◌ Refreshing...[/]"
         elif self._cache_status == CacheStatusDisplay.OFFLINE:
             return "[red]⚠ Offline[/]"
         return ""
