@@ -5,9 +5,9 @@ Screen {
     layout: vertical;
 }
 
-/* Header styling - taller with larger appearance */
+/* Header styling */
 Header {
-    height: 3;
+    height: 1;
 }
 
 /* Status bar styling - below header */
