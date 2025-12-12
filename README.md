@@ -68,7 +68,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Search/filter tickets with `/` key (vim-style)
 - Real-time filtering as you type
 - Case-insensitive search across ID, name, owner, state
-- Filter count displayed in status bar (Filtered: X/Y)
+- Search query and filter count displayed in status bar (Search: query X/Y)
 - Escape clears filter, Enter confirms and returns to list
 - Connect to Rally API using pyral
 - Environment variable configuration (RALLY_APIKEY, RALLY_WORKSPACE, etc.)
@@ -112,7 +112,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 0.7.4
+# Output: rally-tui 0.7.5
 ```
 
 ### Running with Rally API
