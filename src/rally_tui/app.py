@@ -1486,8 +1486,8 @@ class RallyTUI(App[None]):
         # This ensures Rally does the matching (avoids string mismatch issues)
         # We fetch for ALL cases: iteration filter, backlog, or "all" (no filter)
         if self._connected:
-            filter_desc = self._iteration_filter or "All"
-            _log.info(f"Starting worker to fetch tickets for: {filter_desc}")
+            current_filter = self._iteration_filter or "All"
+            _log.info(f"Starting worker to fetch tickets for: {current_filter}")
             status_bar = self.query_one(StatusBar)
             status_bar.set_loading(True)
             if self._use_async:

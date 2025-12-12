@@ -439,9 +439,7 @@ class TestBuildIterationQuery:
     queries for different filter combinations.
     """
 
-    def test_query_with_iteration_filter(
-        self, tickets_with_iterations: list[Ticket]
-    ) -> None:
+    def test_query_with_iteration_filter(self, tickets_with_iterations: list[Ticket]) -> None:
         """Query with iteration filter should include Iteration.Name condition."""
         client = MockRallyClient(tickets=tickets_with_iterations)
         app = RallyTUI(client=client, show_splash=False)
@@ -454,9 +452,7 @@ class TestBuildIterationQuery:
         assert 'Iteration.Name = "Sprint 26"' in query
         assert f'Project.Name = "{client.project}"' in query
 
-    def test_query_with_backlog_filter(
-        self, tickets_with_iterations: list[Ticket]
-    ) -> None:
+    def test_query_with_backlog_filter(self, tickets_with_iterations: list[Ticket]) -> None:
         """Query with backlog filter should include Iteration = null condition."""
         from rally_tui.screens import FILTER_BACKLOG
 
@@ -471,9 +467,7 @@ class TestBuildIterationQuery:
         assert "(Iteration = null)" in query
         assert f'Project.Name = "{client.project}"' in query
 
-    def test_query_with_all_filter(
-        self, tickets_with_iterations: list[Ticket]
-    ) -> None:
+    def test_query_with_all_filter(self, tickets_with_iterations: list[Ticket]) -> None:
         """Query with 'All' filter (None) should only have project scope."""
         client = MockRallyClient(tickets=tickets_with_iterations)
         app = RallyTUI(client=client, show_splash=False)
@@ -487,9 +481,7 @@ class TestBuildIterationQuery:
         assert f'Project.Name = "{client.project}"' in query
         assert "Iteration" not in query
 
-    def test_query_with_user_filter(
-        self, tickets_with_iterations: list[Ticket]
-    ) -> None:
+    def test_query_with_user_filter(self, tickets_with_iterations: list[Ticket]) -> None:
         """Query with user filter should include Owner.DisplayName condition."""
         client = MockRallyClient(tickets=tickets_with_iterations, current_user="Alice")
         app = RallyTUI(client=client, show_splash=False)
@@ -501,9 +493,7 @@ class TestBuildIterationQuery:
 
         assert 'Owner.DisplayName = "Alice"' in query
 
-    def test_query_with_combined_filters(
-        self, tickets_with_iterations: list[Ticket]
-    ) -> None:
+    def test_query_with_combined_filters(self, tickets_with_iterations: list[Ticket]) -> None:
         """Query with multiple filters should combine with AND."""
         from rally_tui.screens import FILTER_BACKLOG
 
