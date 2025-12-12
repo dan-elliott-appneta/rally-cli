@@ -1482,10 +1482,12 @@ class RallyTUI(App[None]):
             f"_apply_filters called: connected={self._connected}, "
             f"iteration_filter={self._iteration_filter}"
         )
-        # When connected to Rally, always fetch from server when changing iteration filter
+        # When connected to Rally, always fetch from server
         # This ensures Rally does the matching (avoids string mismatch issues)
-        if self._connected and self._iteration_filter:
-            _log.info(f"Starting worker to fetch tickets for: {self._iteration_filter}")
+        # We fetch for ALL cases: iteration filter, backlog, or "all" (no filter)
+        if self._connected:
+            filter_desc = self._iteration_filter or "All"
+            _log.info(f"Starting worker to fetch tickets for: {filter_desc}")
             status_bar = self.query_one(StatusBar)
             status_bar.set_loading(True)
             if self._use_async:
@@ -1501,7 +1503,7 @@ class RallyTUI(App[None]):
                 )
             return
 
-        # For offline mode or no iteration filter, filter locally
+        # For offline mode, filter locally
         filtered = list(self._all_tickets)
 
         # Apply iteration filter
