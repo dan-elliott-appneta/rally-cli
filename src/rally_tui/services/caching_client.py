@@ -138,17 +138,25 @@ class CachingRallyClient:
 
         Cache-first strategy:
         1. If cache disabled, fetch from API
-        2. If cache exists and valid, return cached data
-        3. If cache exists but stale, return cached + trigger refresh
-        4. If no cache, fetch from API
+        2. If query provided (iteration filter), bypass cache and fetch from API
+        3. If cache exists and valid, return cached data
+        4. If cache exists but stale, return cached + trigger refresh
+        5. If no cache, fetch from API
 
         Args:
-            query: Optional query (passed to underlying client)
+            query: Optional query (passed to underlying client).
+                   When provided, cache is bypassed to ensure fresh data.
 
         Returns:
             List of tickets (may be cached)
         """
         if not self._enabled:
+            return self._fetch_from_api(query)
+
+        # When a specific query is provided (e.g., iteration filter),
+        # bypass cache and fetch fresh data from API
+        if query:
+            logger.info(f"Query provided, bypassing cache: {query}")
             return self._fetch_from_api(query)
 
         # Check if cache is for correct workspace/project
