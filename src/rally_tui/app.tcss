@@ -31,6 +31,20 @@ Header {
     height: 100%;
 }
 
+/* Wide view mode - expanded list with additional columns */
+#list-container.wide {
+    width: 75%;
+    min-width: 80;
+    max-width: 250;
+}
+
+/* Full width wide view when detail pane would be too narrow */
+#list-container.wide-full {
+    width: 100%;
+    min-width: 80;
+    max-width: 100%;
+}
+
 /* Ticket list styling - left panel */
 #ticket-list {
     height: 1fr;
@@ -52,7 +66,8 @@ Header {
 }
 
 /* Individual list items */
-TicketListItem {
+TicketListItem,
+WideTicketListItem {
     padding: 0 1;
 }
 
@@ -79,12 +94,49 @@ TicketListItem {
     width: 1fr;
 }
 
+/* Wide view row layout with additional columns */
+.ticket-row-wide {
+    width: 100%;
+    height: auto;
+}
+
+.ticket-text-wide {
+    width: 1fr;
+    margin-right: 2;
+}
+
+.ticket-owner {
+    width: 21;
+    min-width: 21;
+    max-width: 21;
+    color: $text-muted;
+}
+
+.ticket-points {
+    width: 5;
+    min-width: 5;
+    max-width: 5;
+    text-align: right;
+    color: $warning;
+    margin-right: 2;
+}
+
+.ticket-parent {
+    width: 10;
+    min-width: 10;
+    max-width: 10;
+    color: $primary;
+    margin-left: 1;
+}
+
 /* Highlighted (cursor) item */
-TicketListItem.-highlight {
+TicketListItem.-highlight,
+WideTicketListItem.-highlight {
     background: $accent 30%;
 }
 
-TicketListItem.-highlight > Label {
+TicketListItem.-highlight > Label,
+WideTicketListItem.-highlight > .ticket-row-wide > Label {
     text-style: bold;
 }
 

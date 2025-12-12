@@ -178,6 +178,7 @@ class RallyTUI(App[None]):
             "action.my_items": ("toggle_user_filter", "My Items", True),
             "action.sort": ("cycle_sort", "Sort", True),
             "action.team": ("team_breakdown", "Team", True),
+            "action.wide_view": ("toggle_wide_view", "Wide", True),
             "action.bulk": ("bulk_actions", "Bulk", True),
             "action.refresh": ("refresh_cache", "Refresh", True),
             "action.settings": ("open_settings", "Settings", True),
@@ -959,6 +960,42 @@ class RallyTUI(App[None]):
 
         # Show the team breakdown screen
         self.push_screen(TeamBreakdownScreen(tickets, self._iteration_filter))
+
+    def action_toggle_wide_view(self) -> None:
+        """Toggle between normal and wide view mode."""
+        ticket_list = self.query_one(TicketList)
+        ticket_list.toggle_view_mode()
+
+    def _on_ticket_list_view_mode_changed(
+        self, event: TicketList.ViewModeChanged
+    ) -> None:
+        """Handle view mode change from ticket list."""
+        from rally_tui.widgets import ViewMode
+
+        list_container = self.query_one("#list-container")
+        detail_pane = self.query_one(TicketDetail)
+
+        if event.mode == ViewMode.WIDE:
+            # Calculate if detail pane would be too narrow
+            # Wide view uses 75% width (max 250), leaving 25% for detail
+            main_container = self.query_one("#main-container")
+            available_width = main_container.size.width
+            wide_list_width = min(int(available_width * 0.75), 250)
+            detail_width = available_width - wide_list_width
+
+            if detail_width < 30:
+                # Detail pane too narrow, use full width
+                list_container.add_class("wide-full")
+                detail_pane.display = False
+                self.notify("Wide view (full width)", timeout=2)
+            else:
+                list_container.add_class("wide")
+                self.notify("Wide view enabled", timeout=2)
+        else:
+            list_container.remove_class("wide")
+            list_container.remove_class("wide-full")
+            detail_pane.display = True
+            self.notify("Normal view enabled", timeout=2)
 
     def action_refresh_cache(self) -> None:
         """Refresh the ticket cache by fetching fresh data from Rally."""

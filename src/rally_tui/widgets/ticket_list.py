@@ -25,6 +25,13 @@ class SortMode(Enum):
     OWNER = "owner"  # By owner name (unassigned first, then alphabetical)
 
 
+class ViewMode(Enum):
+    """Available view modes for the ticket list."""
+
+    NORMAL = "normal"  # Default compact view
+    WIDE = "wide"  # Expanded view with owner, points, parent columns
+
+
 # State ordering from earliest (top) to latest (bottom) in workflow
 # Lower number = earlier in workflow = displayed first
 STATE_ORDER: dict[str, int] = {
@@ -222,6 +229,80 @@ class TicketListItem(ListItem):
         return self._selected
 
 
+class WideTicketListItem(ListItem):
+    """A ticket item with additional columns for wide view mode."""
+
+    def __init__(self, ticket: Ticket, selected: bool = False) -> None:
+        super().__init__()
+        self.ticket = ticket
+        self._selected = selected
+
+    def compose(self) -> ComposeResult:
+        """Create the ticket display with additional columns."""
+        type_class = f"ticket-{self.ticket.type_prefix.lower()}"
+        state_color = get_state_color(self.ticket.state)
+        state_symbol = get_state_symbol(self.ticket.state)
+        checkbox = "[✓]" if self._selected else "[ ]"
+
+        # Format points display (show decimal only if not a whole number)
+        if self.ticket.points is not None:
+            if self.ticket.points == int(self.ticket.points):
+                points_str = str(int(self.ticket.points))
+            else:
+                points_str = str(self.ticket.points)
+        else:
+            points_str = "-"
+
+        # Format owner display (truncate long names)
+        owner_str = self.ticket.owner[:18] if self.ticket.owner else "-"
+
+        # Format parent ID display
+        parent_str = self.ticket.parent_id if self.ticket.parent_id else "-"
+
+        with Horizontal(classes="ticket-row-wide"):
+            yield Label(
+                checkbox,
+                classes="selection-checkbox",
+            )
+            yield Label(
+                f"[{state_color}]{state_symbol}[/]",
+                classes="state-indicator",
+            )
+            yield Label(
+                self.ticket.display_text,
+                classes=f"ticket-text-wide {type_class}",
+            )
+            yield Label(
+                owner_str,
+                classes="ticket-owner",
+            )
+            yield Label(
+                points_str,
+                classes="ticket-points",
+            )
+            yield Label(
+                parent_str,
+                classes="ticket-parent",
+            )
+
+    def set_selected(self, selected: bool) -> None:
+        """Update selection state and refresh checkbox display."""
+        if self._selected == selected:
+            return
+        self._selected = selected
+        checkbox = "[✓]" if selected else "[ ]"
+        try:
+            label = self.query_one(".selection-checkbox", Label)
+            label.update(checkbox)
+        except Exception:
+            pass  # Widget may not be mounted yet
+
+    @property
+    def is_selected(self) -> bool:
+        """Check if this item is selected."""
+        return self._selected
+
+
 class TicketList(ListView):
     """Scrollable list of tickets with keyboard navigation.
 
@@ -266,6 +347,13 @@ class TicketList(ListView):
             self.selected_ids = selected_ids
             super().__init__()
 
+    class ViewModeChanged(Message):
+        """Posted when view mode changes."""
+
+        def __init__(self, mode: ViewMode) -> None:
+            self.mode = mode
+            super().__init__()
+
     def __init__(
         self,
         tickets: list[Ticket] | None = None,
@@ -273,6 +361,7 @@ class TicketList(ListView):
         id: str | None = None,
         classes: str | None = None,
         sort_mode: SortMode = SortMode.STATE,
+        view_mode: ViewMode = ViewMode.NORMAL,
         user_settings: UserSettings | None = None,
     ) -> None:
         """Initialize the ticket list.
@@ -282,10 +371,12 @@ class TicketList(ListView):
             id: Widget ID for CSS targeting.
             classes: CSS classes to apply.
             sort_mode: How to sort the tickets.
+            view_mode: Display mode (NORMAL or WIDE).
             user_settings: User settings for dynamic keybindings.
         """
         super().__init__(id=id, classes=classes)
         self._sort_mode = sort_mode
+        self._view_mode = view_mode
         self._user_settings = user_settings
         # Sort tickets by the specified mode
         sorted_tickets = sort_tickets(tickets or [], self._sort_mode)
@@ -295,11 +386,17 @@ class TicketList(ListView):
         # Multi-select tracking
         self._selected_ids: set[str] = set()
 
+    def _create_list_item(self, ticket: Ticket, selected: bool = False) -> ListItem:
+        """Create appropriate list item based on view mode."""
+        if self._view_mode == ViewMode.WIDE:
+            return WideTicketListItem(ticket, selected=selected)
+        return TicketListItem(ticket, selected=selected)
+
     def compose(self) -> ComposeResult:
         """Create list items for each ticket."""
         for ticket in self._tickets:
             is_selected = ticket.formatted_id in self._selected_ids
-            yield TicketListItem(ticket, selected=is_selected)
+            yield self._create_list_item(ticket, selected=is_selected)
 
     def on_mount(self) -> None:
         """Apply dynamic keybindings on mount."""
@@ -420,6 +517,41 @@ class TicketList(ListView):
         """Get the current sort mode."""
         return self._sort_mode
 
+    @property
+    def view_mode(self) -> ViewMode:
+        """Get the current view mode."""
+        return self._view_mode
+
+    def set_view_mode(self, mode: ViewMode) -> None:
+        """Change the view mode and rebuild the list.
+
+        Args:
+            mode: The new view mode (NORMAL or WIDE).
+        """
+        if mode == self._view_mode:
+            return
+
+        self._view_mode = mode
+
+        # Rebuild the list with new item type
+        current_index = self.index
+        self.remove_children()
+        for ticket in self._tickets:
+            is_selected = ticket.formatted_id in self._selected_ids
+            self.mount(self._create_list_item(ticket, selected=is_selected))
+
+        # Restore index
+        if current_index is not None and self._tickets:
+            self.index = min(current_index, len(self._tickets) - 1)
+
+        # Notify about the change
+        self.post_message(self.ViewModeChanged(mode))
+
+    def toggle_view_mode(self) -> None:
+        """Toggle between NORMAL and WIDE view modes."""
+        new_mode = ViewMode.WIDE if self._view_mode == ViewMode.NORMAL else ViewMode.NORMAL
+        self.set_view_mode(new_mode)
+
     def set_tickets(self, tickets: list[Ticket]) -> None:
         """Replace the ticket list with new data."""
         sorted_tickets = sort_tickets(tickets, self._sort_mode)
@@ -433,7 +565,7 @@ class TicketList(ListView):
         # (clear/append can have timing issues when called from worker callbacks)
         self.remove_children()
         for ticket in sorted_tickets:
-            self.mount(TicketListItem(ticket, selected=False))
+            self.mount(self._create_list_item(ticket, selected=False))
         # Select first item if list is not empty
         if sorted_tickets:
             self.index = 0
@@ -467,7 +599,7 @@ class TicketList(ListView):
         self.clear()
         for ticket in self._tickets:
             is_selected = ticket.formatted_id in self._selected_ids
-            self.append(TicketListItem(ticket, selected=is_selected))
+            self.append(self._create_list_item(ticket, selected=is_selected))
 
         # Select first item if list is not empty
         if self._tickets:
@@ -495,7 +627,7 @@ class TicketList(ListView):
         self.remove_children()
         for ticket in filtered:
             is_selected = ticket.formatted_id in self._selected_ids
-            self.mount(TicketListItem(ticket, selected=is_selected))
+            self.mount(self._create_list_item(ticket, selected=is_selected))
 
         self.post_message(self.FilterApplied(len(filtered), len(self._all_tickets)))
 
@@ -577,7 +709,7 @@ class TicketList(ListView):
                 self.remove_children()
                 for t in self._tickets:
                     is_selected = t.formatted_id in self._selected_ids
-                    self.mount(TicketListItem(t, selected=is_selected))
+                    self.mount(self._create_list_item(t, selected=is_selected))
             else:
                 # Re-apply filter (which will also sort)
                 self.filter_tickets(self._filter_query)
@@ -587,7 +719,7 @@ class TicketList(ListView):
                 if t.formatted_id in updates:
                     self._tickets[i] = updates[t.formatted_id]
                     # Update the corresponding list item
-                    items = list(self.query(TicketListItem))
+                    items = list(self.query(TicketListItem)) + list(self.query(WideTicketListItem))
                     if i < len(items):
                         items[i].ticket = updates[t.formatted_id]
 
@@ -611,7 +743,7 @@ class TicketList(ListView):
             self.remove_children()
             for t in self._tickets:
                 is_selected = t.formatted_id in self._selected_ids
-                self.mount(TicketListItem(t, selected=is_selected))
+                self.mount(self._create_list_item(t, selected=is_selected))
             # Select the new ticket
             for i, t in enumerate(self._tickets):
                 if t.formatted_id == ticket.formatted_id:

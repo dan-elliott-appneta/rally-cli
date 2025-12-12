@@ -187,6 +187,18 @@ Press `o` to cycle through sort modes:
 
 The current sort mode is shown in the status bar.
 
+### Wide View
+
+Press `v` to toggle wide view mode:
+- **Normal mode**: Compact list showing ticket ID and name
+- **Wide mode**: Expanded list (up to 75% width, max 250 chars) showing:
+  - Ticket ID and name
+  - Owner (truncated to 18 chars)
+  - Points
+  - Parent Feature ID
+
+Wide view is useful when you need to see more ticket details at a glance.
+
 ---
 
 ## Searching and Filtering
@@ -486,6 +498,7 @@ Logs are written to `~/.config/rally-tui/rally-tui.log`:
 | `u` | Toggle My Items |
 | `o` | Cycle sort mode |
 | `b` | Team breakdown |
+| `v` | Toggle wide view |
 | `r` | Refresh cache |
 
 ### Selection (Bulk Operations)
