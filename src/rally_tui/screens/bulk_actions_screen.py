@@ -16,6 +16,7 @@ class BulkAction(Enum):
     SET_STATE = "state"
     SET_ITERATION = "iteration"
     SET_POINTS = "points"
+    YANK = "yank"
 
 
 class BulkActionsScreen(Screen[BulkAction | None]):
@@ -26,6 +27,7 @@ class BulkActionsScreen(Screen[BulkAction | None]):
     - Set State: Change state of all selected tickets
     - Set Iteration: Move all selected tickets to an iteration
     - Set Points: Set story points on all selected tickets
+    - Yank: Copy space-separated list of ticket URLs to clipboard
     """
 
     BINDINGS = [
@@ -34,6 +36,7 @@ class BulkActionsScreen(Screen[BulkAction | None]):
         Binding("2", "select_state", "2", show=False),
         Binding("3", "select_iteration", "3", show=False),
         Binding("4", "select_points", "4", show=False),
+        Binding("5", "select_yank", "5", show=False),
     ]
 
     DEFAULT_CSS = """
@@ -106,8 +109,9 @@ class BulkActionsScreen(Screen[BulkAction | None]):
             yield Button("2. Set State", id="btn-state", variant="primary")
             yield Button("3. Set Iteration", id="btn-iteration", variant="primary")
             yield Button("4. Set Points", id="btn-points", variant="primary")
+            yield Button("5. Yank (Copy URLs)", id="btn-yank", variant="primary")
         yield Static(
-            "Press 1-4 or click a button, ESC to cancel",
+            "Press 1-5 or click a button, ESC to cancel",
             id="bulk-hint",
         )
         yield Footer()
@@ -127,6 +131,8 @@ class BulkActionsScreen(Screen[BulkAction | None]):
             self.dismiss(BulkAction.SET_ITERATION)
         elif button_id == "btn-points":
             self.dismiss(BulkAction.SET_POINTS)
+        elif button_id == "btn-yank":
+            self.dismiss(BulkAction.YANK)
 
     def action_cancel(self) -> None:
         """Cancel and return without action."""
@@ -147,3 +153,7 @@ class BulkActionsScreen(Screen[BulkAction | None]):
     def action_select_points(self) -> None:
         """Select Set Points action."""
         self.dismiss(BulkAction.SET_POINTS)
+
+    def action_select_yank(self) -> None:
+        """Select Yank action."""
+        self.dismiss(BulkAction.YANK)

@@ -47,7 +47,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Multi-select tickets with `Space` key (toggle selection)
 - Select all tickets with `Ctrl+A` (toggle select all/deselect all)
 - Press `m` to open bulk actions menu on selected tickets
-- Bulk operations: Set Parent, Set State, Set Iteration, Set Points
+- Bulk operations: Set Parent, Set State, Set Iteration, Set Points, Yank (copy URLs)
 - Press `F2` to open ConfigScreen for editing settings
 - Configure theme, log level, and parent options from the TUI
 - Settings saved immediately with Ctrl+S or Save button
@@ -114,7 +114,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 0.7.6
+# Output: rally-tui 0.7.7
 ```
 
 ### Running with Rally API

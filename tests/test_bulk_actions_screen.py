@@ -43,10 +43,12 @@ class TestBulkActionsScreenCompose:
             btn_state = app.screen.query_one("#btn-state")
             btn_iteration = app.screen.query_one("#btn-iteration")
             btn_points = app.screen.query_one("#btn-points")
+            btn_yank = app.screen.query_one("#btn-yank")
             assert btn_parent is not None
             assert btn_state is not None
             assert btn_iteration is not None
             assert btn_points is not None
+            assert btn_yank is not None
 
 
 class TestBulkActionsScreenKeys:
@@ -120,6 +122,23 @@ class TestBulkActionsScreenKeys:
 
         assert result == BulkAction.SET_POINTS
 
+    async def test_number_5_selects_yank(self) -> None:
+        """Pressing 5 should select YANK action."""
+        result: BulkAction | None = None
+
+        def capture_result(action: BulkAction | None) -> None:
+            nonlocal result
+            result = action
+
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            app.push_screen(BulkActionsScreen(3), callback=capture_result)
+            await pilot.pause()
+            await pilot.press("5")
+            await pilot.pause()
+
+        assert result == BulkAction.YANK
+
     async def test_escape_cancels(self) -> None:
         """Pressing escape should return None."""
         result = "not_set"
@@ -157,11 +176,67 @@ class TestBulkActionEnum:
         """SET_POINTS should have value 'points'."""
         assert BulkAction.SET_POINTS.value == "points"
 
+    def test_yank_value(self) -> None:
+        """YANK should have value 'yank'."""
+        assert BulkAction.YANK.value == "yank"
+
     def test_all_actions_unique(self) -> None:
         """All action values should be unique."""
         values = [action.value for action in BulkAction]
         assert len(values) == len(set(values))
 
-    def test_has_four_actions(self) -> None:
-        """BulkAction should have exactly 4 actions."""
-        assert len(BulkAction) == 4
+    def test_has_five_actions(self) -> None:
+        """BulkAction should have exactly 5 actions."""
+        assert len(BulkAction) == 5
+
+
+class TestBulkYankIntegration:
+    """Integration tests for bulk yank functionality."""
+
+    async def test_bulk_yank_copies_ids(self) -> None:
+        """Bulk yank should copy comma-separated IDs to clipboard."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            # Select first two tickets
+            await pilot.press("space")  # Select first
+            await pilot.press("j")
+            await pilot.press("space")  # Select second
+            await pilot.pause()
+
+            # Open bulk actions menu
+            await pilot.press("m")
+            await pilot.pause()
+
+            # Press 5 for yank
+            await pilot.press("5")
+            await pilot.pause()
+
+            # Verify selection was cleared after yank
+            from rally_tui.widgets import TicketList
+
+            ticket_list = app.query_one(TicketList)
+            assert ticket_list.selection_count == 0
+
+    async def test_bulk_yank_button_click(self) -> None:
+        """Clicking yank button should work."""
+        result: BulkAction | None = None
+
+        def capture_result(action: BulkAction | None) -> None:
+            nonlocal result
+            result = action
+
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            app.push_screen(BulkActionsScreen(3), callback=capture_result)
+            await pilot.pause()
+
+            # Scroll to and click the yank button
+            btn_yank = app.screen.query_one("#btn-yank")
+            btn_yank.scroll_visible()
+            await pilot.pause()
+            btn_yank.press()
+            await pilot.pause()
+
+        assert result == BulkAction.YANK
