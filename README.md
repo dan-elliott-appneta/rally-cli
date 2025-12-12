@@ -29,6 +29,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Attachments**: Press `a` to view, download, or upload ticket attachments (includes embedded images from description/notes)
 - **Local caching**: Tickets cached to `~/.cache/rally-tui/` for performance and offline access
 - **Cache refresh**: Press `r` to manually refresh the ticket cache
+- **Loading indicator**: Visual feedback in status bar when fetching tickets from API
 
 ## Status
 
@@ -79,7 +80,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 737 tests passing
+- 743 tests passing
 
 Next: Iteration 15 (Custom fields support).
 
@@ -111,7 +112,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 0.7.0
+# Output: rally-tui 0.7.1
 ```
 
 ### Running with Rally API

@@ -70,6 +70,7 @@ class StatusBar(Static):
         self._selection_count = 0  # Number of selected tickets
         self._cache_status: CacheStatusDisplay | None = None
         self._cache_age_minutes: int | None = None
+        self._loading = False
 
     def on_mount(self) -> None:
         """Set initial content when mounted."""
@@ -80,6 +81,10 @@ class StatusBar(Static):
         parts = ["[bold orange]rally-tui[/]"]
         if self._project:
             parts.append(f"Project: {self._project}")
+
+        # Show loading indicator if fetching tickets
+        if self._loading:
+            parts.append("[bold blue]Loading...[/]")
 
         # Show selection count if any tickets selected
         if self._selection_count > 0:
@@ -298,3 +303,17 @@ class StatusBar(Static):
         self._cache_status = None
         self._cache_age_minutes = None
         self._update_display()
+
+    def set_loading(self, loading: bool) -> None:
+        """Set the loading indicator state.
+
+        Args:
+            loading: Whether tickets are currently being loaded.
+        """
+        self._loading = loading
+        self._update_display()
+
+    @property
+    def loading(self) -> bool:
+        """Get the current loading state."""
+        return self._loading

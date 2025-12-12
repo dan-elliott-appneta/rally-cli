@@ -256,6 +256,16 @@ class RallyTUI(App[None]):
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
         """Handle worker completion."""
         _log.debug(f"Worker {event.worker.name} state: {event.state}")
+
+        # Clear loading indicator on error or success for fetch workers
+        if event.state in (WorkerState.ERROR, WorkerState.SUCCESS):
+            if event.worker.name in ("_fetch_filtered_tickets", "_refresh_all_tickets"):
+                try:
+                    status_bar = self.query_one(StatusBar)
+                    status_bar.set_loading(False)
+                except Exception:
+                    pass  # Widget may not exist yet
+
         if event.state == WorkerState.ERROR:
             _log.error(f"Worker {event.worker.name} failed: {event.worker.error}")
             return
@@ -918,7 +928,8 @@ class RallyTUI(App[None]):
     def action_refresh_cache(self) -> None:
         """Refresh the ticket cache by fetching fresh data from Rally."""
         _log.info("Refreshing ticket cache...")
-        self.notify("Refreshing...", timeout=1)
+        status_bar = self.query_one(StatusBar)
+        status_bar.set_loading(True)
         self.run_worker(self._refresh_all_tickets, thread=True, exclusive=True)
 
     def _refresh_all_tickets(self) -> list:
@@ -1201,7 +1212,8 @@ class RallyTUI(App[None]):
         # This ensures Rally does the matching (avoids string mismatch issues)
         if self._connected and self._iteration_filter:
             _log.info(f"Starting worker to fetch tickets for: {self._iteration_filter}")
-            self.notify("Loading tickets...", timeout=1)
+            status_bar = self.query_one(StatusBar)
+            status_bar.set_loading(True)
             self.run_worker(self._fetch_filtered_tickets, thread=True, name="_fetch_filtered_tickets")
             return
 

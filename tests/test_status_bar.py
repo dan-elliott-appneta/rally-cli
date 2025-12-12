@@ -520,3 +520,68 @@ class TestStatusBarCacheStatus:
             # Note: "Offline" appears twice - once for cache status, once for connection
             content = status_bar.display_content
             assert "Offline" in content
+
+
+class TestStatusBarLoading:
+    """Tests for loading indicator in StatusBar."""
+
+    def test_default_loading_is_false(self) -> None:
+        """Default loading should be False."""
+        bar = StatusBar()
+        assert bar.loading is False
+
+    def test_set_loading_true(self) -> None:
+        """set_loading(True) should set loading to True."""
+        bar = StatusBar()
+        bar.set_loading(True)
+        assert bar.loading is True
+
+    def test_set_loading_false(self) -> None:
+        """set_loading(False) should set loading to False."""
+        bar = StatusBar()
+        bar.set_loading(True)
+        bar.set_loading(False)
+        assert bar.loading is False
+
+    async def test_loading_indicator_display(self) -> None:
+        """Loading indicator should show 'Loading...' when active."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            status_bar.set_loading(True)
+            assert "Loading..." in status_bar.display_content
+
+    async def test_loading_indicator_hidden(self) -> None:
+        """Loading indicator should be hidden when not loading."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            assert "Loading..." not in status_bar.display_content
+
+    async def test_loading_clears_on_complete(self) -> None:
+        """Loading indicator should clear after setting to False."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            status_bar.set_loading(True)
+            assert "Loading..." in status_bar.display_content
+            status_bar.set_loading(False)
+            assert "Loading..." not in status_bar.display_content
