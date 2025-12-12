@@ -80,7 +80,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 743 tests passing
+- 741 tests passing
 
 Next: Iteration 15 (Custom fields support).
 
@@ -112,7 +112,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 0.7.3
+# Output: rally-tui 0.7.4
 ```
 
 ### Running with Rally API

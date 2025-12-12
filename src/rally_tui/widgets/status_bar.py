@@ -78,7 +78,7 @@ class StatusBar(Static):
 
     def _update_display(self) -> None:
         """Update the status bar content."""
-        parts = ["[bold blue]RALLY TUI[/]"]
+        parts = []
         if self._project:
             parts.append(f"Project: {self._project}")
 
