@@ -32,10 +32,11 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Local caching**: Tickets cached to `~/.cache/rally-tui/` for performance and offline access
 - **Cache refresh**: Press `r` to manually refresh the ticket cache
 - **Loading indicator**: Visual feedback in status bar when fetching tickets from API
+- **Async API client**: High-performance httpx-based async Rally client with concurrent operations
 
 ## Status
 
-**Iteration 14 Complete** - Local Caching.
+**Iteration 14 Complete** - Local Caching + Async API Integration.
 
 - **NEW**: Vim motions (j/k/g/G) work on all screens (discussions, attachments, iteration picker, state picker, bulk actions)
 - **NEW**: Press `F3` to open keybindings configuration screen
@@ -83,7 +84,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 782 tests passing
+- 860 tests passing (including 74 new async tests)
 
 Next: Iteration 15 (Custom fields support).
 
@@ -115,7 +116,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 0.7.8
+# Output: rally-tui 0.7.9
 ```
 
 ### Running with Rally API
@@ -264,10 +265,14 @@ rally-cli/
 │   │   └── keybindings.py   # Keybinding profiles and utilities
 │   └── services/            # Rally API client layer
 │       ├── protocol.py      # RallyClientProtocol interface
-│       ├── rally_client.py  # Real Rally API client
+│       ├── rally_client.py  # Real Rally API client (sync, pyral)
+│       ├── async_rally_client.py  # Async Rally API client (httpx)
+│       ├── rally_api.py     # Rally WSAPI constants and helpers
 │       ├── mock_client.py   # MockRallyClient for testing
+│       ├── async_mock_client.py   # AsyncMockRallyClient for testing
 │       ├── cache_manager.py # Local file caching for tickets
-│       └── caching_client.py # CachingRallyClient wrapper
+│       ├── caching_client.py      # CachingRallyClient wrapper (sync)
+│       └── async_caching_client.py # AsyncCachingRallyClient wrapper
 ├── tests/
 │   ├── conftest.py               # Pytest fixtures
 │   ├── test_ticket_model.py      # Model unit tests
@@ -301,6 +306,9 @@ rally-cli/
 │   ├── test_keybindings_screen.py # KeybindingsScreen tests
 │   ├── test_cache_manager.py     # CacheManager tests
 │   ├── test_caching_client.py    # CachingRallyClient tests
+│   ├── test_rally_api.py         # Rally API helpers tests
+│   ├── test_async_mock_client.py # AsyncMockRallyClient tests
+│   ├── test_app_async_integration.py # App async integration tests
 │   └── test_snapshots.py         # Visual regression tests
 └── docs/
     ├── API.md               # Rally WSAPI reference
@@ -344,7 +352,9 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 ## Technology Stack
 
 - **[Textual](https://textual.textualize.io/)** - Modern Python TUI framework
-- **[pyral](https://pyral.readthedocs.io/)** - Rally REST API toolkit
+- **[pyral](https://pyral.readthedocs.io/)** - Rally REST API toolkit (sync)
+- **[httpx](https://www.python-httpx.org/)** - Async HTTP client for Rally API
+- **[tenacity](https://tenacity.readthedocs.io/)** - Retry logic for API calls
 - **[pytest-textual-snapshot](https://github.com/Textualize/pytest-textual-snapshot)** - Visual regression testing
 
 ## Versioning
