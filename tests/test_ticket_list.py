@@ -488,3 +488,276 @@ class TestTicketListSorting:
         # This should not raise - same mode returns early before calling clear()
         ticket_list.set_sort_mode(SortMode.STATE)
         assert ticket_list.sort_mode == SortMode.STATE
+
+
+class TestTicketListSelection:
+    """Tests for TicketList multi-select functionality."""
+
+    async def test_initial_selection_empty(self) -> None:
+        """Selection should be empty initially."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            ticket_list = app.query_one(TicketList)
+            assert ticket_list.selection_count == 0
+            assert len(ticket_list.selected_tickets) == 0
+
+    async def test_space_toggles_selection(self) -> None:
+        """Pressing space should toggle selection on current item."""
+        from rally_tui.services import MockRallyClient
+
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Initially no selection
+            assert ticket_list.selection_count == 0
+
+            # Select first ticket
+            await pilot.press("space")
+            await pilot.pause()
+            assert ticket_list.selection_count == 1
+
+            # Deselect first ticket
+            await pilot.press("space")
+            await pilot.pause()
+            assert ticket_list.selection_count == 0
+
+    async def test_space_selects_multiple(self) -> None:
+        """Pressing space on different items selects multiple."""
+        from rally_tui.services import MockRallyClient
+
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+            Ticket("US3", "Story 3", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Select first
+            await pilot.press("space")
+            await pilot.pause()
+
+            # Move down and select second
+            await pilot.press("j")
+            await pilot.press("space")
+            await pilot.pause()
+
+            assert ticket_list.selection_count == 2
+
+    async def test_ctrl_a_selects_all(self) -> None:
+        """Ctrl+A should select all tickets."""
+        from rally_tui.services import MockRallyClient
+
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+            Ticket("US3", "Story 3", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            await pilot.press("ctrl+a")
+            await pilot.pause()
+
+            assert ticket_list.selection_count == 3
+
+    async def test_ctrl_a_deselects_if_all_selected(self) -> None:
+        """Ctrl+A when all selected should deselect all."""
+        from rally_tui.services import MockRallyClient
+
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Select all
+            await pilot.press("ctrl+a")
+            await pilot.pause()
+            assert ticket_list.selection_count == 2
+
+            # Deselect all
+            await pilot.press("ctrl+a")
+            await pilot.pause()
+            assert ticket_list.selection_count == 0
+
+    async def test_clear_selection(self) -> None:
+        """clear_selection should clear all selections."""
+        from rally_tui.services import MockRallyClient
+
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Select all
+            await pilot.press("ctrl+a")
+            await pilot.pause()
+            assert ticket_list.selection_count == 2
+
+            # Clear selection
+            ticket_list.clear_selection()
+            await pilot.pause()
+            assert ticket_list.selection_count == 0
+
+    async def test_selected_tickets_property(self) -> None:
+        """selected_tickets should return list of selected Ticket objects."""
+        from rally_tui.services import MockRallyClient
+
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Select first ticket
+            await pilot.press("space")
+            await pilot.pause()
+
+            selected = ticket_list.selected_tickets
+            assert len(selected) == 1
+            assert selected[0].formatted_id == "US1"
+
+    async def test_selection_message_posted(self) -> None:
+        """SelectionChanged message should be posted when selection changes."""
+        from rally_tui.services import MockRallyClient
+        from rally_tui.widgets import StatusBar
+
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            # Select ticket
+            await pilot.press("space")
+            await pilot.pause()
+
+            # Status bar should show selection count
+            status_bar = app.query_one(StatusBar)
+            assert status_bar.selection_count == 1
+
+
+class TestTicketListBulkUpdate:
+    """Tests for TicketList bulk update functionality."""
+
+    async def test_update_tickets_updates_multiple(self) -> None:
+        """update_tickets should update multiple tickets at once."""
+        from rally_tui.services import MockRallyClient
+        from rally_tui.widgets.ticket_list import TicketListItem
+
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+            Ticket("US3", "Story 3", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Update two tickets at once
+            updated = [
+                Ticket("US1", "Story 1", "UserStory", "Completed"),
+                Ticket("US2", "Story 2", "UserStory", "Completed"),
+            ]
+            ticket_list.update_tickets(updated)
+            await pilot.pause()
+
+            # Check internal state
+            states = {t.formatted_id: t.state for t in ticket_list._all_tickets}
+            assert states["US1"] == "Completed"
+            assert states["US2"] == "Completed"
+            assert states["US3"] == "Defined"
+
+            # Check UI items
+            items = list(ticket_list.query(TicketListItem))
+            assert len(items) == 3  # Should still have 3 items
+            ui_states = {item.ticket.formatted_id: item.ticket.state for item in items}
+            assert ui_states["US1"] == "Completed"
+            assert ui_states["US2"] == "Completed"
+            assert ui_states["US3"] == "Defined"
+
+    async def test_update_tickets_preserves_selection(self) -> None:
+        """update_tickets should preserve selection state."""
+        from rally_tui.services import MockRallyClient
+        from rally_tui.widgets.ticket_list import TicketListItem
+
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Select first ticket
+            await pilot.press("space")
+            await pilot.pause()
+            assert ticket_list.selection_count == 1
+
+            # Update both tickets
+            updated = [
+                Ticket("US1", "Story 1", "UserStory", "Completed"),
+                Ticket("US2", "Story 2", "UserStory", "Completed"),
+            ]
+            ticket_list.update_tickets(updated)
+            await pilot.pause()
+
+            # Selection should be preserved
+            assert "US1" in ticket_list._selected_ids
+
+    async def test_update_tickets_empty_list(self) -> None:
+        """update_tickets with empty list should do nothing."""
+        from rally_tui.services import MockRallyClient
+        from rally_tui.widgets.ticket_list import TicketListItem
+
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Update with empty list
+            ticket_list.update_tickets([])
+            await pilot.pause()
+
+            # Should still have original ticket
+            items = list(ticket_list.query(TicketListItem))
+            assert len(items) == 1
+            assert items[0].ticket.state == "Defined"

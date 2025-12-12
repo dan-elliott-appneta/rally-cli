@@ -57,6 +57,7 @@ class StatusBar(Static):
         self._iteration_filter: str | None = None
         self._user_filter_active = False
         self._sort_mode: str | None = None  # Display name of current sort mode
+        self._selection_count = 0  # Number of selected tickets
 
     def on_mount(self) -> None:
         """Set initial content when mounted."""
@@ -67,6 +68,10 @@ class StatusBar(Static):
         parts = ["[bold orange]rally-tui[/]"]
         if self._project:
             parts.append(f"Project: {self._project}")
+
+        # Show selection count if any tickets selected
+        if self._selection_count > 0:
+            parts.append(f"[bold cyan]{self._selection_count} selected[/]")
 
         # Build filter display
         filters = []
@@ -211,3 +216,17 @@ class StatusBar(Static):
     def sort_mode_display(self) -> str | None:
         """Get the current sort mode display string."""
         return self._sort_mode
+
+    def set_selection_count(self, count: int) -> None:
+        """Set the number of selected tickets.
+
+        Args:
+            count: Number of selected tickets.
+        """
+        self._selection_count = count
+        self._update_display()
+
+    @property
+    def selection_count(self) -> int:
+        """Get the current selection count."""
+        return self._selection_count

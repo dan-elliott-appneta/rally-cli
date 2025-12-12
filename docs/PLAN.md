@@ -65,7 +65,7 @@ rally-cli/
 │           ├── protocol.py     # RallyClientProtocol interface
 │           ├── rally_client.py # Real Rally API client (pyral)
 │           └── mock_client.py  # Mock client for testing/offline
-├── tests/                      # 435 tests
+├── tests/                      # 495 tests
 │   ├── conftest.py             # Fixtures, mock Rally client
 │   ├── test_ticket_model.py
 │   ├── test_discussion_model.py
@@ -980,72 +980,85 @@ tests/
 
 ---
 
-### Iteration 12: Configuration View ✅ COMPLETE
+### Iteration 12: Bulk Operations / Multi-Select ✅ COMPLETE
 
-**Goal**: Allow users to edit settings from within the TUI
+**Goal**: Multi-select tickets and perform bulk operations
+
+**Detailed Guide**: See [ITERATION_12.md](./ITERATION_12.md) for step-by-step implementation.
 
 **Tasks**:
-- [x] Create ConfigScreen with form for theme, log_level, parent_options
-- [x] Add `F2` keybinding to open settings screen
-- [x] Theme selector using Select widget with all available themes
-- [x] Log level selector using Select widget
-- [x] Parent options editor with 3 Input fields
-- [x] Save button (Ctrl+S) persists settings immediately
-- [x] Cancel button (Escape) closes without saving
-- [x] Show config file path at bottom of screen
-- [x] Apply theme immediately on save
-- [x] Export ConfigScreen and ConfigData from screens module
-- [x] Write comprehensive tests (24 tests)
+- [x] Add selection model to TicketList (Space toggle, Ctrl+A select all)
+- [x] Add checkbox indicators to ticket list items
+- [x] Create BulkActionsScreen modal with 4 operation options
+- [x] Add `m` keybinding to open bulk actions menu
+- [x] Add BulkResult dataclass for bulk operation results
+- [x] Implement bulk_set_parent (skips tickets with existing parent)
+- [x] Implement bulk_update_state (skips tickets without parent for In-Progress)
+- [x] Implement bulk_set_iteration
+- [x] Implement bulk_update_points
+- [x] StatusBar shows selection count
+- [x] Clear selection after bulk operation completes
+- [x] Write comprehensive tests (36+ new tests)
 - [x] Update documentation
-- [x] Bump version to 0.4.0
+- [x] Bump version to 0.5.0
 
 **Implementation Notes**:
-- ConfigScreen extends Screen[ConfigData | None]
-- Uses Textual's Select widget for theme and log level dropdowns
-- Parent options are uppercased on save and empty values filtered out
-- Settings are saved directly to UserSettings which persists to JSON
-- Theme change is applied immediately after save
-- 459 total tests passing
-
-**Key Files**:
-```
-src/rally_tui/screens/
-└── config_screen.py        # ConfigScreen modal
-
-src/rally_tui/
-└── app.py                  # F2 keybinding and handler
-
-tests/
-└── test_config_screen.py   # 24 tests
-```
+- TicketListItem includes checkbox (`[ ]` / `[✓]`) before ticket display
+- Selection state tracked via `_selected_ids: set[str]` in TicketList
+- `SelectionChanged` message posted when selection changes
+- BulkActionsScreen offers 4 options: Parent, State, Iteration, Points
+- Number keys 1-4 for quick selection in bulk actions menu
+- Bulk state change to In-Progress requires parent (filters eligible tickets)
+- 495 total tests passing
 
 **Key Bindings**:
 | Key | Action |
 |-----|--------|
-| `F2` | Open settings screen |
-| `Ctrl+S` | Save settings |
-| `Escape` | Cancel without saving |
+| `Space` | Toggle selection on current ticket |
+| `Ctrl+A` | Select all / Deselect all (toggle) |
+| `m` | Open bulk actions menu |
+
+**Key Files**:
+```
+src/rally_tui/
+├── screens/
+│   └── bulk_actions_screen.py  # BulkActionsScreen modal
+├── services/
+│   ├── protocol.py             # BulkResult, bulk_* methods
+│   ├── mock_client.py          # Bulk operation implementations
+│   └── rally_client.py         # Bulk operation implementations
+├── widgets/
+│   ├── ticket_list.py          # Selection model, checkboxes
+│   └── status_bar.py           # Selection count display
+└── app.py                      # Bulk action handlers
+
+tests/
+├── test_bulk_actions_screen.py # 14 tests
+├── test_services.py            # 14 bulk operation tests
+└── test_ticket_list.py         # 8 selection tests
+```
 
 **Test Coverage**:
-- Unit: ConfigScreen displays title, selectors, inputs
-- Unit: ConfigScreen has save/cancel buttons
-- Unit: ConfigData dataclass creation
-- Unit: Constants (AVAILABLE_THEMES, LOG_LEVELS)
-- Integration: F2 opens settings screen
-- Integration: Escape cancels without saving
-- Integration: Save persists theme, log level, parent options
-- Integration: Empty parent options filtered
-- Integration: Parent options uppercased
+- Unit: BulkAction enum values
+- Unit: BulkActionsScreen composition and key bindings
+- Unit: BulkResult dataclass
+- Unit: bulk_set_parent updates tickets, skips those with parent
+- Unit: bulk_update_state updates tickets
+- Unit: bulk_set_iteration updates tickets, handles None for backlog
+- Unit: bulk_update_points with integers and decimals
+- Unit: TicketList selection toggle, select all, clear selection
+- Unit: SelectionChanged message posted
+- Integration: Bulk action flow from selection to completion
 
 ---
 
 ### Future Iterations
 
-- **Iteration 13**: Bulk operations (multi-select with Space)
-- **Iteration 14**: Attachment viewing/adding
-- **Iteration 15**: Custom fields support
+- **Iteration 13**: Attachment viewing/adding
+- **Iteration 14**: Custom fields support
+- **Iteration 15**: CRUD Operations (edit tickets, delete with confirmation)
 - **Iteration 16**: Caching and offline mode
-- **Iteration 17**: CRUD Operations (edit tickets, delete with confirmation)
+- **Iteration 17**: Configurable Keybindings
 
 ---
 

@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from rally_tui.models import Discussion, Iteration, Ticket
 from rally_tui.models.sample_data import SAMPLE_DISCUSSIONS, SAMPLE_TICKETS
+from rally_tui.services.protocol import BulkResult
 
 
 def _generate_sample_iterations() -> list[Iteration]:
@@ -362,3 +363,141 @@ class MockRallyClient:
                 self._tickets[i] = updated
                 return updated
         return None
+
+    def bulk_set_parent(
+        self, tickets: list[Ticket], parent_id: str
+    ) -> BulkResult:
+        """Set parent Feature on multiple tickets.
+
+        Only sets parent on tickets that don't already have one.
+
+        Args:
+            tickets: List of tickets to update.
+            parent_id: The parent Feature's formatted ID.
+
+        Returns:
+            BulkResult with success/failure counts and updated tickets.
+        """
+        result = BulkResult()
+
+        for ticket in tickets:
+            # Skip tickets that already have a parent
+            if ticket.parent_id:
+                continue
+
+            try:
+                updated = self.set_parent(ticket, parent_id)
+                if updated:
+                    result.success_count += 1
+                    result.updated_tickets.append(updated)
+                else:
+                    result.failed_count += 1
+                    result.errors.append(f"{ticket.formatted_id}: Ticket not found")
+            except Exception as e:
+                result.failed_count += 1
+                result.errors.append(f"{ticket.formatted_id}: {str(e)}")
+
+        return result
+
+    def bulk_update_state(
+        self, tickets: list[Ticket], state: str
+    ) -> BulkResult:
+        """Update state on multiple tickets.
+
+        Args:
+            tickets: List of tickets to update.
+            state: The new state value.
+
+        Returns:
+            BulkResult with success/failure counts and updated tickets.
+        """
+        result = BulkResult()
+
+        for ticket in tickets:
+            try:
+                updated = self.update_state(ticket, state)
+                if updated:
+                    result.success_count += 1
+                    result.updated_tickets.append(updated)
+                else:
+                    result.failed_count += 1
+                    result.errors.append(f"{ticket.formatted_id}: Ticket not found")
+            except Exception as e:
+                result.failed_count += 1
+                result.errors.append(f"{ticket.formatted_id}: {str(e)}")
+
+        return result
+
+    def bulk_set_iteration(
+        self, tickets: list[Ticket], iteration_name: str | None
+    ) -> BulkResult:
+        """Set iteration on multiple tickets.
+
+        Args:
+            tickets: List of tickets to update.
+            iteration_name: The iteration name, or None for backlog.
+
+        Returns:
+            BulkResult with success/failure counts and updated tickets.
+        """
+        result = BulkResult()
+
+        for ticket in tickets:
+            try:
+                # Find and update the ticket
+                for i, t in enumerate(self._tickets):
+                    if t.formatted_id == ticket.formatted_id:
+                        updated = Ticket(
+                            formatted_id=t.formatted_id,
+                            name=t.name,
+                            ticket_type=t.ticket_type,
+                            state=t.state,
+                            owner=t.owner,
+                            description=t.description,
+                            notes=t.notes,
+                            iteration=iteration_name,
+                            points=t.points,
+                            object_id=t.object_id,
+                            parent_id=t.parent_id,
+                        )
+                        self._tickets[i] = updated
+                        result.success_count += 1
+                        result.updated_tickets.append(updated)
+                        break
+                else:
+                    result.failed_count += 1
+                    result.errors.append(f"{ticket.formatted_id}: Ticket not found")
+            except Exception as e:
+                result.failed_count += 1
+                result.errors.append(f"{ticket.formatted_id}: {str(e)}")
+
+        return result
+
+    def bulk_update_points(
+        self, tickets: list[Ticket], points: float
+    ) -> BulkResult:
+        """Update story points on multiple tickets.
+
+        Args:
+            tickets: List of tickets to update.
+            points: The new story points value.
+
+        Returns:
+            BulkResult with success/failure counts and updated tickets.
+        """
+        result = BulkResult()
+
+        for ticket in tickets:
+            try:
+                updated = self.update_points(ticket, points)
+                if updated:
+                    result.success_count += 1
+                    result.updated_tickets.append(updated)
+                else:
+                    result.failed_count += 1
+                    result.errors.append(f"{ticket.formatted_id}: Ticket not found")
+            except Exception as e:
+                result.failed_count += 1
+                result.errors.append(f"{ticket.formatted_id}: {str(e)}")
+
+        return result

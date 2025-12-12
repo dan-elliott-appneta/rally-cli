@@ -20,9 +20,9 @@ Screen {
 
 /* List container - holds ticket list and search input */
 #list-container {
-    width: 35%;
-    min-width: 25;
-    max-width: 50;
+    width: 40%;
+    min-width: 30;
+    max-width: 80;
     height: 100%;
 }
 
@@ -55,6 +55,13 @@ TicketListItem {
 .ticket-row {
     width: 100%;
     height: auto;
+}
+
+.selection-checkbox {
+    width: 4;
+    min-width: 4;
+    max-width: 4;
+    color: $text-muted;
 }
 
 .state-indicator {
