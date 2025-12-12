@@ -27,7 +27,7 @@ class BulkActionsScreen(Screen[BulkAction | None]):
     - Set State: Change state of all selected tickets
     - Set Iteration: Move all selected tickets to an iteration
     - Set Points: Set story points on all selected tickets
-    - Yank: Copy comma-separated list of ticket IDs to clipboard
+    - Yank: Copy comma-separated list of ticket URLs to clipboard
     """
 
     BINDINGS = [
@@ -109,7 +109,7 @@ class BulkActionsScreen(Screen[BulkAction | None]):
             yield Button("2. Set State", id="btn-state", variant="primary")
             yield Button("3. Set Iteration", id="btn-iteration", variant="primary")
             yield Button("4. Set Points", id="btn-points", variant="primary")
-            yield Button("5. Yank (Copy IDs)", id="btn-yank", variant="primary")
+            yield Button("5. Yank (Copy URLs)", id="btn-yank", variant="primary")
         yield Static(
             "Press 1-5 or click a button, ESC to cancel",
             id="bulk-hint",

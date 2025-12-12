@@ -1110,11 +1110,15 @@ class RallyTUI(App[None]):
             self._bulk_yank(selected)
 
     def _bulk_yank(self, tickets: list[Ticket]) -> None:
-        """Copy comma-separated list of ticket IDs to clipboard."""
-        ids = ", ".join(t.formatted_id for t in tickets)
-        self.copy_to_clipboard(ids)
-        self.notify(f"Copied {len(tickets)} IDs: {ids}", timeout=4)
-        _log.info(f"Yanked {len(tickets)} ticket IDs to clipboard")
+        """Copy comma-separated list of ticket URLs to clipboard."""
+        urls = [t.rally_url(self._server) for t in tickets if t.rally_url(self._server)]
+        if not urls:
+            self.notify("No valid URLs to copy", severity="warning", timeout=4)
+            return
+        result = ", ".join(urls)
+        self.copy_to_clipboard(result)
+        self.notify(f"Copied {len(urls)} URLs", timeout=4)
+        _log.info(f"Yanked {len(urls)} ticket URLs to clipboard")
 
         # Clear selection after yank
         ticket_list = self.query_one(TicketList)
