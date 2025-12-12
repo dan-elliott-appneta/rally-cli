@@ -14,6 +14,8 @@ from textual.worker import Worker, WorkerState
 from rally_tui import __version__
 from rally_tui.config import RallyConfig
 from rally_tui.screens import (
+    AttachmentsResult,
+    AttachmentsScreen,
     BulkAction,
     BulkActionsScreen,
     ConfigData,
@@ -147,6 +149,7 @@ class RallyTUI(App[None]):
             "action.points": ("set_points", "Points", True),
             "action.notes": ("toggle_notes", "Notes", True),
             "action.discuss": ("open_discussions", "Discuss", True),
+            "action.attachments": ("open_attachments", "Attachments", True),
             "action.copy_url": ("copy_ticket_url", "Copy URL", False),
             "action.search": ("start_search", "Search", True),
             "action.sprint": ("iteration_filter", "Sprint", True),
@@ -452,6 +455,85 @@ class RallyTUI(App[None]):
         detail = self.query_one(TicketDetail)
         if detail.ticket:
             self.push_screen(DiscussionScreen(detail.ticket, self._client))
+
+    def action_open_attachments(self) -> None:
+        """Open attachments for the currently selected ticket."""
+        detail = self.query_one(TicketDetail)
+        if detail.ticket:
+            self.push_screen(
+                AttachmentsScreen(detail.ticket, self._client),
+                callback=self._handle_attachments_result,
+            )
+
+    def _handle_attachments_result(self, result: AttachmentsResult | None) -> None:
+        """Handle the result from AttachmentsScreen."""
+        if result is None:
+            _log.debug("Attachments screen closed")
+            return
+
+        if result.action == "download":
+            self._download_attachment(result)
+        elif result.action == "upload":
+            self._upload_attachment(result)
+
+    def _download_attachment(self, result: AttachmentsResult) -> None:
+        """Download an attachment to the user's home directory."""
+        if not result.attachment:
+            return
+
+        import os
+
+        # Download to ~/Downloads/ or home directory
+        download_dir = os.path.expanduser("~/Downloads")
+        if not os.path.isdir(download_dir):
+            download_dir = os.path.expanduser("~")
+
+        dest_path = os.path.join(download_dir, result.attachment.name)
+
+        _log.info(f"Downloading {result.attachment.name} to {dest_path}")
+
+        try:
+            success = self._client.download_attachment(
+                result.ticket, result.attachment, dest_path
+            )
+            if success:
+                self.notify(f"Downloaded: {dest_path}", timeout=3)
+                _log.info(f"Download successful: {dest_path}")
+            else:
+                self.notify("Download failed", severity="error", timeout=3)
+                _log.error(f"Download failed for {result.attachment.name}")
+        except Exception as e:
+            _log.exception(f"Error downloading attachment: {e}")
+            self.notify("Download failed", severity="error", timeout=3)
+
+    def _upload_attachment(self, result: AttachmentsResult) -> None:
+        """Upload a file as an attachment to a ticket."""
+        if not result.file_path:
+            return
+
+        import os
+
+        # Expand path (handle ~ and relative paths)
+        file_path = os.path.expanduser(result.file_path)
+
+        if not os.path.isfile(file_path):
+            self.notify(f"File not found: {file_path}", severity="error", timeout=3)
+            _log.error(f"Upload failed: file not found: {file_path}")
+            return
+
+        _log.info(f"Uploading {file_path} to {result.ticket.formatted_id}")
+
+        try:
+            attachment = self._client.upload_attachment(result.ticket, file_path)
+            if attachment:
+                self.notify(f"Uploaded: {attachment.name}", timeout=3)
+                _log.info(f"Upload successful: {attachment.name}")
+            else:
+                self.notify("Upload failed", severity="error", timeout=3)
+                _log.error(f"Upload failed for {file_path}")
+        except Exception as e:
+            _log.exception(f"Error uploading attachment: {e}")
+            self.notify("Upload failed", severity="error", timeout=3)
 
     def action_toggle_theme(self) -> None:
         """Toggle between dark and light theme and persist setting."""

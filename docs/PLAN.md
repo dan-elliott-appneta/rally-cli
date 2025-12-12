@@ -1100,9 +1100,68 @@ tests/
 
 ---
 
+### Iteration 13: Attachments ✅ COMPLETE
+
+**Goal**: View, download, and upload ticket attachments
+
+**Detailed Guide**: See [ITERATION_13.md](./ITERATION_13.md) for step-by-step implementation.
+
+**Tasks**:
+- [x] Create `Attachment` model with name, size, content_type, object_id
+- [x] Add formatted_size property (B, KB, MB display)
+- [x] Add short_type property (strips MIME prefix)
+- [x] Add `get_attachments()`, `download_attachment()`, `upload_attachment()` to RallyClientProtocol
+- [x] Implement attachment methods in MockRallyClient with SAMPLE_ATTACHMENTS
+- [x] Implement attachment methods in RallyClient using pyral
+- [x] Create `AttachmentsScreen` modal for viewing/downloading/uploading
+- [x] Add `a` keybinding to open attachments screen (vim profile)
+- [x] Add `ctrl+shift+a` keybinding for emacs profile
+- [x] Number keys 1-9 to select attachment for download
+- [x] `u` key to enter upload mode with file path input
+- [x] Downloads save to ~/Downloads/ or home directory
+- [x] 50MB size limit for uploads (Rally limit)
+- [x] Write comprehensive tests (66 new tests for attachments)
+- [x] Update documentation
+
+**Implementation Notes**:
+- Rally stores attachments as base64-encoded content
+- Uses pyral `getAttachments()`, `getAttachment()`, `addAttachment()` methods
+- AttachmentsScreen uses ModalScreen with dismiss() callback pattern
+- AttachmentItem widget displays name, formatted size, and short type
+- Upload validates file exists before sending to Rally
+
+**Key Bindings**:
+| Key | Action |
+|-----|--------|
+| `a` | Open attachments screen |
+| `1-9` | Download attachment by number |
+| `u` | Enter upload mode |
+| `Esc` | Close screen / Cancel upload |
+
+**Key Files**:
+```
+src/rally_tui/
+├── models/
+│   └── attachment.py        # Attachment dataclass
+├── screens/
+│   └── attachments_screen.py # AttachmentsScreen modal
+├── services/
+│   ├── protocol.py          # Add attachment methods
+│   ├── rally_client.py      # Implement attachment methods
+│   └── mock_client.py       # Mock attachment support
+└── app.py                   # Add 'a' keybinding, handlers
+
+tests/
+├── test_attachment_model.py    # 20 tests
+├── test_attachments_screen.py  # 20 tests
+├── test_services.py            # 14 attachment tests
+└── test_rally_client.py        # 12 attachment tests
+```
+
+---
+
 ### Future Iterations
 
-- **Iteration 13**: Attachment viewing/adding
 - **Iteration 14**: Custom fields support
 - **Iteration 15**: CRUD Operations (edit tickets, delete with confirmation)
 - **Iteration 16**: Caching and offline mode

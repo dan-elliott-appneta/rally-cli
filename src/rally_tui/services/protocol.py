@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from rally_tui.models import Discussion, Iteration, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Ticket
 
 
 @dataclass
@@ -235,5 +235,45 @@ class RallyClientProtocol(Protocol):
 
         Returns:
             BulkResult with success/failure counts and updated tickets.
+        """
+        ...
+
+    def get_attachments(self, ticket: Ticket) -> list[Attachment]:
+        """Get all attachments for a ticket.
+
+        Args:
+            ticket: The ticket to get attachments for.
+
+        Returns:
+            List of Attachment objects for the ticket.
+        """
+        ...
+
+    def download_attachment(
+        self, ticket: Ticket, attachment: Attachment, dest_path: str
+    ) -> bool:
+        """Download attachment content to a local file.
+
+        Args:
+            ticket: The ticket the attachment belongs to.
+            attachment: The attachment to download.
+            dest_path: The local path to save the file to.
+
+        Returns:
+            True on success, False on failure.
+        """
+        ...
+
+    def upload_attachment(
+        self, ticket: Ticket, file_path: str
+    ) -> Attachment | None:
+        """Upload a local file as an attachment to a ticket.
+
+        Args:
+            ticket: The ticket to attach the file to.
+            file_path: The local path of the file to upload.
+
+        Returns:
+            The created Attachment on success, None on failure.
         """
         ...
