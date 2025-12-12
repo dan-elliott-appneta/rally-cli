@@ -306,3 +306,217 @@ class TestFilterPersistence:
 
             # Filter should still be active
             assert len(ticket_list._tickets) == 2
+
+
+class TestConnectedModeFiltering:
+    """Tests for filter behavior in connected mode.
+
+    These tests verify that when connected to Rally, filter changes
+    always fetch from the server instead of filtering locally.
+    This prevents issues where _all_tickets may be empty or stale.
+    """
+
+    def test_apply_filters_fetches_from_server_when_connected_with_iteration(
+        self, tickets_with_iterations: list[Ticket]
+    ) -> None:
+        """Connected mode with iteration filter should trigger server fetch."""
+        from unittest.mock import MagicMock, patch
+
+        client = MockRallyClient(tickets=tickets_with_iterations)
+        app = RallyTUI(client=client, show_splash=False)
+
+        # Simulate connected mode
+        app._connected = True
+        app._iteration_filter = "Sprint 26"
+
+        # Mock run_worker to track if it was called
+        with patch.object(app, "run_worker") as mock_worker:
+            with patch.object(app, "query_one") as mock_query:
+                mock_status_bar = MagicMock()
+                mock_query.return_value = mock_status_bar
+
+                app._apply_filters()
+
+                # Should have called run_worker to fetch from server
+                mock_worker.assert_called_once()
+
+    def test_apply_filters_fetches_from_server_when_connected_with_backlog(
+        self, tickets_with_iterations: list[Ticket]
+    ) -> None:
+        """Connected mode with backlog filter should trigger server fetch."""
+        from unittest.mock import MagicMock, patch
+
+        from rally_tui.screens import FILTER_BACKLOG
+
+        client = MockRallyClient(tickets=tickets_with_iterations)
+        app = RallyTUI(client=client, show_splash=False)
+
+        # Simulate connected mode with backlog filter
+        app._connected = True
+        app._iteration_filter = FILTER_BACKLOG
+
+        with patch.object(app, "run_worker") as mock_worker:
+            with patch.object(app, "query_one") as mock_query:
+                mock_status_bar = MagicMock()
+                mock_query.return_value = mock_status_bar
+
+                app._apply_filters()
+
+                # Should have called run_worker to fetch from server
+                mock_worker.assert_called_once()
+
+    def test_apply_filters_fetches_from_server_when_connected_with_all(
+        self, tickets_with_iterations: list[Ticket]
+    ) -> None:
+        """Connected mode with 'All' filter (None) should trigger server fetch.
+
+        This is the bug case: when _iteration_filter is None (All selected),
+        the app should still fetch from server, not filter locally.
+        """
+        from unittest.mock import MagicMock, patch
+
+        client = MockRallyClient(tickets=tickets_with_iterations)
+        app = RallyTUI(client=client, show_splash=False)
+
+        # Simulate connected mode with "All" filter (None)
+        app._connected = True
+        app._iteration_filter = None  # This is what "All" sets
+
+        with patch.object(app, "run_worker") as mock_worker:
+            with patch.object(app, "query_one") as mock_query:
+                mock_status_bar = MagicMock()
+                mock_query.return_value = mock_status_bar
+
+                app._apply_filters()
+
+                # Should have called run_worker to fetch from server
+                # Before the fix, this would NOT call run_worker when
+                # _iteration_filter was None
+                mock_worker.assert_called_once()
+
+    def test_apply_filters_does_not_fetch_when_not_connected(
+        self, tickets_with_iterations: list[Ticket]
+    ) -> None:
+        """Offline mode should filter locally, not fetch from server."""
+        from unittest.mock import MagicMock, patch
+
+        client = MockRallyClient(tickets=tickets_with_iterations)
+        app = RallyTUI(client=client, show_splash=False)
+
+        # Ensure not connected (default for MockRallyClient)
+        app._connected = False
+        app._iteration_filter = "Sprint 26"
+        app._all_tickets = tickets_with_iterations
+
+        with patch.object(app, "run_worker") as mock_worker:
+            with patch.object(app, "query_one") as mock_query:
+                # Mock widgets that _apply_filters needs
+                mock_ticket_list = MagicMock()
+                mock_ticket_list._tickets = []
+                mock_status_bar = MagicMock()
+                mock_detail = MagicMock()
+
+                def query_side_effect(selector):
+                    if selector == TicketList or "ticket-list" in str(selector):
+                        return mock_ticket_list
+                    elif selector == StatusBar or "status-bar" in str(selector):
+                        return mock_status_bar
+                    else:
+                        return mock_detail
+
+                mock_query.side_effect = query_side_effect
+
+                app._apply_filters()
+
+                # Should NOT have called run_worker - filter locally instead
+                mock_worker.assert_not_called()
+
+
+class TestBuildIterationQuery:
+    """Tests for _build_iteration_query method.
+
+    These tests verify the query builder generates correct Rally WSAPI
+    queries for different filter combinations.
+    """
+
+    def test_query_with_iteration_filter(
+        self, tickets_with_iterations: list[Ticket]
+    ) -> None:
+        """Query with iteration filter should include Iteration.Name condition."""
+        client = MockRallyClient(tickets=tickets_with_iterations)
+        app = RallyTUI(client=client, show_splash=False)
+
+        app._iteration_filter = "Sprint 26"
+        app._user_filter_active = False
+
+        query = app._build_iteration_query()
+
+        assert 'Iteration.Name = "Sprint 26"' in query
+        assert f'Project.Name = "{client.project}"' in query
+
+    def test_query_with_backlog_filter(
+        self, tickets_with_iterations: list[Ticket]
+    ) -> None:
+        """Query with backlog filter should include Iteration = null condition."""
+        from rally_tui.screens import FILTER_BACKLOG
+
+        client = MockRallyClient(tickets=tickets_with_iterations)
+        app = RallyTUI(client=client, show_splash=False)
+
+        app._iteration_filter = FILTER_BACKLOG
+        app._user_filter_active = False
+
+        query = app._build_iteration_query()
+
+        assert "(Iteration = null)" in query
+        assert f'Project.Name = "{client.project}"' in query
+
+    def test_query_with_all_filter(
+        self, tickets_with_iterations: list[Ticket]
+    ) -> None:
+        """Query with 'All' filter (None) should only have project scope."""
+        client = MockRallyClient(tickets=tickets_with_iterations)
+        app = RallyTUI(client=client, show_splash=False)
+
+        app._iteration_filter = None  # "All" filter
+        app._user_filter_active = False
+
+        query = app._build_iteration_query()
+
+        # Should only have project scope, no iteration filter
+        assert f'Project.Name = "{client.project}"' in query
+        assert "Iteration" not in query
+
+    def test_query_with_user_filter(
+        self, tickets_with_iterations: list[Ticket]
+    ) -> None:
+        """Query with user filter should include Owner.DisplayName condition."""
+        client = MockRallyClient(tickets=tickets_with_iterations, current_user="Alice")
+        app = RallyTUI(client=client, show_splash=False)
+
+        app._iteration_filter = None
+        app._user_filter_active = True
+
+        query = app._build_iteration_query()
+
+        assert 'Owner.DisplayName = "Alice"' in query
+
+    def test_query_with_combined_filters(
+        self, tickets_with_iterations: list[Ticket]
+    ) -> None:
+        """Query with multiple filters should combine with AND."""
+        from rally_tui.screens import FILTER_BACKLOG
+
+        client = MockRallyClient(tickets=tickets_with_iterations, current_user="Alice")
+        app = RallyTUI(client=client, show_splash=False)
+
+        app._iteration_filter = FILTER_BACKLOG
+        app._user_filter_active = True
+
+        query = app._build_iteration_query()
+
+        # Should have all three conditions combined with AND
+        assert f'Project.Name = "{client.project}"' in query
+        assert "(Iteration = null)" in query
+        assert 'Owner.DisplayName = "Alice"' in query
+        assert "AND" in query
