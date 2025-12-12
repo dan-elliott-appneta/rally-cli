@@ -2,9 +2,36 @@
 
 from datetime import date, datetime, timedelta, timezone
 
-from rally_tui.models import Discussion, Iteration, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Ticket
 from rally_tui.models.sample_data import SAMPLE_DISCUSSIONS, SAMPLE_TICKETS
 from rally_tui.services.protocol import BulkResult
+
+
+# Sample attachments for mock data (keyed by ticket formatted_id)
+SAMPLE_ATTACHMENTS: dict[str, list[Attachment]] = {
+    "US1234": [
+        Attachment(
+            name="requirements.pdf",
+            size=250880,  # ~245 KB
+            content_type="application/pdf",
+            object_id="att_001",
+        ),
+        Attachment(
+            name="screenshot.png",
+            size=91136,  # ~89 KB
+            content_type="image/png",
+            object_id="att_002",
+        ),
+    ],
+    "US5678": [
+        Attachment(
+            name="test-data.csv",
+            size=12288,  # ~12 KB
+            content_type="text/csv",
+            object_id="att_003",
+        ),
+    ],
+}
 
 
 def _generate_sample_iterations() -> list[Iteration]:
@@ -78,6 +105,7 @@ class MockRallyClient:
         discussions: dict[str, list[Discussion]] | None = None,
         iterations: list[Iteration] | None = None,
         features: dict[str, str] | None = None,
+        attachments: dict[str, list[Attachment]] | None = None,
         workspace: str = "My Workspace",
         project: str = "My Project",
         current_user: str | None = None,
@@ -90,6 +118,7 @@ class MockRallyClient:
             discussions: Dict mapping formatted_id to discussions. Defaults to SAMPLE_DISCUSSIONS.
             iterations: List of iterations to use. Defaults to generated sample iterations.
             features: Dict mapping feature ID to name. Defaults to DEFAULT_FEATURES.
+            attachments: Dict mapping formatted_id to attachments. Defaults to SAMPLE_ATTACHMENTS.
             workspace: Workspace name to report.
             project: Project name to report.
             current_user: Current user's display name.
@@ -101,6 +130,9 @@ class MockRallyClient:
         )
         self._iterations = iterations if iterations is not None else _generate_sample_iterations()
         self._features = features if features is not None else dict(DEFAULT_FEATURES)
+        self._attachments: dict[str, list[Attachment]] = (
+            attachments if attachments is not None else dict(SAMPLE_ATTACHMENTS)
+        )
         self._workspace = workspace
         self._project = project
         self._current_user = current_user
@@ -108,6 +140,7 @@ class MockRallyClient:
         self._next_discussion_id = 300000  # For generating new discussion IDs
         self._next_story_id = 9000  # For generating new User Story IDs
         self._next_defect_id = 9000  # For generating new Defect IDs
+        self._next_attachment_id = 9000  # For generating new Attachment IDs
 
     @property
     def workspace(self) -> str:
@@ -501,3 +534,79 @@ class MockRallyClient:
                 result.errors.append(f"{ticket.formatted_id}: {str(e)}")
 
         return result
+
+    def get_attachments(self, ticket: Ticket) -> list[Attachment]:
+        """Get all attachments for a ticket.
+
+        Args:
+            ticket: The ticket to get attachments for.
+
+        Returns:
+            List of Attachment objects for the ticket.
+        """
+        return self._attachments.get(ticket.formatted_id, [])
+
+    def download_attachment(
+        self, ticket: Ticket, attachment: Attachment, dest_path: str
+    ) -> bool:
+        """Download attachment content to a local file.
+
+        In the mock client, this simulates a successful download without
+        actually writing any file content.
+
+        Args:
+            ticket: The ticket the attachment belongs to.
+            attachment: The attachment to download.
+            dest_path: The local path to save the file to.
+
+        Returns:
+            True on success (always succeeds in mock).
+        """
+        # Verify the attachment exists for this ticket
+        attachments = self._attachments.get(ticket.formatted_id, [])
+        for att in attachments:
+            if att.object_id == attachment.object_id:
+                return True
+        return False
+
+    def upload_attachment(
+        self, ticket: Ticket, file_path: str
+    ) -> Attachment | None:
+        """Upload a local file as an attachment to a ticket.
+
+        In the mock client, this creates an Attachment record without
+        actually reading any file content.
+
+        Args:
+            ticket: The ticket to attach the file to.
+            file_path: The local path of the file to upload.
+
+        Returns:
+            The created Attachment on success.
+        """
+        import mimetypes
+        import os
+
+        # Extract filename from path
+        filename = os.path.basename(file_path)
+
+        # Guess MIME type from filename
+        content_type, _ = mimetypes.guess_type(filename)
+        if content_type is None:
+            content_type = "application/octet-stream"
+
+        # Create the attachment
+        attachment = Attachment(
+            name=filename,
+            size=1024,  # Mock size
+            content_type=content_type,
+            object_id=f"att_{self._next_attachment_id}",
+        )
+        self._next_attachment_id += 1
+
+        # Add to the ticket's attachments
+        if ticket.formatted_id not in self._attachments:
+            self._attachments[ticket.formatted_id] = []
+        self._attachments[ticket.formatted_id].append(attachment)
+
+        return attachment
