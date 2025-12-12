@@ -1267,9 +1267,7 @@ class RallyTUI(App[None]):
 
     def _bulk_yank(self, tickets: list[Ticket]) -> None:
         """Copy comma-separated list of ticket URLs to clipboard."""
-        urls: list[str] = [
-            url for t in tickets if (url := t.rally_url(self._server)) is not None
-        ]
+        urls: list[str] = [url for t in tickets if (url := t.rally_url(self._server)) is not None]
         if not urls:
             self.notify("No valid URLs to copy", severity="warning", timeout=4)
             return
