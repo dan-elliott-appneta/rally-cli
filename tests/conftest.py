@@ -1,11 +1,27 @@
 """Pytest configuration and fixtures for Rally TUI tests."""
 
+import os
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
 from rally_tui.models import Ticket
 from rally_tui.services import MockRallyClient
+
+
+# Environment-specific snapshot directories
+def pytest_configure(config):
+    """Configure snapshot directory based on environment."""
+    if os.environ.get("CI"):
+        # Use CI-specific snapshots when running in GitHub Actions
+        snapshot_dir = Path(__file__).parent / "__snapshots_ci__"
+    else:
+        # Use local snapshots for development
+        snapshot_dir = Path(__file__).parent / "__snapshots__"
+
+    # Set the snapshot directory for pytest-textual-snapshot
+    os.environ["TEXTUAL_SNAPSHOT_DIR"] = str(snapshot_dir)
 
 
 @pytest.fixture
