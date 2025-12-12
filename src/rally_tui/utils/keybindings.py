@@ -99,7 +99,7 @@ VIM_KEYBINDINGS: dict[str, str] = {
     "navigation.down": "j",
     "navigation.up": "k",
     "navigation.top": "g",
-    "navigation.bottom": "shift+g",
+    "navigation.bottom": "G",
     # Panel
     "panel.switch": "tab",
     # Selection

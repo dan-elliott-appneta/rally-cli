@@ -53,23 +53,11 @@ class RallyTUI(App[None]):
     TITLE = "Rally TUI"
     CSS_PATH = "app.tcss"
 
+    # Only non-configurable bindings here
+    # Configurable bindings are applied dynamically in on_mount via _apply_app_keybindings()
     BINDINGS = [
-        Binding("w", "quick_ticket", "Workitem"),
-        Binding("s", "set_state", "State"),
-        Binding("p", "set_points", "Points"),
-        Binding("o", "cycle_sort", "Sort"),
-        Binding("n", "toggle_notes", "Notes"),
-        Binding("d", "open_discussions", "Discuss"),
-        Binding("i", "iteration_filter", "Sprint"),
-        Binding("u", "toggle_user_filter", "My Items"),
-        Binding("m", "bulk_actions", "Bulk"),
-        Binding("/", "start_search", "Search"),
-        Binding("f2", "open_settings", "Settings"),
-        Binding("f3", "open_keybindings", "Keys"),
-        Binding("q", "quit", "Quit"),
+        # Tab needs priority=True to override default focus cycling
         Binding("tab", "switch_panel", "Switch Panel", show=False, priority=True),
-        Binding("t", "toggle_theme", "Theme", show=False),
-        Binding("y", "copy_ticket_url", "Copy URL", show=False),
     ]
 
     def __init__(
@@ -141,14 +129,48 @@ class RallyTUI(App[None]):
         self._all_tickets_loaded = False
         with Horizontal(id="main-container"):
             with Vertical(id="list-container"):
-                yield TicketList([], id="ticket-list")
+                yield TicketList([], id="ticket-list", user_settings=self._user_settings)
                 yield SearchInput(id="search-input")
             yield TicketDetail(id="ticket-detail")
         yield Footer()
 
+    def _apply_app_keybindings(self) -> None:
+        """Apply app-level keybindings from user settings."""
+        from rally_tui.utils.keybindings import ACTION_REGISTRY
+
+        keybindings = self._user_settings.keybindings
+
+        # Map action IDs to handlers for app-level actions
+        app_actions = {
+            "action.workitem": ("quick_ticket", "Workitem", True),
+            "action.state": ("set_state", "State", True),
+            "action.points": ("set_points", "Points", True),
+            "action.notes": ("toggle_notes", "Notes", True),
+            "action.discuss": ("open_discussions", "Discuss", True),
+            "action.copy_url": ("copy_ticket_url", "Copy URL", False),
+            "action.search": ("start_search", "Search", True),
+            "action.sprint": ("iteration_filter", "Sprint", True),
+            "action.my_items": ("toggle_user_filter", "My Items", True),
+            "action.sort": ("cycle_sort", "Sort", True),
+            "action.bulk": ("bulk_actions", "Bulk", True),
+            "action.settings": ("open_settings", "Settings", True),
+            "action.keybindings": ("open_keybindings", "Keys", True),
+            "action.theme": ("toggle_theme", "Theme", False),
+            "action.quit": ("quit", "Quit", True),
+        }
+
+        for action_id, (handler, description, show) in app_actions.items():
+            if action_id in keybindings:
+                key = keybindings[action_id]
+                self._bindings.bind(key, handler, description, show=show)
+                _log.debug(f"Bound {key} -> {handler}")
+
     def on_mount(self) -> None:
         """Initialize the app state."""
         _log.debug("App mounted, initializing state")
+
+        # Apply dynamic keybindings from user settings
+        self._apply_app_keybindings()
 
         # Apply saved theme name (e.g., catppuccin-mocha)
         saved_theme = self._user_settings.theme_name

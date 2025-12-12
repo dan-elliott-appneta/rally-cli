@@ -82,12 +82,16 @@ def empty_client() -> MockRallyClient:
 
 @pytest.fixture
 def mock_user_settings() -> MagicMock:
-    """Provide mock UserSettings with parent_options configured.
+    """Provide mock UserSettings with parent_options and keybindings configured.
 
-    This matches the DEFAULT_FEATURES in MockRallyClient.
+    This matches the DEFAULT_FEATURES in MockRallyClient and provides
+    VIM keybindings for dynamic keybinding tests.
     """
+    from rally_tui.utils.keybindings import VIM_KEYBINDINGS
+
     settings = MagicMock()
     settings.theme = "dark"
     settings.theme_name = "textual-dark"
     settings.parent_options = ["F59625", "F59627", "F59628"]
+    settings.keybindings = dict(VIM_KEYBINDINGS)
     return settings
