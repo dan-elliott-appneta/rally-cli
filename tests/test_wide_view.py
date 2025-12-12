@@ -292,13 +292,13 @@ class TestWideViewItemDisplay:
         assert ticket.parent_id is None
 
     def test_long_owner_truncated(self) -> None:
-        """Long owner names should be truncated to 12 chars."""
+        """Long owner names should be truncated to 18 chars."""
         ticket = Ticket(
             formatted_id="US1234",
             name="Test",
             ticket_type="UserStory",
             state="Defined",
-            owner="VeryLongOwnerNameThatExceeds12Chars",
+            owner="VeryLongOwnerNameThatExceeds18Chars",
         )
-        # The compose method truncates to 12 chars
-        assert len(ticket.owner) > 12
+        # The compose method truncates to 18 chars
+        assert len(ticket.owner) > 18

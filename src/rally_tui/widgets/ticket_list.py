@@ -248,7 +248,7 @@ class WideTicketListItem(ListItem):
         points_str = str(int(self.ticket.points)) if self.ticket.points else "-"
 
         # Format owner display (truncate long names)
-        owner_str = self.ticket.owner[:12] if self.ticket.owner else "-"
+        owner_str = self.ticket.owner[:18] if self.ticket.owner else "-"
 
         # Format parent ID display
         parent_str = self.ticket.parent_id if self.ticket.parent_id else "-"

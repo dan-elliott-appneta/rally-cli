@@ -95,12 +95,13 @@ WideTicketListItem {
 
 .ticket-text-wide {
     width: 1fr;
+    margin-right: 2;
 }
 
 .ticket-owner {
-    width: 14;
-    min-width: 14;
-    max-width: 14;
+    width: 21;
+    min-width: 21;
+    max-width: 21;
     color: $text-muted;
 }
 

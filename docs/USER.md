@@ -193,7 +193,7 @@ Press `v` to toggle wide view mode:
 - **Normal mode**: Compact list showing ticket ID and name
 - **Wide mode**: Expanded list (up to 75% width, max 250 chars) showing:
   - Ticket ID and name
-  - Owner (truncated to 12 chars)
+  - Owner (truncated to 18 chars)
   - Points
   - Parent Feature ID
 
