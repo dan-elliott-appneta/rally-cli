@@ -136,7 +136,7 @@ class TestStatusBarWidget:
             assert status_bar.workspace == "Not Connected"
 
     async def test_status_bar_shows_banner(self) -> None:
-        """StatusBar should display rally-tui banner."""
+        """StatusBar should display RALLY TUI banner."""
         from textual.app import App, ComposeResult
 
         class TestApp(App[None]):
@@ -147,8 +147,8 @@ class TestStatusBarWidget:
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
             assert status_bar.workspace == "My Workspace"
-            # Check the rendered content includes rally-tui banner
-            assert "rally-tui" in status_bar.display_content
+            # Check the rendered content includes RALLY TUI banner
+            assert "RALLY TUI" in status_bar.display_content
 
     async def test_status_bar_shows_project(self) -> None:
         """StatusBar should display project name when set."""
@@ -192,9 +192,9 @@ class TestStatusBarWidget:
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
             status_bar.set_workspace("Updated Workspace")
-            # Workspace property updates, but banner stays rally-tui
+            # Workspace property updates, but banner stays RALLY TUI
             assert status_bar.workspace == "Updated Workspace"
-            assert "rally-tui" in status_bar.display_content
+            assert "RALLY TUI" in status_bar.display_content
 
     async def test_status_bar_format_with_project(self) -> None:
         """StatusBar should format with pipe separators."""
@@ -213,7 +213,7 @@ class TestStatusBarWidget:
             status_bar = app.query_one(StatusBar)
             content = status_bar.display_content
             # Should contain banner, project, and offline with separators
-            assert "rally-tui" in content
+            assert "RALLY TUI" in content
             assert "Project: PR" in content
             assert "|" in content
 
@@ -233,7 +233,7 @@ class TestStatusBarWidget:
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
             content = status_bar.display_content
-            assert "rally-tui" in content
+            assert "RALLY TUI" in content
             assert "Project:" not in content
 
     async def test_status_bar_shows_connected(self) -> None:
@@ -384,11 +384,11 @@ class TestStatusBarInApp:
             assert status_bar is not None
 
     async def test_status_bar_shows_banner_in_app(self) -> None:
-        """StatusBar should show rally-tui banner in app."""
+        """StatusBar should show RALLY TUI banner in app."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
-            assert "rally-tui" in status_bar.display_content
+            assert "RALLY TUI" in status_bar.display_content
 
     async def test_status_bar_shows_project_in_app(self) -> None:
         """StatusBar should show project name in app."""

@@ -78,13 +78,13 @@ class StatusBar(Static):
 
     def _update_display(self) -> None:
         """Update the status bar content."""
-        parts = ["[bold orange]rally-tui[/]"]
+        parts = ["[bold blue]RALLY TUI[/]"]
         if self._project:
             parts.append(f"Project: {self._project}")
 
         # Show loading indicator if fetching tickets
         if self._loading:
-            parts.append("[bold blue]Loading...[/]")
+            parts.append("[bold cyan]Loading...[/]")
 
         # Show selection count if any tickets selected
         if self._selection_count > 0:
@@ -99,7 +99,7 @@ class StatusBar(Static):
         if filters:
             parts.append(" ".join(filters))
 
-        # Show sort mode if not default (State)
+        # Show sort mode
         if self._sort_mode:
             parts.append(f"Sort: {self._sort_mode}")
 
@@ -242,14 +242,13 @@ class StatusBar(Static):
         """Set the current sort mode display.
 
         Args:
-            mode: The sort mode to display. STATE mode is considered
-                  default and won't be shown in the status bar.
+            mode: The sort mode to display.
         """
         # Import here to avoid circular import
         from rally_tui.widgets.ticket_list import SortMode
 
         mode_names = {
-            SortMode.STATE: None,  # Default, don't show
+            SortMode.STATE: "State",
             SortMode.CREATED: "Recent",
             SortMode.OWNER: "Owner",
         }

@@ -214,13 +214,17 @@ class RallyTUI(App[None]):
         self.query_one("#search-input").display = False
 
         # Set initial filter state for connected mode
+        status_bar = self.query_one(StatusBar)
         if self._connected and self._client.current_iteration:
             self._iteration_filter = self._client.current_iteration
             self._user_filter_active = True
-            status_bar = self.query_one(StatusBar)
             status_bar.set_iteration_filter(self._iteration_filter)
             status_bar.set_user_filter(True)
             _log.debug(f"Initial filters: iteration={self._iteration_filter}, user=True")
+
+        # Set initial sort mode display
+        ticket_list = self.query_one(TicketList)
+        status_bar.set_sort_mode(ticket_list.sort_mode)
 
         # Set up cache status callback if caching is enabled
         if self._caching_client:
