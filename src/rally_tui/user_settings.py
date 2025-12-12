@@ -34,6 +34,10 @@ class UserSettings:
     DEFAULT_PARENT_OPTIONS: list[str] = ["F59625", "F59627", "F59628"]
     # Default keybinding profile
     DEFAULT_KEYBINDING_PROFILE = "vim"
+    # Cache settings defaults
+    DEFAULT_CACHE_ENABLED = True
+    DEFAULT_CACHE_TTL_MINUTES = 15
+    DEFAULT_CACHE_AUTO_REFRESH = True
 
     def __init__(self) -> None:
         """Initialize user settings, loading from file if exists."""
@@ -239,4 +243,49 @@ class UserSettings:
         # Clear custom bindings
         self._settings.pop("keybindings", None)
         self._settings["keybinding_profile"] = profile
+        self._save()
+
+    # Cache settings properties
+
+    @property
+    def cache_enabled(self) -> bool:
+        """Get whether caching is enabled."""
+        return self._settings.get("cache_enabled", self.DEFAULT_CACHE_ENABLED)
+
+    @cache_enabled.setter
+    def cache_enabled(self, value: bool) -> None:
+        """Set and persist cache enabled setting."""
+        if not isinstance(value, bool):
+            raise ValueError("cache_enabled must be a boolean")
+        self._settings["cache_enabled"] = value
+        self._save()
+
+    @property
+    def cache_ttl_minutes(self) -> int:
+        """Get the cache TTL in minutes."""
+        ttl = self._settings.get("cache_ttl_minutes", self.DEFAULT_CACHE_TTL_MINUTES)
+        # Ensure it's a valid positive integer
+        if isinstance(ttl, int) and ttl > 0:
+            return ttl
+        return self.DEFAULT_CACHE_TTL_MINUTES
+
+    @cache_ttl_minutes.setter
+    def cache_ttl_minutes(self, value: int) -> None:
+        """Set and persist cache TTL in minutes."""
+        if not isinstance(value, int) or value <= 0:
+            raise ValueError("cache_ttl_minutes must be a positive integer")
+        self._settings["cache_ttl_minutes"] = value
+        self._save()
+
+    @property
+    def cache_auto_refresh(self) -> bool:
+        """Get whether auto-refresh is enabled when cache is stale."""
+        return self._settings.get("cache_auto_refresh", self.DEFAULT_CACHE_AUTO_REFRESH)
+
+    @cache_auto_refresh.setter
+    def cache_auto_refresh(self, value: bool) -> None:
+        """Set and persist cache auto-refresh setting."""
+        if not isinstance(value, bool):
+            raise ValueError("cache_auto_refresh must be a boolean")
+        self._settings["cache_auto_refresh"] = value
         self._save()
