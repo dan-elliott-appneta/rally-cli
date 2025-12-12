@@ -1158,7 +1158,7 @@ class RallyClient:
         authentication to download.
 
         Args:
-            url: The URL of the embedded image.
+            url: The URL of the embedded image (may be relative or absolute).
             dest_path: The local path to save the file to.
 
         Returns:
@@ -1166,12 +1166,16 @@ class RallyClient:
         """
         import requests
 
+        # Make URL absolute if it's relative
+        if url.startswith("/"):
+            url = f"https://{self._config.server}{url}"
+
         _log.info(f"Downloading embedded image from {url}")
 
         try:
             # Rally embedded images require API key authentication
             headers = {
-                "ZSESSIONID": self._api_key,
+                "ZSESSIONID": self._config.apikey,
             }
 
             response = requests.get(url, headers=headers, timeout=30)
