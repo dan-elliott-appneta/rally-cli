@@ -320,6 +320,7 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 
 ## Documentation
 
+- [USER.md](docs/USER.md) - **User Manual** - Complete guide to using Rally TUI
 - [API.md](docs/API.md) - Rally WSAPI Python developer guide
 - [PLAN.md](docs/PLAN.md) - Development roadmap and architecture
 - [ITERATION_1.md](docs/ITERATION_1.md) - Iteration 1 implementation guide (complete)
