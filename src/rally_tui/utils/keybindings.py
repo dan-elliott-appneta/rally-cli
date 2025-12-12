@@ -58,6 +58,9 @@ ACTION_REGISTRY: dict[str, KeyAction] = {
     "action.discuss": KeyAction(
         "action.discuss", "Discuss", "open_discussions", "Actions"
     ),
+    "action.attachments": KeyAction(
+        "action.attachments", "Attachments", "open_attachments", "Actions"
+    ),
     "action.copy_url": KeyAction(
         "action.copy_url", "Copy URL", "copy_ticket_url", "Actions", show_in_footer=False
     ),
@@ -111,6 +114,7 @@ VIM_KEYBINDINGS: dict[str, str] = {
     "action.points": "p",
     "action.notes": "n",
     "action.discuss": "d",
+    "action.attachments": "a",
     "action.copy_url": "y",
     # Filters
     "action.search": "slash",
@@ -144,6 +148,7 @@ EMACS_KEYBINDINGS: dict[str, str] = {
     "action.points": "ctrl+shift+p",
     "action.notes": "ctrl+shift+o",
     "action.discuss": "ctrl+d",
+    "action.attachments": "ctrl+shift+a",
     "action.copy_url": "alt+w",
     # Filters
     "action.search": "ctrl+s",
