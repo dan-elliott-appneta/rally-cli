@@ -1,6 +1,10 @@
 """Ticket list widget with keyboard navigation."""
 
+from __future__ import annotations
+
 from enum import Enum
+from typing import TYPE_CHECKING
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.message import Message
@@ -8,6 +12,9 @@ from textual.widgets import Label, ListItem, ListView
 from textual.containers import Horizontal
 
 from rally_tui.models import Ticket
+
+if TYPE_CHECKING:
+    from rally_tui.user_settings import UserSettings
 
 
 class SortMode(Enum):
@@ -222,11 +229,9 @@ class TicketList(ListView):
     and emit custom messages when selection changes.
     """
 
+    # Only non-configurable bindings here
+    # Configurable bindings (j/k/g/G) are applied dynamically in on_mount
     BINDINGS = [
-        Binding("j", "cursor_down", "Down", show=False),
-        Binding("k", "cursor_up", "Up", show=False),
-        Binding("g", "scroll_home", "Top", show=False),
-        Binding("G", "scroll_end", "Bottom", show=False),
         Binding("space", "toggle_selection", "Select", show=False),
         Binding("ctrl+a", "select_all", "Select All", show=False),
     ]
@@ -268,6 +273,7 @@ class TicketList(ListView):
         id: str | None = None,
         classes: str | None = None,
         sort_mode: SortMode = SortMode.STATE,
+        user_settings: UserSettings | None = None,
     ) -> None:
         """Initialize the ticket list.
 
@@ -276,9 +282,11 @@ class TicketList(ListView):
             id: Widget ID for CSS targeting.
             classes: CSS classes to apply.
             sort_mode: How to sort the tickets.
+            user_settings: User settings for dynamic keybindings.
         """
         super().__init__(id=id, classes=classes)
         self._sort_mode = sort_mode
+        self._user_settings = user_settings
         # Sort tickets by the specified mode
         sorted_tickets = sort_tickets(tickets or [], self._sort_mode)
         self._tickets = sorted_tickets
@@ -292,6 +300,33 @@ class TicketList(ListView):
         for ticket in self._tickets:
             is_selected = ticket.formatted_id in self._selected_ids
             yield TicketListItem(ticket, selected=is_selected)
+
+    def on_mount(self) -> None:
+        """Apply dynamic keybindings on mount."""
+        self._apply_keybindings()
+
+    def _apply_keybindings(self) -> None:
+        """Apply keybindings from user settings."""
+        from rally_tui.utils.keybindings import VIM_KEYBINDINGS
+
+        # Get keybindings from settings or use vim defaults
+        if self._user_settings:
+            keybindings = self._user_settings.keybindings
+        else:
+            keybindings = VIM_KEYBINDINGS
+
+        # Navigation bindings for TicketList
+        navigation_bindings = {
+            "navigation.down": "cursor_down",
+            "navigation.up": "cursor_up",
+            "navigation.top": "scroll_home",
+            "navigation.bottom": "scroll_end",
+        }
+
+        for action_id, handler in navigation_bindings.items():
+            if action_id in keybindings:
+                key = keybindings[action_id]
+                self._bindings.bind(key, handler, show=False)
 
     def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
         """Handle highlight changes and emit our custom message."""

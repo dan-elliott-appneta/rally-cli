@@ -6,6 +6,13 @@ import json
 from pathlib import Path
 from typing import Any
 
+from rally_tui.utils.keybindings import (
+    VALID_PROFILES,
+    VIM_KEYBINDINGS,
+    get_profile_keybindings,
+    validate_key,
+)
+
 
 class UserSettings:
     """User settings stored in JSON config file.
@@ -25,6 +32,8 @@ class UserSettings:
     VALID_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
     # Default parent Feature IDs for quick selection
     DEFAULT_PARENT_OPTIONS: list[str] = ["F59625", "F59627", "F59628"]
+    # Default keybinding profile
+    DEFAULT_KEYBINDING_PROFILE = "vim"
 
     def __init__(self) -> None:
         """Initialize user settings, loading from file if exists."""
@@ -112,4 +121,122 @@ class UserSettings:
     def set(self, key: str, value: Any) -> None:
         """Set and persist a setting value."""
         self._settings[key] = value
+        self._save()
+
+    # Keybinding properties and methods
+
+    @property
+    def keybinding_profile(self) -> str:
+        """Get the current keybinding profile ('vim', 'emacs', or 'custom')."""
+        profile = self._settings.get("keybinding_profile", self.DEFAULT_KEYBINDING_PROFILE)
+        if profile not in VALID_PROFILES:
+            return self.DEFAULT_KEYBINDING_PROFILE
+        return profile
+
+    @keybinding_profile.setter
+    def keybinding_profile(self, value: str) -> None:
+        """Set and persist the keybinding profile."""
+        if value not in VALID_PROFILES:
+            raise ValueError(f"Profile must be one of: {', '.join(VALID_PROFILES)}")
+        self._settings["keybinding_profile"] = value
+        self._save()
+
+    @property
+    def keybindings(self) -> dict[str, str]:
+        """Get the current keybindings.
+
+        Returns merged keybindings: profile defaults + user overrides.
+        Returns a copy to prevent mutation of internal state.
+        """
+        # Start with profile defaults
+        profile = self.keybinding_profile
+        result = get_profile_keybindings(profile)
+
+        # Apply any user overrides
+        custom = self._settings.get("keybindings", {})
+        if isinstance(custom, dict):
+            for action_id, key in custom.items():
+                if isinstance(key, str) and action_id in result:
+                    result[action_id] = key
+
+        return result
+
+    @keybindings.setter
+    def keybindings(self, value: dict[str, str]) -> None:
+        """Set and persist custom keybindings.
+
+        Args:
+            value: Dictionary of action_id -> key mappings.
+        """
+        if not isinstance(value, dict):
+            raise ValueError("Keybindings must be a dictionary")
+        for action_id, key in value.items():
+            if not isinstance(action_id, str) or not isinstance(key, str):
+                raise ValueError("Keybinding keys and values must be strings")
+            if not validate_key(key):
+                raise ValueError(f"Invalid key: {key}")
+
+        self._settings["keybindings"] = value
+        # When setting custom keybindings, switch to custom profile
+        if value:
+            self._settings["keybinding_profile"] = "custom"
+        self._save()
+
+    def get_keybinding(self, action_id: str) -> str:
+        """Get the key for a specific action.
+
+        Args:
+            action_id: The action identifier (e.g., 'navigation.down')
+
+        Returns:
+            The key string (e.g., 'j' or 'ctrl+n')
+
+        Raises:
+            KeyError: If action_id is not found
+        """
+        bindings = self.keybindings
+        if action_id not in bindings:
+            raise KeyError(f"Unknown action: {action_id}")
+        return bindings[action_id]
+
+    def set_keybinding(self, action_id: str, key: str) -> None:
+        """Set a single keybinding.
+
+        Args:
+            action_id: The action identifier
+            key: The new key string
+
+        Raises:
+            ValueError: If key is invalid
+            KeyError: If action_id is not known
+        """
+        if not validate_key(key):
+            raise ValueError(f"Invalid key: {key}")
+
+        # Verify action exists in defaults
+        if action_id not in VIM_KEYBINDINGS:
+            raise KeyError(f"Unknown action: {action_id}")
+
+        # Get current custom bindings or empty dict
+        custom = dict(self._settings.get("keybindings", {}))
+        custom[action_id] = key
+        self._settings["keybindings"] = custom
+        self._settings["keybinding_profile"] = "custom"
+        self._save()
+
+    def reset_keybindings(self, profile: str = "vim") -> None:
+        """Reset keybindings to a profile's defaults.
+
+        Args:
+            profile: Profile to reset to ('vim' or 'emacs')
+
+        Raises:
+            ValueError: If profile is invalid
+        """
+        if profile not in ("vim", "emacs"):
+            raise ValueError(f"Profile must be 'vim' or 'emacs', got: {profile}")
+
+        # Clear custom bindings
+        self._settings.pop("keybindings", None)
+        self._settings["keybinding_profile"] = profile
         self._save()
