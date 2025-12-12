@@ -255,6 +255,10 @@ class RallyTUI(App[None]):
 
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
         """Handle worker completion."""
+        _log.debug(f"Worker {event.worker.name} state: {event.state}")
+        if event.state == WorkerState.ERROR:
+            _log.error(f"Worker {event.worker.name} failed: {event.worker.error}")
+            return
         if event.state != WorkerState.SUCCESS:
             return
 
@@ -299,7 +303,7 @@ class RallyTUI(App[None]):
 
     def _fetch_filtered_tickets(self) -> list:
         """Fetch tickets with current filter from server."""
-        _log.debug(f"Fetching tickets for iteration filter: {self._iteration_filter}")
+        _log.info(f"_fetch_filtered_tickets called, iteration_filter={self._iteration_filter}")
         try:
             # Build query for the selected iteration
             if self._iteration_filter == FILTER_BACKLOG:
@@ -310,8 +314,10 @@ class RallyTUI(App[None]):
             else:
                 query = ""
 
-            tickets = self._client.get_tickets(query=query)
-            return list(tickets)
+            _log.info(f"Fetching tickets with query: {query}")
+            tickets = list(self._client.get_tickets(query=query))
+            _log.info(f"Got {len(tickets)} tickets from API")
+            return tickets
         except Exception as e:
             _log.error(f"Failed to fetch filtered tickets: {e}")
             return []
@@ -344,12 +350,15 @@ class RallyTUI(App[None]):
 
     def _on_filtered_tickets_loaded(self, tickets: list) -> None:
         """Called when filtered tickets are loaded from server."""
+        _log.debug(f"_on_filtered_tickets_loaded called with {len(tickets)} tickets")
         # Apply user filter if active
         if self._user_filter_active and self._client.current_user:
             tickets = [t for t in tickets if t.owner == self._client.current_user]
+            _log.debug(f"After user filter: {len(tickets)} tickets")
 
         # Update the ticket list
         ticket_list = self.query_one(TicketList)
+        _log.debug(f"Calling set_tickets with {len(tickets)} tickets")
         ticket_list.set_tickets(tickets)
 
         # Update status bar
@@ -1151,12 +1160,13 @@ class RallyTUI(App[None]):
 
     def _apply_filters(self) -> None:
         """Apply iteration and user filters to the ticket list."""
+        _log.info(f"_apply_filters called: connected={self._connected}, iteration_filter={self._iteration_filter}")
         # When connected to Rally, always fetch from server when changing iteration filter
         # This ensures Rally does the matching (avoids string mismatch issues)
         if self._connected and self._iteration_filter:
-            _log.debug(f"Fetching from server for iteration filter: {self._iteration_filter}")
+            _log.info(f"Starting worker to fetch tickets for: {self._iteration_filter}")
             self.notify("Loading tickets...", timeout=1)
-            self.run_worker(self._fetch_filtered_tickets, thread=True)
+            self.run_worker(self._fetch_filtered_tickets, thread=True, name="_fetch_filtered_tickets")
             return
 
         # For offline mode or no iteration filter, filter locally
