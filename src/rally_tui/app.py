@@ -452,14 +452,31 @@ class RallyTUI(App[None]):
             return []
 
     def _build_iteration_query(self) -> str:
-        """Build query string for iteration filter."""
+        """Build query string for iteration filter, including user filter if active."""
+        conditions: list[str] = []
+
+        # Add iteration condition
         if self._iteration_filter == FILTER_BACKLOG:
             # Backlog = no iteration assigned
-            return "(Iteration = null)"
+            conditions.append("(Iteration = null)")
         elif self._iteration_filter:
-            return f'(Iteration.Name = "{self._iteration_filter}")'
-        else:
+            conditions.append(f'(Iteration.Name = "{self._iteration_filter}")')
+
+        # Add user filter condition if active
+        if self._user_filter_active and self._client and self._client.current_user:
+            conditions.append(f'(Owner.DisplayName = "{self._client.current_user}")')
+
+        # Build final query with proper AND nesting for Rally WSAPI
+        if not conditions:
             return ""
+        if len(conditions) == 1:
+            return conditions[0]
+
+        # Rally WSAPI requires nested ANDs: ((cond1) AND (cond2))
+        result = conditions[0]
+        for condition in conditions[1:]:
+            result = f"({result} AND {condition})"
+        return result
 
     def _on_initial_tickets_loaded(self) -> None:
         """Called when initial tickets are loaded async - update UI and dismiss splash."""
