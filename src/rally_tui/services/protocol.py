@@ -1,8 +1,26 @@
 """Protocol defining the Rally client interface."""
 
+from dataclasses import dataclass, field
 from typing import Protocol
 
 from rally_tui.models import Discussion, Iteration, Ticket
+
+
+@dataclass
+class BulkResult:
+    """Result of a bulk operation on multiple tickets.
+
+    Attributes:
+        success_count: Number of tickets successfully updated.
+        failed_count: Number of tickets that failed to update.
+        updated_tickets: List of successfully updated Ticket objects.
+        errors: List of error messages for failed updates.
+    """
+
+    success_count: int = 0
+    failed_count: int = 0
+    updated_tickets: list[Ticket] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
 
 class RallyClientProtocol(Protocol):
@@ -156,5 +174,66 @@ class RallyClientProtocol(Protocol):
 
         Returns:
             The updated Ticket with parent_id set, or None on failure.
+        """
+        ...
+
+    def bulk_set_parent(
+        self, tickets: list[Ticket], parent_id: str
+    ) -> BulkResult:
+        """Set parent Feature on multiple tickets.
+
+        Only sets parent on tickets that don't already have one.
+
+        Args:
+            tickets: List of tickets to update.
+            parent_id: The parent Feature's formatted ID (e.g., "F59625").
+
+        Returns:
+            BulkResult with success/failure counts and updated tickets.
+        """
+        ...
+
+    def bulk_update_state(
+        self, tickets: list[Ticket], state: str
+    ) -> BulkResult:
+        """Update state on multiple tickets.
+
+        Note: Does NOT enforce parent requirement for "In-Progress" state.
+        Caller should filter tickets appropriately before bulk state change.
+
+        Args:
+            tickets: List of tickets to update.
+            state: The new state value (e.g., "In-Progress", "Completed").
+
+        Returns:
+            BulkResult with success/failure counts and updated tickets.
+        """
+        ...
+
+    def bulk_set_iteration(
+        self, tickets: list[Ticket], iteration_name: str | None
+    ) -> BulkResult:
+        """Set iteration on multiple tickets.
+
+        Args:
+            tickets: List of tickets to update.
+            iteration_name: The iteration name, or None for backlog (no iteration).
+
+        Returns:
+            BulkResult with success/failure counts and updated tickets.
+        """
+        ...
+
+    def bulk_update_points(
+        self, tickets: list[Ticket], points: float
+    ) -> BulkResult:
+        """Update story points on multiple tickets.
+
+        Args:
+            tickets: List of tickets to update.
+            points: The new story points value.
+
+        Returns:
+            BulkResult with success/failure counts and updated tickets.
         """
         ...

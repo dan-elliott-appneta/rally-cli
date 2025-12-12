@@ -171,17 +171,23 @@ def sort_tickets(tickets: list[Ticket], mode: SortMode) -> list[Ticket]:
 class TicketListItem(ListItem):
     """A single ticket item in the list."""
 
-    def __init__(self, ticket: Ticket) -> None:
+    def __init__(self, ticket: Ticket, selected: bool = False) -> None:
         super().__init__()
         self.ticket = ticket
+        self._selected = selected
 
     def compose(self) -> ComposeResult:
-        """Create the ticket display with state indicator."""
+        """Create the ticket display with selection checkbox and state indicator."""
         type_class = f"ticket-{self.ticket.type_prefix.lower()}"
         state_color = get_state_color(self.ticket.state)
         state_symbol = get_state_symbol(self.ticket.state)
+        checkbox = "[✓]" if self._selected else "[ ]"
 
         with Horizontal(classes="ticket-row"):
+            yield Label(
+                checkbox,
+                classes="selection-checkbox",
+            )
             yield Label(
                 f"[{state_color}]{state_symbol}[/]",
                 classes="state-indicator",
@@ -190,6 +196,23 @@ class TicketListItem(ListItem):
                 self.ticket.display_text,
                 classes=f"ticket-text {type_class}",
             )
+
+    def set_selected(self, selected: bool) -> None:
+        """Update selection state and refresh checkbox display."""
+        if self._selected == selected:
+            return
+        self._selected = selected
+        checkbox = "[✓]" if selected else "[ ]"
+        try:
+            label = self.query_one(".selection-checkbox", Label)
+            label.update(checkbox)
+        except Exception:
+            pass  # Widget may not be mounted yet
+
+    @property
+    def is_selected(self) -> bool:
+        """Check if this item is selected."""
+        return self._selected
 
 
 class TicketList(ListView):
@@ -204,6 +227,8 @@ class TicketList(ListView):
         Binding("k", "cursor_up", "Up", show=False),
         Binding("g", "scroll_home", "Top", show=False),
         Binding("G", "scroll_end", "Bottom", show=False),
+        Binding("space", "toggle_selection", "Select", show=False),
+        Binding("ctrl+a", "select_all", "Select All", show=False),
     ]
 
     class TicketHighlighted(Message):
@@ -226,6 +251,14 @@ class TicketList(ListView):
         def __init__(self, filtered: int, total: int) -> None:
             self.filtered = filtered
             self.total = total
+            super().__init__()
+
+    class SelectionChanged(Message):
+        """Posted when multi-select selection changes."""
+
+        def __init__(self, count: int, selected_ids: set[str]) -> None:
+            self.count = count
+            self.selected_ids = selected_ids
             super().__init__()
 
     def __init__(
@@ -251,11 +284,14 @@ class TicketList(ListView):
         self._tickets = sorted_tickets
         self._all_tickets = list(sorted_tickets)
         self._filter_query = ""
+        # Multi-select tracking
+        self._selected_ids: set[str] = set()
 
     def compose(self) -> ComposeResult:
         """Create list items for each ticket."""
         for ticket in self._tickets:
-            yield TicketListItem(ticket)
+            is_selected = ticket.formatted_id in self._selected_ids
+            yield TicketListItem(ticket, selected=is_selected)
 
     def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
         """Handle highlight changes and emit our custom message."""
@@ -279,6 +315,64 @@ class TicketList(ListView):
         if len(self._tickets) > 0:
             self.index = len(self._tickets) - 1
 
+    def action_toggle_selection(self) -> None:
+        """Toggle selection on current ticket (Space key)."""
+        if not self.selected_ticket:
+            return
+
+        ticket_id = self.selected_ticket.formatted_id
+        if ticket_id in self._selected_ids:
+            self._selected_ids.discard(ticket_id)
+        else:
+            self._selected_ids.add(ticket_id)
+
+        # Update the checkbox display for current item
+        self._update_item_selection(ticket_id)
+        self.post_message(self.SelectionChanged(len(self._selected_ids), set(self._selected_ids)))
+
+    def action_select_all(self) -> None:
+        """Select all visible tickets, or deselect all if all are selected (Ctrl+A)."""
+        if len(self._selected_ids) == len(self._tickets) and len(self._tickets) > 0:
+            # All selected, deselect all
+            self.clear_selection()
+        else:
+            # Select all
+            self._selected_ids = {t.formatted_id for t in self._tickets}
+            self._update_all_selection_display()
+            self.post_message(self.SelectionChanged(len(self._selected_ids), set(self._selected_ids)))
+
+    def clear_selection(self) -> None:
+        """Clear all selections."""
+        if not self._selected_ids:
+            return
+        self._selected_ids.clear()
+        self._update_all_selection_display()
+        self.post_message(self.SelectionChanged(0, set()))
+
+    def _update_item_selection(self, ticket_id: str) -> None:
+        """Update checkbox display for a specific ticket."""
+        is_selected = ticket_id in self._selected_ids
+        for item in self.query(TicketListItem):
+            if item.ticket.formatted_id == ticket_id:
+                item.set_selected(is_selected)
+                break
+
+    def _update_all_selection_display(self) -> None:
+        """Update checkbox display for all items."""
+        for item in self.query(TicketListItem):
+            is_selected = item.ticket.formatted_id in self._selected_ids
+            item.set_selected(is_selected)
+
+    @property
+    def selected_tickets(self) -> list[Ticket]:
+        """Get list of selected tickets (multi-select)."""
+        return [t for t in self._tickets if t.formatted_id in self._selected_ids]
+
+    @property
+    def selection_count(self) -> int:
+        """Get count of selected tickets."""
+        return len(self._selected_ids)
+
     @property
     def selected_ticket(self) -> Ticket | None:
         """Get the currently highlighted ticket."""
@@ -297,12 +391,18 @@ class TicketList(ListView):
         self._tickets = sorted_tickets
         self._all_tickets = list(sorted_tickets)
         self._filter_query = ""
+        # Clear selection when tickets are replaced
+        had_selection = bool(self._selected_ids)
+        self._selected_ids.clear()
         self.clear()
         for ticket in sorted_tickets:
-            self.append(TicketListItem(ticket))
+            self.append(TicketListItem(ticket, selected=False))
         # Select first item if list is not empty
         if sorted_tickets:
             self.index = 0
+        # Notify if selection was cleared
+        if had_selection:
+            self.post_message(self.SelectionChanged(0, set()))
 
     def set_sort_mode(self, mode: SortMode) -> None:
         """Change the sort mode and re-sort the current tickets.
@@ -326,10 +426,11 @@ class TicketList(ListView):
         else:
             self._tickets = list(self._all_tickets)
 
-        # Refresh the display
+        # Refresh the display (preserve selection state)
         self.clear()
         for ticket in self._tickets:
-            self.append(TicketListItem(ticket))
+            is_selected = ticket.formatted_id in self._selected_ids
+            self.append(TicketListItem(ticket, selected=is_selected))
 
         # Select first item if list is not empty
         if self._tickets:
@@ -355,7 +456,8 @@ class TicketList(ListView):
         self._tickets = filtered
         self.clear()
         for ticket in filtered:
-            self.append(TicketListItem(ticket))
+            is_selected = ticket.formatted_id in self._selected_ids
+            self.append(TicketListItem(ticket, selected=is_selected))
 
         self.post_message(self.FilterApplied(len(filtered), len(self._all_tickets)))
 
@@ -397,11 +499,28 @@ class TicketList(ListView):
             ticket: The updated ticket (matched by formatted_id).
             resort: If True, re-sort and rebuild the list (for state changes).
         """
-        # Update in all_tickets
+        self.update_tickets([ticket], resort=resort)
+
+    def update_tickets(self, tickets: list[Ticket], resort: bool = True) -> None:
+        """Update multiple tickets and optionally re-sort the list.
+
+        This method batches updates to avoid UI rebuild issues when updating
+        multiple tickets in quick succession.
+
+        Args:
+            tickets: List of updated tickets (matched by formatted_id).
+            resort: If True, re-sort and rebuild the list (for state changes).
+        """
+        if not tickets:
+            return
+
+        # Build a lookup for quick access
+        updates = {t.formatted_id: t for t in tickets}
+
+        # Update all matching tickets in _all_tickets
         for i, t in enumerate(self._all_tickets):
-            if t.formatted_id == ticket.formatted_id:
-                self._all_tickets[i] = ticket
-                break
+            if t.formatted_id in updates:
+                self._all_tickets[i] = updates[t.formatted_id]
 
         if resort:
             # Re-sort all tickets by state
@@ -410,33 +529,24 @@ class TicketList(ListView):
             # If no filter is active, rebuild displayed tickets
             if not self._filter_query:
                 self._tickets = list(self._all_tickets)
-                # Rebuild the UI list
-                self.clear()
+                # Rebuild the UI list (preserve selection state)
+                # Use remove_children for synchronous removal to avoid race conditions
+                self.remove_children()
                 for t in self._tickets:
-                    self.append(TicketListItem(t))
-                # Keep selection on the same ticket
-                for i, t in enumerate(self._tickets):
-                    if t.formatted_id == ticket.formatted_id:
-                        self.index = i
-                        break
+                    is_selected = t.formatted_id in self._selected_ids
+                    self.mount(TicketListItem(t, selected=is_selected))
             else:
                 # Re-apply filter (which will also sort)
                 self.filter_tickets(self._filter_query)
-                # Keep selection on the same ticket
-                for i, t in enumerate(self._tickets):
-                    if t.formatted_id == ticket.formatted_id:
-                        self.index = i
-                        break
         else:
             # Update in filtered tickets without re-sorting
             for i, t in enumerate(self._tickets):
-                if t.formatted_id == ticket.formatted_id:
-                    self._tickets[i] = ticket
+                if t.formatted_id in updates:
+                    self._tickets[i] = updates[t.formatted_id]
                     # Update the corresponding list item
                     items = list(self.query(TicketListItem))
                     if i < len(items):
-                        items[i].ticket = ticket
-                    break
+                        items[i].ticket = updates[t.formatted_id]
 
     def add_ticket(self, ticket: Ticket) -> None:
         """Add a new ticket to the list.
@@ -453,10 +563,11 @@ class TicketList(ListView):
         # If no filter is active, add to displayed tickets
         if not self._filter_query:
             self._tickets = list(self._all_tickets)
-            # Rebuild the UI list
+            # Rebuild the UI list (preserve selection state)
             self.clear()
             for t in self._tickets:
-                self.append(TicketListItem(t))
+                is_selected = t.formatted_id in self._selected_ids
+                self.append(TicketListItem(t, selected=is_selected))
             # Select the new ticket
             for i, t in enumerate(self._tickets):
                 if t.formatted_id == ticket.formatted_id:
