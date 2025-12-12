@@ -367,3 +367,299 @@ class TestUserSettingsParentOptions:
 
         # Original should not be modified
         assert settings.parent_options == ["F111", "F222"]
+
+
+class TestUserSettingsKeybindingProfile:
+    """Tests for keybinding_profile property."""
+
+    def test_default_profile_is_vim(self, tmp_path: Path, monkeypatch) -> None:
+        """Default keybinding profile should be 'vim'."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        assert settings.keybinding_profile == "vim"
+
+    def test_set_profile_emacs(self, tmp_path: Path, monkeypatch) -> None:
+        """Should be able to set profile to emacs."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.keybinding_profile = "emacs"
+        assert settings.keybinding_profile == "emacs"
+
+    def test_set_profile_custom(self, tmp_path: Path, monkeypatch) -> None:
+        """Should be able to set profile to custom."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.keybinding_profile = "custom"
+        assert settings.keybinding_profile == "custom"
+
+    def test_invalid_profile_raises(self, tmp_path: Path, monkeypatch) -> None:
+        """Invalid profile should raise ValueError."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        with pytest.raises(ValueError, match="Profile must be one of"):
+            settings.keybinding_profile = "invalid"
+
+    def test_invalid_stored_profile_returns_default(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Invalid stored profile should return default vim."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        # Write invalid profile to file
+        with config_file.open("w") as f:
+            json.dump({"keybinding_profile": "invalid"}, f)
+
+        settings = UserSettings()
+        assert settings.keybinding_profile == "vim"
+
+    def test_profile_persists_to_file(self, tmp_path: Path, monkeypatch) -> None:
+        """Profile should persist to config file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        settings = UserSettings()
+        settings.keybinding_profile = "emacs"
+
+        # Read file directly
+        with config_file.open() as f:
+            data = json.load(f)
+        assert data["keybinding_profile"] == "emacs"
+
+
+class TestUserSettingsKeybindings:
+    """Tests for keybindings property."""
+
+    def test_default_keybindings_are_vim(self, tmp_path: Path, monkeypatch) -> None:
+        """Default keybindings should be vim profile."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        bindings = settings.keybindings
+        assert bindings["navigation.down"] == "j"
+        assert bindings["navigation.up"] == "k"
+        assert bindings["action.quit"] == "q"
+
+    def test_emacs_keybindings_when_emacs_profile(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Emacs profile should use emacs keybindings."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.keybinding_profile = "emacs"
+
+        bindings = settings.keybindings
+        assert bindings["navigation.down"] == "ctrl+n"
+        assert bindings["navigation.up"] == "ctrl+p"
+        assert bindings["action.quit"] == "ctrl+q"
+
+    def test_custom_bindings_override_defaults(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Custom bindings should override profile defaults."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        # Write custom bindings to file
+        with config_file.open("w") as f:
+            json.dump({
+                "keybinding_profile": "vim",
+                "keybindings": {"navigation.down": "x"}
+            }, f)
+
+        settings = UserSettings()
+        bindings = settings.keybindings
+        # Custom override
+        assert bindings["navigation.down"] == "x"
+        # Other vim defaults still work
+        assert bindings["navigation.up"] == "k"
+
+    def test_keybindings_returns_copy(self, tmp_path: Path, monkeypatch) -> None:
+        """keybindings should return a copy to prevent mutation."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        bindings = settings.keybindings
+        bindings["navigation.down"] = "changed"
+
+        # Original should not be modified
+        assert settings.keybindings["navigation.down"] == "j"
+
+    def test_set_keybindings_switches_to_custom(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Setting keybindings should switch to custom profile."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.keybindings = {"navigation.down": "x", "navigation.up": "y"}
+
+        assert settings.keybinding_profile == "custom"
+
+    def test_set_keybindings_validates_keys(self, tmp_path: Path, monkeypatch) -> None:
+        """Setting keybindings should validate key values."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        with pytest.raises(ValueError, match="Invalid key"):
+            settings.keybindings = {"navigation.down": "invalid_key_name"}
+
+
+class TestUserSettingsGetKeybinding:
+    """Tests for get_keybinding method."""
+
+    def test_get_keybinding_returns_value(self, tmp_path: Path, monkeypatch) -> None:
+        """get_keybinding should return the key for an action."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        assert settings.get_keybinding("navigation.down") == "j"
+        assert settings.get_keybinding("action.quit") == "q"
+
+    def test_get_keybinding_unknown_action_raises(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """get_keybinding should raise KeyError for unknown actions."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        with pytest.raises(KeyError, match="Unknown action"):
+            settings.get_keybinding("nonexistent.action")
+
+
+class TestUserSettingsSetKeybinding:
+    """Tests for set_keybinding method."""
+
+    def test_set_keybinding_updates_key(self, tmp_path: Path, monkeypatch) -> None:
+        """set_keybinding should update the key for an action."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.set_keybinding("navigation.down", "x")
+
+        assert settings.get_keybinding("navigation.down") == "x"
+        # Others unchanged
+        assert settings.get_keybinding("navigation.up") == "k"
+
+    def test_set_keybinding_switches_to_custom(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """set_keybinding should switch to custom profile."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.set_keybinding("navigation.down", "x")
+
+        assert settings.keybinding_profile == "custom"
+
+    def test_set_keybinding_invalid_key_raises(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """set_keybinding should reject invalid keys."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        with pytest.raises(ValueError, match="Invalid key"):
+            settings.set_keybinding("navigation.down", "invalid_key")
+
+    def test_set_keybinding_unknown_action_raises(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """set_keybinding should reject unknown actions."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        with pytest.raises(KeyError, match="Unknown action"):
+            settings.set_keybinding("unknown.action", "x")
+
+    def test_set_keybinding_persists(self, tmp_path: Path, monkeypatch) -> None:
+        """set_keybinding changes should persist to file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        settings = UserSettings()
+        settings.set_keybinding("navigation.down", "x")
+
+        # Read file directly
+        with config_file.open() as f:
+            data = json.load(f)
+        assert data["keybindings"]["navigation.down"] == "x"
+
+
+class TestUserSettingsResetKeybindings:
+    """Tests for reset_keybindings method."""
+
+    def test_reset_to_vim(self, tmp_path: Path, monkeypatch) -> None:
+        """reset_keybindings('vim') should restore vim defaults."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        # Set custom binding
+        settings.set_keybinding("navigation.down", "x")
+        assert settings.get_keybinding("navigation.down") == "x"
+
+        # Reset
+        settings.reset_keybindings("vim")
+
+        assert settings.keybinding_profile == "vim"
+        assert settings.get_keybinding("navigation.down") == "j"
+
+    def test_reset_to_emacs(self, tmp_path: Path, monkeypatch) -> None:
+        """reset_keybindings('emacs') should set emacs profile."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.reset_keybindings("emacs")
+
+        assert settings.keybinding_profile == "emacs"
+        assert settings.get_keybinding("navigation.down") == "ctrl+n"
+
+    def test_reset_invalid_profile_raises(self, tmp_path: Path, monkeypatch) -> None:
+        """reset_keybindings with invalid profile should raise."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        with pytest.raises(ValueError, match="Profile must be"):
+            settings.reset_keybindings("invalid")
+
+    def test_reset_clears_custom_bindings(self, tmp_path: Path, monkeypatch) -> None:
+        """reset_keybindings should clear custom bindings from file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        settings = UserSettings()
+        settings.set_keybinding("navigation.down", "x")
+        settings.reset_keybindings("vim")
+
+        # Check file
+        with config_file.open() as f:
+            data = json.load(f)
+        assert "keybindings" not in data
