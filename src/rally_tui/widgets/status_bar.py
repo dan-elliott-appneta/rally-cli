@@ -190,14 +190,18 @@ class StatusBar(Static):
         self._connected = connected
         self._update_display()
 
-    def set_filter_info(self, filtered: int, total: int) -> None:
-        """Show filter count in status bar.
+    def set_filter_info(self, filtered: int, total: int, query: str = "") -> None:
+        """Show filter count and search query in status bar.
 
         Args:
             filtered: Number of tickets matching filter.
             total: Total number of tickets.
+            query: The search query being filtered on.
         """
-        self._filter_info = f"Filtered: {filtered}/{total}"
+        if query:
+            self._filter_info = f"Search: [cyan]{query}[/] ({filtered}/{total})"
+        else:
+            self._filter_info = f"Filtered: {filtered}/{total}"
         self._update_display()
 
     def clear_filter_info(self) -> None:

@@ -500,7 +500,9 @@ class RallyTUI(App[None]):
 
         if ticket_list.filter_query:
             status_bar.set_filter_info(
-                ticket_list.filtered_count, ticket_list.total_count
+                ticket_list.filtered_count,
+                ticket_list.total_count,
+                ticket_list.filter_query,
             )
         else:
             status_bar.clear_filter_info()
