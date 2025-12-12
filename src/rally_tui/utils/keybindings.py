@@ -77,6 +77,9 @@ ACTION_REGISTRY: dict[str, KeyAction] = {
     "action.sort": KeyAction(
         "action.sort", "Sort", "cycle_sort", "Filters"
     ),
+    "action.team": KeyAction(
+        "action.team", "Team", "team_breakdown", "Filters"
+    ),
     # Bulk actions
     "action.bulk": KeyAction(
         "action.bulk", "Bulk", "bulk_actions", "Bulk"
@@ -125,6 +128,7 @@ VIM_KEYBINDINGS: dict[str, str] = {
     "action.sprint": "i",
     "action.my_items": "u",
     "action.sort": "o",
+    "action.team": "b",
     # Bulk
     "action.bulk": "m",
     # Cache
@@ -161,6 +165,7 @@ EMACS_KEYBINDINGS: dict[str, str] = {
     "action.sprint": "ctrl+i",
     "action.my_items": "ctrl+u",
     "action.sort": "ctrl+o",
+    "action.team": "ctrl+b",
     # Bulk
     "action.bulk": "ctrl+m",
     # Cache

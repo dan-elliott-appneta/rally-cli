@@ -20,6 +20,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Toggle Notes**: Press `n` to toggle between description and notes view
 - **Sprint Filter**: Press `i` to filter tickets by iteration/sprint
 - **My Items Filter**: Press `u` to toggle showing only your tickets
+- **Team Breakdown**: Press `b` to view ticket count and points breakdown by owner for a sprint
 - **User settings**: Preferences saved to `~/.config/rally-tui/config.json`
 - **Settings UI**: Press `F2` to open settings screen and configure theme, log level, and parent options
 - **Keybindings UI**: Press `F3` to view/edit keyboard shortcuts with Vim and Emacs presets
@@ -80,7 +81,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 741 tests passing
+- 755 tests passing
 
 Next: Iteration 15 (Custom fields support).
 
@@ -112,7 +113,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 0.7.5
+# Output: rally-tui 0.7.6
 ```
 
 ### Running with Rally API
@@ -169,6 +170,7 @@ rally-tui
 | i | list/detail | Filter by iteration/sprint |
 | u | list/detail | Toggle My Items filter |
 | o | list | Cycle sort mode (State/Recent/Owner) |
+| b | list | Team breakdown (requires sprint filter) |
 | r | list/detail | Refresh ticket cache |
 | w | list/detail | New workitem |
 | F2 | any | Open settings |

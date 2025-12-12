@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rally-tui"
-version = "0.7.5"
+version = "0.7.6"
 description = "A TUI for Rally (Broadcom) work item management"
 readme = "README.md"
 requires-python = ">=3.11"

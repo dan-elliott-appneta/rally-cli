@@ -32,6 +32,7 @@ from rally_tui.screens import (
     QuickTicketScreen,
     SplashScreen,
     StateScreen,
+    TeamBreakdownScreen,
 )
 from rally_tui.models import Ticket
 from rally_tui.services import BulkResult, MockRallyClient, RallyClient, RallyClientProtocol
@@ -176,6 +177,7 @@ class RallyTUI(App[None]):
             "action.sprint": ("iteration_filter", "Sprint", True),
             "action.my_items": ("toggle_user_filter", "My Items", True),
             "action.sort": ("cycle_sort", "Sort", True),
+            "action.team": ("team_breakdown", "Team", True),
             "action.bulk": ("bulk_actions", "Bulk", True),
             "action.refresh": ("refresh_cache", "Refresh", True),
             "action.settings": ("open_settings", "Settings", True),
@@ -935,6 +937,28 @@ class RallyTUI(App[None]):
         }
         self.notify(f"Sorted by: {mode_names[next_mode]}", timeout=4)
         _log.info(f"Sort mode changed to {next_mode.value}")
+
+    def action_team_breakdown(self) -> None:
+        """Show team breakdown for current sprint."""
+        # Only available when viewing a sprint (not backlog) and My Items is not active
+        if not self._iteration_filter or self._iteration_filter == FILTER_BACKLOG:
+            self.notify("Team breakdown requires a sprint filter", severity="warning", timeout=4)
+            return
+
+        if self._user_filter_active:
+            self.notify("Team breakdown not available with My Items filter", severity="warning", timeout=4)
+            return
+
+        # Get current tickets from the list
+        ticket_list = self.query_one(TicketList)
+        tickets = ticket_list.tickets
+
+        if not tickets:
+            self.notify("No tickets to analyze", severity="warning", timeout=4)
+            return
+
+        # Show the team breakdown screen
+        self.push_screen(TeamBreakdownScreen(tickets, self._iteration_filter))
 
     def action_refresh_cache(self) -> None:
         """Refresh the ticket cache by fetching fresh data from Rally."""

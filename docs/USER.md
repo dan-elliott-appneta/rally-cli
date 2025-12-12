@@ -226,6 +226,21 @@ Filters can be combined:
 
 Active filters are shown in the status bar.
 
+### Team Breakdown
+
+Press `b` to view a team breakdown for the current sprint:
+- Shows a table of all ticket owners in the filtered list
+- Displays ticket count per owner
+- Shows total story points per owner
+- Shows average points per ticket for each owner
+- Includes summary totals at the bottom
+
+**Requirements**:
+- Must have a sprint filter active (not "All Iterations" or "Backlog")
+- Must not have My Items filter enabled
+
+This view is useful for sprint planning and workload distribution analysis.
+
 ---
 
 ## Managing Tickets
@@ -470,6 +485,7 @@ Logs are written to `~/.config/rally-tui/rally-tui.log`:
 | `i` | Filter by iteration |
 | `u` | Toggle My Items |
 | `o` | Cycle sort mode |
+| `b` | Team breakdown |
 | `r` | Refresh cache |
 
 ### Selection (Bulk Operations)
@@ -552,7 +568,7 @@ Set log level to DEBUG in settings (F2) for more detail.
 
 ## Version Information
 
-- Current Version: 0.7.5
+- Current Version: 0.7.6
 - Check version: `rally-tui --version`
 - Version shown on splash screen at startup
 
