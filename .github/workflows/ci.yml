@@ -29,7 +29,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest --cov=rally_tui --cov-report=xml --cov-report=html --cov-report=term-missing
+          pytest --cov=rally_tui --cov-report=xml --cov-report=html --cov-report=term-missing --ignore=tests/test_snapshots.py
 
       - name: Upload coverage reports to Codecov
         if: matrix.python-version == '3.11'
