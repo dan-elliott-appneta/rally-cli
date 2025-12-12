@@ -20,9 +20,9 @@ Screen {
 
 /* List container - holds ticket list and search input */
 #list-container {
-    width: 35%;
-    min-width: 25;
-    max-width: 50;
+    width: 40%;
+    min-width: 30;
+    max-width: 80;
     height: 100%;
 }
 
