@@ -137,7 +137,7 @@ def filter_tickets(self, query: str) -> None:
     self._filter_query = query
 
     if not query:
-        filtered = self._all_tickets
+        filtered = list(self._all_tickets)  # Copy to prevent aliasing
     else:
         query_lower = query.lower()
         filtered = [

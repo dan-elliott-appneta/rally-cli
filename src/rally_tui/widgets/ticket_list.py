@@ -481,7 +481,7 @@ class TicketList(ListView):
         self._filter_query = query
 
         if not query:
-            filtered = self._all_tickets
+            filtered = list(self._all_tickets)
         else:
             query_lower = query.lower()
             filtered = [
