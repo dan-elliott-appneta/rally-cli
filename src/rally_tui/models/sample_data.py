@@ -1,6 +1,6 @@
 """Sample ticket data for development and testing."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .discussion import Discussion
 from .ticket import Ticket
@@ -111,21 +111,21 @@ SAMPLE_DISCUSSIONS: dict[str, list[Discussion]] = {
             object_id="200001",
             text="I've started working on the login form. Will have a PR ready by end of day.",
             user="John Smith",
-            created_at=datetime(2024, 1, 15, 10, 30),
+            created_at=datetime(2024, 1, 15, 10, 30, tzinfo=timezone.utc),
             artifact_id="US1234",
         ),
         Discussion(
             object_id="200002",
             text="Looks good! Don't forget to add input validation for the email field.",
             user="Jane Doe",
-            created_at=datetime(2024, 1, 15, 14, 45),
+            created_at=datetime(2024, 1, 15, 14, 45, tzinfo=timezone.utc),
             artifact_id="US1234",
         ),
         Discussion(
             object_id="200003",
             text="Good point. I've added email format validation and password strength checks.",
             user="John Smith",
-            created_at=datetime(2024, 1, 16, 9, 15),
+            created_at=datetime(2024, 1, 16, 9, 15, tzinfo=timezone.utc),
             artifact_id="US1234",
         ),
     ],
@@ -134,14 +134,14 @@ SAMPLE_DISCUSSIONS: dict[str, list[Discussion]] = {
             object_id="200004",
             text="I can reproduce this. It happens when the cart is empty and user clicks checkout.",
             user="Bob Wilson",
-            created_at=datetime(2024, 1, 14, 11, 0),
+            created_at=datetime(2024, 1, 14, 11, 0, tzinfo=timezone.utc),
             artifact_id="DE456",
         ),
         Discussion(
             object_id="200005",
             text="The issue is in CartService.getTotal() - it doesn't check for null items array.",
             user="Bob Wilson",
-            created_at=datetime(2024, 1, 14, 15, 30),
+            created_at=datetime(2024, 1, 14, 15, 30, tzinfo=timezone.utc),
             artifact_id="DE456",
         ),
     ],
@@ -150,7 +150,7 @@ SAMPLE_DISCUSSIONS: dict[str, list[Discussion]] = {
             object_id="200006",
             text="Completed the logout button. It's now visible in the top-right corner of the navbar.",
             user="Alice Chen",
-            created_at=datetime(2024, 1, 10, 16, 0),
+            created_at=datetime(2024, 1, 10, 16, 0, tzinfo=timezone.utc),
             artifact_id="US1236",
         ),
     ],

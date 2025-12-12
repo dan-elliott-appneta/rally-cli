@@ -184,14 +184,14 @@ class TestTeamBreakdownScreenWidget:
         app = TestApp()
         async with app.run_test() as pilot:
             screen = TeamBreakdownScreen(tickets, "Sprint 1")
-            app.push_screen(screen)
+            await app.push_screen(screen)
             await pilot.pause()
 
-            # Check that key elements exist
-            assert app.query_one("#breakdown-title")
-            assert app.query_one("#breakdown-sprint")
-            assert app.query_one("#breakdown-summary")
-            assert app.query_one("#breakdown-table")
+            # Check that key elements exist (query from screen, not app)
+            assert screen.query_one("#breakdown-title")
+            assert screen.query_one("#breakdown-sprint")
+            assert screen.query_one("#breakdown-summary")
+            assert screen.query_one("#breakdown-table")
 
     async def test_screen_shows_sprint_name(self) -> None:
         """Screen displays the sprint name."""
@@ -207,11 +207,13 @@ class TestTeamBreakdownScreenWidget:
         app = TestApp()
         async with app.run_test() as pilot:
             screen = TeamBreakdownScreen(tickets, "Sprint 42")
-            app.push_screen(screen)
+            await app.push_screen(screen)
             await pilot.pause()
 
-            sprint_label = app.query_one("#breakdown-sprint", Static)
-            assert "Sprint 42" in sprint_label.renderable
+            # Query from screen, not app
+            sprint_label = screen.query_one("#breakdown-sprint", Static)
+            # Static.render() returns the content - convert to string
+            assert "Sprint 42" in str(sprint_label.render())
 
     async def test_escape_closes_screen(self) -> None:
         """Escape key closes the screen."""
@@ -226,7 +228,7 @@ class TestTeamBreakdownScreenWidget:
         app = TestApp()
         async with app.run_test() as pilot:
             screen = TeamBreakdownScreen(tickets, "Sprint 1")
-            app.push_screen(screen)
+            await app.push_screen(screen)
             await pilot.pause()
 
             # Screen should be active

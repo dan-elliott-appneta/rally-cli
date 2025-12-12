@@ -125,8 +125,9 @@ class MockRallyClient:
             current_iteration: Current iteration name.
         """
         self._tickets = tickets if tickets is not None else list(SAMPLE_TICKETS)
+        # Deep copy discussions to avoid test isolation issues (shallow copy shares inner lists)
         self._discussions: dict[str, list[Discussion]] = (
-            discussions if discussions is not None else dict(SAMPLE_DISCUSSIONS)
+            discussions if discussions is not None else {k: list(v) for k, v in SAMPLE_DISCUSSIONS.items()}
         )
         self._iterations = iterations if iterations is not None else _generate_sample_iterations()
         self._features = features if features is not None else dict(DEFAULT_FEATURES)

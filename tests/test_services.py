@@ -218,8 +218,8 @@ class TestRallyTUIWithClient:
             ticket_list = app.query_one(TicketList)
             assert ticket_list is not None
 
-    async def test_app_shows_rally_tui_banner(self) -> None:
-        """StatusBar should show rally-tui banner."""
+    async def test_app_shows_project_label(self) -> None:
+        """StatusBar should show 'Project:' label."""
         client = MockRallyClient(
             workspace="Injected Workspace",
             project="Injected Project",
@@ -227,7 +227,8 @@ class TestRallyTUIWithClient:
         app = RallyTUI(client=client, show_splash=False)
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
-            assert "rally-tui" in status_bar.display_content
+            # Banner was removed in v0.7.4, now just shows "Project: <name>"
+            assert "Project:" in status_bar.display_content
 
     async def test_app_shows_client_project(self) -> None:
         """StatusBar should show the client's project."""
