@@ -458,3 +458,249 @@ class TestRallyClientDefaultQuery:
 
             query = client._build_default_query()
             assert query is None
+
+
+class TestRallyClientAttachments:
+    """Tests for RallyClient attachment methods."""
+
+    def test_get_attachments_returns_list(self) -> None:
+        """get_attachments returns list of Attachment objects."""
+        from rally_tui.models import Attachment, Ticket
+
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            # User query, Iteration query, then attachment query
+            mock_instance.get.side_effect = [
+                iter([]),  # User query
+                iter([]),  # Iteration query
+                iter([MockRallyEntity(ObjectID="12345", Name="Test")]),  # Artifact query
+            ]
+            mock_instance.getAttachments.return_value = [
+                MockRallyEntity(Name="doc.pdf", Size=1024, ContentType="application/pdf", ObjectID="att1"),
+                MockRallyEntity(Name="img.png", Size=2048, ContentType="image/png", ObjectID="att2"),
+            ]
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            ticket = Ticket("US1234", "Test", "UserStory", "Defined", object_id="12345")
+            attachments = client.get_attachments(ticket)
+
+            assert len(attachments) == 2
+            assert all(isinstance(a, Attachment) for a in attachments)
+            assert attachments[0].name == "doc.pdf"
+            assert attachments[0].size == 1024
+            assert attachments[0].content_type == "application/pdf"
+
+    def test_get_attachments_empty_without_object_id(self) -> None:
+        """get_attachments returns empty list when ticket has no object_id."""
+        from rally_tui.models import Ticket
+
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.get.return_value = iter([])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            ticket = Ticket("US1234", "Test", "UserStory", "Defined")  # No object_id
+            attachments = client.get_attachments(ticket)
+
+            assert attachments == []
+
+    def test_get_attachments_handles_exception(self) -> None:
+        """get_attachments returns empty list on exception."""
+        from rally_tui.models import Ticket
+
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.get.side_effect = [iter([]), iter([]), Exception("API error")]
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            ticket = Ticket("US1234", "Test", "UserStory", "Defined", object_id="12345")
+            attachments = client.get_attachments(ticket)
+
+            assert attachments == []
+
+    def test_download_attachment_writes_file(self, tmp_path: Any) -> None:
+        """download_attachment writes decoded content to file."""
+        import base64
+
+        from rally_tui.models import Attachment, Ticket
+
+        content = b"Test file content"
+        encoded_content = base64.b64encode(content).decode("utf-8")
+
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            # User query, Iteration query, then artifact query
+            mock_instance.get.side_effect = [
+                iter([]),  # User query
+                iter([]),  # Iteration query
+                iter([MockRallyEntity(ObjectID="12345", Name="Test")]),  # Artifact query
+            ]
+            mock_instance.getAttachment.return_value = MockRallyEntity(Content=encoded_content)
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            ticket = Ticket("US1234", "Test", "UserStory", "Defined", object_id="12345")
+            attachment = Attachment("doc.pdf", 1024, "application/pdf", "att1")
+            dest_path = str(tmp_path / "downloaded.pdf")
+
+            result = client.download_attachment(ticket, attachment, dest_path)
+
+            assert result is True
+            with open(dest_path, "rb") as f:
+                assert f.read() == content
+
+    def test_download_attachment_returns_false_without_object_id(self) -> None:
+        """download_attachment returns False when ticket has no object_id."""
+        from rally_tui.models import Attachment, Ticket
+
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.get.return_value = iter([])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            ticket = Ticket("US1234", "Test", "UserStory", "Defined")  # No object_id
+            attachment = Attachment("doc.pdf", 1024, "application/pdf", "att1")
+
+            result = client.download_attachment(ticket, attachment, "/tmp/test.pdf")
+
+            assert result is False
+
+    def test_upload_attachment_returns_attachment(self, tmp_path: Any) -> None:
+        """upload_attachment returns Attachment on success."""
+        from rally_tui.models import Attachment, Ticket
+
+        # Create a test file
+        test_file = tmp_path / "test.pdf"
+        test_file.write_bytes(b"Test content")
+
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            # User query, Iteration query, then artifact query
+            mock_instance.get.side_effect = [
+                iter([]),  # User query
+                iter([]),  # Iteration query
+                iter([MockRallyEntity(ObjectID="12345", Name="Test")]),  # Artifact query
+            ]
+            mock_instance.addAttachment.return_value = MockRallyEntity(ObjectID="att123")
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            ticket = Ticket("US1234", "Test", "UserStory", "Defined", object_id="12345")
+            result = client.upload_attachment(ticket, str(test_file))
+
+            assert result is not None
+            assert isinstance(result, Attachment)
+            assert result.name == "test.pdf"
+            assert result.content_type == "application/pdf"
+
+    def test_upload_attachment_returns_none_without_object_id(self, tmp_path: Any) -> None:
+        """upload_attachment returns None when ticket has no object_id."""
+        from rally_tui.models import Ticket
+
+        test_file = tmp_path / "test.pdf"
+        test_file.write_bytes(b"Test content")
+
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.get.return_value = iter([])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            ticket = Ticket("US1234", "Test", "UserStory", "Defined")  # No object_id
+            result = client.upload_attachment(ticket, str(test_file))
+
+            assert result is None
+
+    def test_upload_attachment_returns_none_for_missing_file(self) -> None:
+        """upload_attachment returns None when file doesn't exist."""
+        from rally_tui.models import Ticket
+
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.get.return_value = iter([])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            ticket = Ticket("US1234", "Test", "UserStory", "Defined", object_id="12345")
+            result = client.upload_attachment(ticket, "/nonexistent/path/file.pdf")
+
+            assert result is None
+
+    def test_upload_attachment_returns_none_for_large_file(self, tmp_path: Any) -> None:
+        """upload_attachment returns None when file exceeds 50MB limit."""
+        from rally_tui.models import Ticket
+
+        with patch("rally_tui.services.rally_client.Rally") as mock_rally:
+            mock_instance = MagicMock()
+            mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
+            mock_instance.getProject.return_value = MockRallyEntity(Name="Project")
+            mock_instance.get.return_value = iter([])
+            mock_rally.return_value = mock_instance
+
+            config = RallyConfig(apikey="test_key")
+            client = RallyClient(config)
+
+            # Create a file larger than 50MB (use sparse file for speed)
+            large_file = tmp_path / "large.zip"
+            with open(large_file, "wb") as f:
+                f.seek(51 * 1024 * 1024)  # 51 MB
+                f.write(b"\0")
+
+            ticket = Ticket("US1234", "Test", "UserStory", "Defined", object_id="12345")
+            result = client.upload_attachment(ticket, str(large_file))
+
+            assert result is None
+
+    def test_has_get_attachments_method(self) -> None:
+        """RallyClient should have get_attachments method."""
+        client = create_mock_client()
+        assert hasattr(client, "get_attachments")
+        assert callable(client.get_attachments)
+
+    def test_has_download_attachment_method(self) -> None:
+        """RallyClient should have download_attachment method."""
+        client = create_mock_client()
+        assert hasattr(client, "download_attachment")
+        assert callable(client.download_attachment)
+
+    def test_has_upload_attachment_method(self) -> None:
+        """RallyClient should have upload_attachment method."""
+        client = create_mock_client()
+        assert hasattr(client, "upload_attachment")
+        assert callable(client.upload_attachment)

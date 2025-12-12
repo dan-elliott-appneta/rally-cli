@@ -6,7 +6,7 @@ from typing import Any
 from pyral import Rally
 
 from rally_tui.config import RallyConfig
-from rally_tui.models import Discussion, Iteration, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Ticket
 from rally_tui.services.protocol import BulkResult
 from rally_tui.utils import get_logger
 
@@ -977,3 +977,176 @@ class RallyClient:
 
         _log.info(f"Bulk points update complete: {result.success_count} success, {result.failed_count} failed")
         return result
+
+    def get_attachments(self, ticket: Ticket) -> list[Attachment]:
+        """Get all attachments for a ticket.
+
+        Uses Rally's getAttachments method to fetch attachment metadata.
+
+        Args:
+            ticket: The ticket to get attachments for.
+
+        Returns:
+            List of Attachment objects for the ticket.
+        """
+        if not ticket.object_id:
+            _log.debug(f"No object_id for ticket {ticket.formatted_id}, skipping attachments")
+            return []
+
+        _log.debug(f"Fetching attachments for {ticket.formatted_id}")
+        attachments: list[Attachment] = []
+
+        try:
+            entity_type = self._get_entity_type(ticket.formatted_id)
+
+            # Get the artifact entity to pass to getAttachments
+            response = self._rally.get(
+                entity_type,
+                fetch="ObjectID,Name",
+                query=f'ObjectID = "{ticket.object_id}"',
+            )
+            artifact = next(response)
+
+            # Get all attachments for this artifact
+            rally_attachments = self._rally.getAttachments(artifact)
+
+            for att in rally_attachments:
+                attachments.append(
+                    Attachment(
+                        name=att.Name,
+                        size=int(att.Size) if hasattr(att, "Size") else 0,
+                        content_type=getattr(att, "ContentType", "application/octet-stream"),
+                        object_id=str(att.ObjectID),
+                    )
+                )
+
+            _log.debug(f"Fetched {len(attachments)} attachments for {ticket.formatted_id}")
+        except StopIteration:
+            _log.warning(f"Ticket not found: {ticket.formatted_id}")
+        except Exception as e:
+            _log.error(f"Error fetching attachments for {ticket.formatted_id}: {e}")
+
+        return attachments
+
+    def download_attachment(
+        self, ticket: Ticket, attachment: Attachment, dest_path: str
+    ) -> bool:
+        """Download attachment content to a local file.
+
+        Uses Rally's getAttachment method to fetch content and writes to file.
+
+        Args:
+            ticket: The ticket the attachment belongs to.
+            attachment: The attachment to download.
+            dest_path: The local path to save the file to.
+
+        Returns:
+            True on success, False on failure.
+        """
+        import base64
+
+        if not ticket.object_id:
+            _log.warning(f"Cannot download attachment: no object_id for {ticket.formatted_id}")
+            return False
+
+        _log.info(f"Downloading attachment {attachment.name} from {ticket.formatted_id}")
+
+        try:
+            entity_type = self._get_entity_type(ticket.formatted_id)
+
+            # Get the artifact entity
+            response = self._rally.get(
+                entity_type,
+                fetch="ObjectID,Name",
+                query=f'ObjectID = "{ticket.object_id}"',
+            )
+            artifact = next(response)
+
+            # Get the attachment with content
+            att = self._rally.getAttachment(artifact, attachment.name)
+
+            if att and hasattr(att, "Content"):
+                # Content is base64 encoded
+                content = base64.b64decode(att.Content)
+                with open(dest_path, "wb") as f:
+                    f.write(content)
+                _log.info(f"Downloaded {attachment.name} to {dest_path}")
+                return True
+            else:
+                _log.error(f"Attachment content not found: {attachment.name}")
+                return False
+        except StopIteration:
+            _log.warning(f"Ticket not found: {ticket.formatted_id}")
+            return False
+        except Exception as e:
+            _log.error(f"Error downloading attachment {attachment.name}: {e}")
+            return False
+
+    def upload_attachment(
+        self, ticket: Ticket, file_path: str
+    ) -> Attachment | None:
+        """Upload a local file as an attachment to a ticket.
+
+        Uses Rally's addAttachment method to upload the file.
+
+        Args:
+            ticket: The ticket to attach the file to.
+            file_path: The local path of the file to upload.
+
+        Returns:
+            The created Attachment on success, None on failure.
+        """
+        import mimetypes
+        import os
+
+        if not ticket.object_id:
+            _log.warning(f"Cannot upload attachment: no object_id for {ticket.formatted_id}")
+            return None
+
+        if not os.path.exists(file_path):
+            _log.error(f"File not found: {file_path}")
+            return None
+
+        # Check file size (Rally limit is 50MB)
+        file_size = os.path.getsize(file_path)
+        max_size = 50 * 1024 * 1024  # 50 MB
+        if file_size > max_size:
+            _log.error(f"File too large: {file_size} bytes (max {max_size})")
+            return None
+
+        _log.info(f"Uploading {file_path} to {ticket.formatted_id}")
+
+        try:
+            entity_type = self._get_entity_type(ticket.formatted_id)
+
+            # Get the artifact entity
+            response = self._rally.get(
+                entity_type,
+                fetch="ObjectID,Name",
+                query=f'ObjectID = "{ticket.object_id}"',
+            )
+            artifact = next(response)
+
+            # Determine MIME type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            # Upload the attachment
+            result = self._rally.addAttachment(artifact, file_path, mime_type=content_type)
+
+            if result:
+                filename = os.path.basename(file_path)
+                _log.info(f"Uploaded {filename} to {ticket.formatted_id}")
+                return Attachment(
+                    name=filename,
+                    size=file_size,
+                    content_type=content_type,
+                    object_id=str(getattr(result, "ObjectID", "unknown")),
+                )
+        except StopIteration:
+            _log.warning(f"Ticket not found: {ticket.formatted_id}")
+        except Exception as e:
+            _log.error(f"Error uploading attachment to {ticket.formatted_id}: {e}")
+
+        return None
