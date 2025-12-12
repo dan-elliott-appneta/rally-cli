@@ -244,8 +244,14 @@ class WideTicketListItem(ListItem):
         state_symbol = get_state_symbol(self.ticket.state)
         checkbox = "[✓]" if self._selected else "[ ]"
 
-        # Format points display
-        points_str = str(int(self.ticket.points)) if self.ticket.points else "-"
+        # Format points display (show decimal only if not a whole number)
+        if self.ticket.points is not None:
+            if self.ticket.points == int(self.ticket.points):
+                points_str = str(int(self.ticket.points))
+            else:
+                points_str = str(self.ticket.points)
+        else:
+            points_str = "-"
 
         # Format owner display (truncate long names)
         owner_str = self.ticket.owner[:18] if self.ticket.owner else "-"

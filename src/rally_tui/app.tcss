@@ -106,9 +106,9 @@ WideTicketListItem {
 }
 
 .ticket-points {
-    width: 4;
-    min-width: 4;
-    max-width: 4;
+    width: 5;
+    min-width: 5;
+    max-width: 5;
     text-align: right;
     color: $warning;
     margin-right: 2;

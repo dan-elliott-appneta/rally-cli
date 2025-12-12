@@ -241,7 +241,7 @@ class TestWideViewItemDisplay:
     """Tests for WideTicketListItem display formatting."""
 
     def test_points_display_integer(self) -> None:
-        """Points should be displayed as integer."""
+        """Whole number points should be displayed without decimal."""
         ticket = Ticket(
             formatted_id="US1234",
             name="Test",
@@ -250,10 +250,23 @@ class TestWideViewItemDisplay:
             points=5.0,
         )
         item = WideTicketListItem(ticket)
-        # The compose method formats points as int
-        # We can't easily test the rendered output without mounting,
-        # but we can verify the ticket data is correct
+        # Whole numbers display without decimal
         assert ticket.points == 5.0
+        assert ticket.points == int(ticket.points)
+
+    def test_points_display_decimal(self) -> None:
+        """Decimal points should be displayed with decimal."""
+        ticket = Ticket(
+            formatted_id="US1234",
+            name="Test",
+            ticket_type="UserStory",
+            state="Defined",
+            points=2.5,
+        )
+        item = WideTicketListItem(ticket)
+        # Decimal points should show the decimal
+        assert ticket.points == 2.5
+        assert ticket.points != int(ticket.points)
 
     def test_missing_owner_displayed_as_dash(self) -> None:
         """Missing owner should show as '-'."""
