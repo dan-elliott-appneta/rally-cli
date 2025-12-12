@@ -81,6 +81,10 @@ ACTION_REGISTRY: dict[str, KeyAction] = {
     "action.bulk": KeyAction(
         "action.bulk", "Bulk", "bulk_actions", "Bulk"
     ),
+    # Cache actions
+    "action.refresh": KeyAction(
+        "action.refresh", "Refresh", "refresh_cache", "Cache"
+    ),
     # App actions
     "action.settings": KeyAction(
         "action.settings", "Settings", "open_settings", "App"
@@ -123,6 +127,8 @@ VIM_KEYBINDINGS: dict[str, str] = {
     "action.sort": "o",
     # Bulk
     "action.bulk": "m",
+    # Cache
+    "action.refresh": "r",
     # App
     "action.settings": "f2",
     "action.keybindings": "f3",
@@ -157,6 +163,8 @@ EMACS_KEYBINDINGS: dict[str, str] = {
     "action.sort": "ctrl+o",
     # Bulk
     "action.bulk": "ctrl+m",
+    # Cache
+    "action.refresh": "ctrl+r",
     # App
     "action.settings": "f2",
     "action.keybindings": "f3",

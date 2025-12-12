@@ -1160,11 +1160,274 @@ tests/
 
 ---
 
-### Future Iterations
+### Iteration 14: Local Caching & Offline Mode ✅ COMPLETE
 
-- **Iteration 14**: Custom fields support
-- **Iteration 15**: CRUD Operations (edit tickets, delete with confirmation)
-- **Iteration 16**: Caching and offline mode
+**Goal**: Dramatically improve startup performance and enable offline ticket viewing through intelligent local caching
+
+**Detailed Guide**: See [ITERATION_14.md](./ITERATION_14.md) for step-by-step implementation.
+
+#### Problem Statement
+
+Current limitations without caching:
+- **Slow startup**: 2-5 seconds waiting for Rally API on every launch
+- **No offline access**: Cannot view tickets without network connectivity
+- **Redundant fetches**: Same data fetched repeatedly across sessions
+- **Rate limit risk**: Heavy usage can trigger Rally API limits
+- **Filter latency**: Changing iteration filter requires server round-trip
+
+#### Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         RallyTUI App                            │
+├─────────────────────────────────────────────────────────────────┤
+│                      CachingRallyClient                         │
+│  ┌─────────────────────┐    ┌─────────────────────────────────┐ │
+│  │   CacheManager      │    │      RallyClient (API)          │ │
+│  │  ┌───────────────┐  │    │                                 │ │
+│  │  │ tickets.json  │  │ ◄──┼── Background refresh            │ │
+│  │  │ meta.json     │  │    │                                 │ │
+│  │  │ discussions/  │  │    │                                 │ │
+│  │  └───────────────┘  │    └─────────────────────────────────┘ │
+│  │  ~/.cache/rally-tui │                                        │
+│  └─────────────────────┘                                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Cache Strategy: Stale-While-Revalidate
+
+1. **On startup**: Load from cache immediately (instant UI)
+2. **Background refresh**: Fetch fresh data from Rally in background
+3. **Update UI**: When fresh data arrives, update ticket list seamlessly
+4. **Status indicator**: Show "Cached (5m ago)" or "Live" in status bar
+5. **Manual refresh**: `r` key forces immediate fresh fetch
+
+#### Tasks
+
+**Phase 1: Cache Infrastructure**
+- [x] Create `CacheManager` class in `services/cache_manager.py`
+- [x] Define cache directory structure (`~/.cache/rally-tui/`)
+- [x] Implement cache metadata (version, last_updated, workspace, project)
+- [x] Add cache configuration to `UserSettings` (enabled, ttl_minutes, auto_refresh)
+- [x] Write file I/O helpers with atomic writes (temp file + rename)
+
+**Phase 2: Ticket Caching**
+- [x] Serialize/deserialize `Ticket` objects to JSON
+- [x] Store tickets in `tickets.json` with metadata
+- [x] Implement TTL-based cache validity checking
+- [x] Add `get_cached_tickets()` method to CacheManager
+- [x] Add `save_tickets()` method to CacheManager
+
+**Phase 3: CachingRallyClient Wrapper**
+- [x] Create `CachingRallyClient` class implementing `RallyClientProtocol`
+- [x] Wrap real `RallyClient` with cache-first logic
+- [x] Implement `get_tickets()` with stale-while-revalidate pattern
+- [x] Add `refresh_cache()` method for manual refresh
+- [x] Add status change callbacks for UI updates
+
+**Phase 4: UI Integration**
+- [x] Modify `StatusBar` to show cache status (Live/Cached/Refreshing/Offline)
+- [x] Add cache age indicator for Cached status
+- [x] Add `r` keybinding for manual refresh
+- [x] Add `CacheStatusDisplay` enum in status_bar.py
+- [x] Handle offline mode gracefully (read-only, disable writes)
+
+**Phase 5: Extended Caching**
+- [ ] Cache iterations list (for iteration picker) - future
+- [ ] Cache discussions (per ticket, lazy-loaded) - future
+- [ ] Cache features (for parent selection) - future
+- [ ] Cache user info (current_user, workspace, project) - future
+- [ ] Implement cache cleanup (remove stale entries older than 7 days) - future
+
+**Phase 6: Testing & Polish**
+- [x] Unit tests for CacheManager (29 tests - serialization, TTL, metadata)
+- [x] Unit tests for CachingRallyClient (23 tests - cache-first, offline)
+- [x] Unit tests for StatusBar cache status (11 tests)
+- [x] Unit tests for UserSettings cache config (17 tests)
+- [x] Update documentation
+
+#### Data Model
+
+**Cache Directory Structure:**
+```
+~/.cache/rally-tui/
+├── meta.json           # Cache metadata (version, workspace, project)
+├── tickets.json        # All tickets with timestamps
+├── iterations.json     # Iteration list
+├── features.json       # Features for parent selection
+├── discussions/        # Per-ticket discussions
+│   ├── US1234.json
+│   └── DE456.json
+└── attachments/        # Attachment metadata only (not content)
+    └── US1234.json
+```
+
+**meta.json Schema:**
+```json
+{
+  "version": 1,
+  "workspace": "MyWorkspace",
+  "project": "MyProject",
+  "last_full_sync": "2024-01-15T10:30:00Z",
+  "tickets_updated": "2024-01-15T10:35:00Z",
+  "iterations_updated": "2024-01-15T10:30:00Z"
+}
+```
+
+**tickets.json Schema:**
+```json
+{
+  "updated_at": "2024-01-15T10:35:00Z",
+  "ttl_minutes": 15,
+  "tickets": [
+    {
+      "formatted_id": "US1234",
+      "name": "User login feature",
+      "ticket_type": "UserStory",
+      "state": "In-Progress",
+      "owner": "John Smith",
+      "iteration": "Sprint 5",
+      "points": 3.0,
+      "description": "...",
+      "notes": "...",
+      "parent_id": "F12345",
+      "object_id": "123456789"
+    }
+  ]
+}
+```
+
+#### Configuration Options
+
+Add to `~/.config/rally-tui/config.json`:
+
+```json
+{
+  "cache": {
+    "enabled": true,
+    "ttl_minutes": 15,
+    "auto_refresh": true,
+    "max_age_days": 7
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `cache.enabled` | bool | `true` | Enable/disable local caching |
+| `cache.ttl_minutes` | int | `15` | Time before cache is considered stale |
+| `cache.auto_refresh` | bool | `true` | Background refresh when cache is stale |
+| `cache.max_age_days` | int | `7` | Delete cache entries older than this |
+
+#### Key Bindings
+
+| Key | Action |
+|-----|--------|
+| `r` | Force refresh from Rally API |
+| `R` | Clear cache and refresh |
+
+#### UI Changes
+
+**StatusBar Updates:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ rally-tui │ MyProject │ ● Live                 │ Connected     │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ rally-tui │ MyProject │ ○ Cached (5m ago)      │ Connected     │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ rally-tui │ MyProject │ ◌ Refreshing...        │ Connected     │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│ rally-tui │ MyProject │ ⚠ Offline (cached)     │ Disconnected  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Performance Targets
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Cold startup (no cache) | 3-5s | 3-5s |
+| Warm startup (with cache) | 3-5s | **<0.5s** |
+| Iteration filter change | 1-2s | **<0.1s** |
+| Offline access | ❌ | ✅ |
+
+#### Key Files
+
+```
+src/rally_tui/
+├── services/
+│   ├── cache_manager.py      # CacheManager class
+│   ├── caching_client.py     # CachingRallyClient wrapper
+│   └── __init__.py           # Export new classes
+├── user_settings.py          # Add cache configuration
+├── widgets/
+│   └── status_bar.py         # Add cache status display
+└── app.py                    # Integrate CachingRallyClient
+
+tests/
+├── test_cache_manager.py     # CacheManager unit tests
+├── test_caching_client.py    # CachingRallyClient tests
+└── test_offline_mode.py      # Integration tests
+```
+
+#### Test Coverage
+
+- Unit: CacheManager serialization/deserialization
+- Unit: TTL calculation and validation
+- Unit: File locking and concurrent access
+- Unit: CachingRallyClient cache-first logic
+- Unit: Background refresh worker
+- Unit: StatusBar cache status display
+- Integration: Warm startup from cache
+- Integration: Offline mode with cached data
+- Integration: Cache invalidation on write operations
+- Integration: Manual refresh with `r` key
+
+#### Implementation Notes
+
+1. **Thread Safety**: Use file locking for cache writes to prevent corruption
+2. **Atomic Writes**: Write to temp file then rename for crash safety
+3. **Graceful Degradation**: If cache is corrupt, delete and fetch fresh
+4. **Memory Efficiency**: Don't load entire cache into memory; stream large files
+5. **Write-Through**: When user updates a ticket, update cache immediately
+6. **Invalidation**: Clear relevant cache entries when writes occur
+7. **Version Migration**: Cache version field allows format upgrades
+
+#### Commit Plan
+
+1. `feat: add CacheManager with file I/O and TTL`
+2. `feat: add cache configuration to UserSettings`
+3. `feat: add ticket serialization/deserialization`
+4. `feat: create CachingRallyClient wrapper`
+5. `feat: integrate caching with app startup`
+6. `feat: add cache status to StatusBar`
+7. `feat: add 'r' keybinding for manual refresh`
+8. `feat: implement background refresh worker`
+9. `feat: cache iterations, discussions, features`
+10. `feat: add offline mode support`
+11. `test: add comprehensive cache tests`
+12. `docs: update README with caching documentation`
+13. `chore: bump version to 0.7.0`
+
+---
+
+### Project Complete
+
+With Iteration 14, rally-tui will be a fully-featured, high-performance Rally TUI with:
+- ✅ Full Rally API integration (Iterations 1-6)
+- ✅ Search and filtering (Iteration 7)
+- ✅ Discussions and comments (Iteration 8)
+- ✅ Configurable keybindings (Iteration 9)
+- ✅ Iteration and user filtering (Iteration 10)
+- ✅ Parent selection (Iteration 11)
+- ✅ Bulk operations (Iteration 12)
+- ✅ Attachments (Iteration 13)
+- ⏳ **Local caching and offline mode (Iteration 14)**
 
 ---
 

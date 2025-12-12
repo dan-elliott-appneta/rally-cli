@@ -35,9 +35,12 @@ from rally_tui.screens import (
 )
 from rally_tui.models import Ticket
 from rally_tui.services import BulkResult, MockRallyClient, RallyClient, RallyClientProtocol
+from rally_tui.services.cache_manager import CacheManager
+from rally_tui.services.caching_client import CacheStatus, CachingRallyClient
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils import get_logger, setup_logging
 from rally_tui.widgets import (
+    CacheStatusDisplay,
     SearchInput,
     SortMode,
     StatusBar,
@@ -108,6 +111,24 @@ class RallyTUI(App[None]):
             self._client = MockRallyClient()
             self._connected = False
 
+        # Wrap client with caching layer if enabled (only for real Rally connections)
+        # Don't cache MockRallyClient data to avoid test interference
+        self._cache_manager: CacheManager | None = None
+        self._caching_client: CachingRallyClient | None = None
+
+        if self._user_settings.cache_enabled and self._connected:
+            self._cache_manager = CacheManager()
+            self._caching_client = CachingRallyClient(
+                client=self._client,
+                cache_manager=self._cache_manager,
+                cache_enabled=True,
+                ttl_minutes=self._user_settings.cache_ttl_minutes,
+                auto_refresh=self._user_settings.cache_auto_refresh,
+            )
+            # Use caching client as the main client
+            self._client = self._caching_client
+            _log.info("Caching enabled with TTL=%d minutes", self._user_settings.cache_ttl_minutes)
+
         # Filter state
         self._iteration_filter: str | None = None  # Iteration name or FILTER_BACKLOG
         self._user_filter_active: bool = False
@@ -156,6 +177,7 @@ class RallyTUI(App[None]):
             "action.my_items": ("toggle_user_filter", "My Items", True),
             "action.sort": ("cycle_sort", "Sort", True),
             "action.bulk": ("bulk_actions", "Bulk", True),
+            "action.refresh": ("refresh_cache", "Refresh", True),
             "action.settings": ("open_settings", "Settings", True),
             "action.keybindings": ("open_keybindings", "Keys", True),
             "action.theme": ("toggle_theme", "Theme", False),
@@ -199,6 +221,10 @@ class RallyTUI(App[None]):
             status_bar.set_iteration_filter(self._iteration_filter)
             status_bar.set_user_filter(True)
             _log.debug(f"Initial filters: iteration={self._iteration_filter}, user=True")
+
+        # Set up cache status callback if caching is enabled
+        if self._caching_client:
+            self._caching_client.set_on_status_change(self._on_cache_status_change)
 
         # Focus the ticket list initially
         self.query_one(TicketList).focus()
@@ -254,6 +280,12 @@ class RallyTUI(App[None]):
             # Filtered tickets fetched - update UI directly
             tickets = event.worker.result
             self._on_filtered_tickets_loaded(tickets)
+
+        elif event.worker.name == "_refresh_all_tickets":
+            # Manual refresh complete - update cache and UI
+            tickets = event.worker.result
+            if tickets:
+                self._on_refresh_complete(tickets)
 
     def _load_all_tickets(self) -> list:
         """Load all tickets in background thread."""
@@ -837,6 +869,79 @@ class RallyTUI(App[None]):
         }
         self.notify(f"Sort: {mode_names[next_mode]}", timeout=2)
         _log.info(f"Sort mode changed to {next_mode.value}")
+
+    def action_refresh_cache(self) -> None:
+        """Refresh the ticket cache by fetching fresh data from Rally."""
+        _log.info("Refreshing ticket cache...")
+        self.notify("Refreshing...", timeout=1)
+        self.run_worker(self._refresh_all_tickets, thread=True, exclusive=True)
+
+    def _refresh_all_tickets(self) -> list:
+        """Fetch fresh tickets from the server.
+
+        Uses CachingRallyClient's refresh_cache if available,
+        otherwise falls back to direct get_tickets call.
+        """
+        _log.debug("Fetching fresh tickets from server...")
+        try:
+            if self._caching_client:
+                # Use caching client's refresh method (updates cache)
+                tickets = self._caching_client.refresh_cache()
+            else:
+                # Fall back to direct fetch
+                tickets = self._client.get_tickets(query="")
+            return list(tickets)
+        except Exception as e:
+            _log.error(f"Failed to refresh tickets: {e}")
+            return []
+
+    def _on_refresh_complete(self, tickets: list) -> None:
+        """Called when refresh completes."""
+        self._all_tickets = tickets
+        self._all_tickets_loaded = True
+
+        # Re-apply current filters
+        self._apply_filters()
+
+        self.notify(f"Refreshed: {len(tickets)} tickets", timeout=2)
+        _log.info(f"Refresh complete: {len(tickets)} tickets")
+
+    def _on_cache_status_change(self, status: CacheStatus, age_minutes: int | None) -> None:
+        """Handle cache status changes from CachingRallyClient.
+
+        Maps CacheStatus to CacheStatusDisplay and updates the status bar.
+        Uses call_from_thread when called from a worker thread.
+        """
+        import threading
+
+        # Map CacheStatus to CacheStatusDisplay
+        status_map = {
+            CacheStatus.LIVE: CacheStatusDisplay.LIVE,
+            CacheStatus.CACHED: CacheStatusDisplay.CACHED,
+            CacheStatus.REFRESHING: CacheStatusDisplay.REFRESHING,
+            CacheStatus.OFFLINE: CacheStatusDisplay.OFFLINE,
+        }
+
+        display_status = status_map.get(status)
+        if display_status:
+            # Check if we're on the main thread to avoid call_from_thread error in tests
+            if threading.current_thread() is threading.main_thread():
+                # Already on main thread, call directly
+                self._update_status_bar_cache(display_status, age_minutes)
+            else:
+                # Use call_from_thread to safely update UI from worker thread
+                self.call_from_thread(self._update_status_bar_cache, display_status, age_minutes)
+
+    def _update_status_bar_cache(
+        self, status: CacheStatusDisplay, age_minutes: int | None
+    ) -> None:
+        """Update status bar cache display (called on main thread)."""
+        try:
+            status_bar = self.query_one(StatusBar)
+            status_bar.set_cache_status(status, age_minutes)
+        except Exception:
+            # StatusBar might not exist during tests or early startup
+            pass
 
     def action_bulk_actions(self) -> None:
         """Open bulk actions menu if tickets are selected."""

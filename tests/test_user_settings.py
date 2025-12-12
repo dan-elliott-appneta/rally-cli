@@ -663,3 +663,210 @@ class TestUserSettingsResetKeybindings:
         with config_file.open() as f:
             data = json.load(f)
         assert "keybindings" not in data
+
+
+class TestUserSettingsCacheEnabled:
+    """Tests for cache_enabled property."""
+
+    def test_default_cache_enabled(self, tmp_path: Path, monkeypatch) -> None:
+        """Default cache_enabled should be True."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        assert settings.cache_enabled is True
+
+    def test_set_cache_enabled_false(self, tmp_path: Path, monkeypatch) -> None:
+        """Should be able to disable caching."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.cache_enabled = False
+        assert settings.cache_enabled is False
+
+    def test_cache_enabled_persists_to_file(self, tmp_path: Path, monkeypatch) -> None:
+        """cache_enabled should persist to config file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        settings = UserSettings()
+        settings.cache_enabled = False
+
+        # Read file directly
+        with config_file.open() as f:
+            data = json.load(f)
+        assert data["cache_enabled"] is False
+
+    def test_cache_enabled_loads_from_file(self, tmp_path: Path, monkeypatch) -> None:
+        """cache_enabled should load from config file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        # Write config file
+        with config_file.open("w") as f:
+            json.dump({"cache_enabled": False}, f)
+
+        settings = UserSettings()
+        assert settings.cache_enabled is False
+
+    def test_invalid_cache_enabled_raises(self, tmp_path: Path, monkeypatch) -> None:
+        """Invalid cache_enabled value should raise ValueError."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        with pytest.raises(ValueError, match="cache_enabled must be a boolean"):
+            settings.cache_enabled = "not a bool"  # type: ignore[assignment]
+
+
+class TestUserSettingsCacheTTLMinutes:
+    """Tests for cache_ttl_minutes property."""
+
+    def test_default_cache_ttl_minutes(self, tmp_path: Path, monkeypatch) -> None:
+        """Default cache_ttl_minutes should be 15."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        assert settings.cache_ttl_minutes == 15
+
+    def test_set_cache_ttl_minutes(self, tmp_path: Path, monkeypatch) -> None:
+        """Should be able to set cache TTL."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.cache_ttl_minutes = 30
+        assert settings.cache_ttl_minutes == 30
+
+    def test_cache_ttl_minutes_persists_to_file(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """cache_ttl_minutes should persist to config file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        settings = UserSettings()
+        settings.cache_ttl_minutes = 60
+
+        # Read file directly
+        with config_file.open() as f:
+            data = json.load(f)
+        assert data["cache_ttl_minutes"] == 60
+
+    def test_cache_ttl_minutes_loads_from_file(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """cache_ttl_minutes should load from config file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        # Write config file
+        with config_file.open("w") as f:
+            json.dump({"cache_ttl_minutes": 45}, f)
+
+        settings = UserSettings()
+        assert settings.cache_ttl_minutes == 45
+
+    def test_invalid_cache_ttl_minutes_raises(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Invalid cache_ttl_minutes should raise ValueError."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        with pytest.raises(ValueError, match="cache_ttl_minutes must be a positive integer"):
+            settings.cache_ttl_minutes = -5
+
+    def test_zero_cache_ttl_minutes_raises(self, tmp_path: Path, monkeypatch) -> None:
+        """Zero cache_ttl_minutes should raise ValueError."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        with pytest.raises(ValueError, match="cache_ttl_minutes must be a positive integer"):
+            settings.cache_ttl_minutes = 0
+
+    def test_invalid_stored_cache_ttl_returns_default(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Invalid stored cache_ttl_minutes should return default."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        # Write invalid TTL to file
+        with config_file.open("w") as f:
+            json.dump({"cache_ttl_minutes": -10}, f)
+
+        settings = UserSettings()
+        assert settings.cache_ttl_minutes == 15
+
+
+class TestUserSettingsCacheAutoRefresh:
+    """Tests for cache_auto_refresh property."""
+
+    def test_default_cache_auto_refresh(self, tmp_path: Path, monkeypatch) -> None:
+        """Default cache_auto_refresh should be True."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        assert settings.cache_auto_refresh is True
+
+    def test_set_cache_auto_refresh_false(self, tmp_path: Path, monkeypatch) -> None:
+        """Should be able to disable auto-refresh."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        settings.cache_auto_refresh = False
+        assert settings.cache_auto_refresh is False
+
+    def test_cache_auto_refresh_persists_to_file(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """cache_auto_refresh should persist to config file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        settings = UserSettings()
+        settings.cache_auto_refresh = False
+
+        # Read file directly
+        with config_file.open() as f:
+            data = json.load(f)
+        assert data["cache_auto_refresh"] is False
+
+    def test_cache_auto_refresh_loads_from_file(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """cache_auto_refresh should load from config file."""
+        config_file = tmp_path / "config.json"
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
+
+        # Write config file
+        with config_file.open("w") as f:
+            json.dump({"cache_auto_refresh": False}, f)
+
+        settings = UserSettings()
+        assert settings.cache_auto_refresh is False
+
+    def test_invalid_cache_auto_refresh_raises(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        """Invalid cache_auto_refresh value should raise ValueError."""
+        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
+        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
+
+        settings = UserSettings()
+        with pytest.raises(ValueError, match="cache_auto_refresh must be a boolean"):
+            settings.cache_auto_refresh = "not a bool"  # type: ignore[assignment]

@@ -27,10 +27,12 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
 - **Discussions**: View ticket discussions and add comments
 - **Attachments**: Press `a` to view, download, or upload ticket attachments
+- **Local caching**: Tickets cached to `~/.cache/rally-tui/` for performance and offline access
+- **Cache refresh**: Press `r` to manually refresh the ticket cache
 
 ## Status
 
-**Iteration 13 Complete** - Attachments.
+**Iteration 14 Complete** - Local Caching.
 
 - **NEW**: Press `F3` to open keybindings configuration screen
 - **NEW**: Vim and Emacs keybinding profiles
@@ -77,9 +79,9 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 657 tests passing
+- 737 tests passing
 
-Next: Iteration 14 (Custom fields support).
+Next: Iteration 15 (Custom fields support).
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -166,6 +168,7 @@ rally-tui
 | i | list/detail | Filter by iteration/sprint |
 | u | list/detail | Toggle My Items filter |
 | o | list | Cycle sort mode (State/Recent/Owner) |
+| r | list/detail | Refresh ticket cache |
 | w | list/detail | New workitem |
 | F2 | any | Open settings |
 | F3 | any | Open keybindings |
@@ -187,7 +190,10 @@ Settings are stored in `~/.config/rally-tui/config.json`:
   "keybindings": {
     "navigation.down": "j",
     "navigation.up": "k"
-  }
+  },
+  "cache_enabled": true,
+  "cache_ttl_minutes": 5,
+  "cache_auto_refresh": true
 }
 ```
 
@@ -196,6 +202,13 @@ Settings are stored in `~/.config/rally-tui/config.json`:
 **Keybinding Profiles**: `vim` (default), `emacs`, or `custom`. Press F3 to view and edit keybindings.
 - Vim profile: j/k navigation, g/G jump, / search
 - Emacs profile: Ctrl+n/Ctrl+p navigation, Ctrl+a/Ctrl+e jump
+
+**Cache Settings**:
+- `cache_enabled`: Enable/disable local caching (default: true)
+- `cache_ttl_minutes`: Cache time-to-live in minutes (default: 5)
+- `cache_auto_refresh`: Automatically refresh stale cache in background (default: true)
+
+Cache files are stored in `~/.cache/rally-tui/` and are automatically refreshed when stale. Press `r` to manually refresh.
 
 Available themes: `textual-dark`, `textual-light`, `catppuccin-mocha`, `catppuccin-latte`, `nord`, `gruvbox`, `dracula`, `tokyo-night`, `monokai`, `flexoki`, `solarized-light`
 
@@ -246,7 +259,9 @@ rally-cli/
 │   └── services/            # Rally API client layer
 │       ├── protocol.py      # RallyClientProtocol interface
 │       ├── rally_client.py  # Real Rally API client
-│       └── mock_client.py   # MockRallyClient for testing
+│       ├── mock_client.py   # MockRallyClient for testing
+│       ├── cache_manager.py # Local file caching for tickets
+│       └── caching_client.py # CachingRallyClient wrapper
 ├── tests/
 │   ├── conftest.py               # Pytest fixtures
 │   ├── test_ticket_model.py      # Model unit tests
@@ -278,11 +293,13 @@ rally-cli/
 │   ├── test_logging.py           # Logging module tests
 │   ├── test_keybindings.py       # Keybinding utilities tests
 │   ├── test_keybindings_screen.py # KeybindingsScreen tests
+│   ├── test_cache_manager.py     # CacheManager tests
+│   ├── test_caching_client.py    # CachingRallyClient tests
 │   └── test_snapshots.py         # Visual regression tests
 └── docs/
     ├── API.md               # Rally WSAPI reference
     ├── PLAN.md              # Development roadmap
-    └── ITERATION_*.md       # Implementation guides (1-12)
+    └── ITERATION_*.md       # Implementation guides (1-14)
 ```
 
 ### Running Tests
@@ -315,6 +332,7 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 - [ITERATION_10.md](docs/ITERATION_10.md) - Iteration 10 implementation guide (Iteration & User Filtering)
 - [ITERATION_12.md](docs/ITERATION_12.md) - Iteration 12 implementation guide (Bulk Operations)
 - [ITERATION_13.md](docs/ITERATION_13.md) - Iteration 13 implementation guide (Attachments)
+- [ITERATION_14.md](docs/ITERATION_14.md) - Iteration 14 implementation guide (Local Caching)
 
 ## Technology Stack
 
