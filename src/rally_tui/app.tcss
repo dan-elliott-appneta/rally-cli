@@ -110,6 +110,7 @@ WideTicketListItem {
     max-width: 4;
     text-align: right;
     color: $warning;
+    margin-right: 2;
 }
 
 .ticket-parent {
@@ -117,6 +118,7 @@ WideTicketListItem {
     min-width: 10;
     max-width: 10;
     color: $primary;
+    margin-left: 1;
 }
 
 /* Highlighted (cursor) item */
