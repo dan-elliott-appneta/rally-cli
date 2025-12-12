@@ -2,8 +2,6 @@
 
 from datetime import date
 
-import pytest
-
 from rally_tui.app import RallyTUI
 from rally_tui.models import Iteration, Ticket
 from rally_tui.models.sample_data import SAMPLE_TICKETS
@@ -213,7 +211,7 @@ class TestRallyTUIWithClient:
             project="Custom Project",
         )
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             # Verify the app uses the injected client's data
             ticket_list = app.query_one(TicketList)
             assert ticket_list is not None
@@ -225,7 +223,7 @@ class TestRallyTUIWithClient:
             project="Injected Project",
         )
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             # Banner was removed in v0.7.4, now just shows "Project: <name>"
             assert "Project:" in status_bar.display_content
@@ -237,7 +235,7 @@ class TestRallyTUIWithClient:
             project="Injected Project",
         )
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             assert "Injected Project" in status_bar.display_content
 
@@ -259,7 +257,7 @@ class TestRallyTUIWithClient:
         ]
         client = MockRallyClient(tickets=custom_tickets)
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             detail = app.query_one(TicketDetail)
             # First ticket should be shown in detail
             assert detail.ticket is not None
@@ -268,7 +266,7 @@ class TestRallyTUIWithClient:
     async def test_app_default_client(self) -> None:
         """App should use MockRallyClient with SAMPLE_TICKETS by default."""
         app = RallyTUI(show_splash=False)  # No client passed
-        async with app.run_test() as pilot:
+        async with app.run_test():
             detail = app.query_one(TicketDetail)
             # Should show first ticket from SAMPLE_TICKETS (sorted by state)
             # First ticket after sorting is US1235 (Defined state)
@@ -493,8 +491,7 @@ class TestMockRallyClientBulkOperations:
     def test_bulk_update_state_preserves_other_fields(self) -> None:
         """bulk_update_state should preserve other ticket fields."""
         ticket = Ticket(
-            "US1", "Story 1", "UserStory", "Defined",
-            owner="John", points=5, iteration="Sprint 1"
+            "US1", "Story 1", "UserStory", "Defined", owner="John", points=5, iteration="Sprint 1"
         )
         client = MockRallyClient(tickets=[ticket])
 

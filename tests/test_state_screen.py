@@ -335,6 +335,7 @@ class TestParentSelectionIntegration:
 
             # Should now be on ParentScreen
             from rally_tui.screens import ParentScreen
+
             assert isinstance(app.screen, ParentScreen)
 
     async def test_in_progress_with_parent_skips_parent_screen(self) -> None:
@@ -362,6 +363,7 @@ class TestParentSelectionIntegration:
 
             # Should NOT be on ParentScreen (should be back to main screen)
             from rally_tui.screens import ParentScreen
+
             assert not isinstance(app.screen, ParentScreen)
 
             # Verify state was updated
@@ -391,6 +393,7 @@ class TestParentSelectionIntegration:
 
             # Should NOT be on ParentScreen
             from rally_tui.screens import ParentScreen
+
             assert not isinstance(app.screen, ParentScreen)
 
             # Verify state was updated

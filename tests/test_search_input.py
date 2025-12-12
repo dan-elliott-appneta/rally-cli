@@ -1,7 +1,5 @@
 """Tests for the SearchInput widget."""
 
-import pytest
-
 from rally_tui.widgets import SearchInput
 
 
@@ -41,7 +39,7 @@ class TestSearchInputWidget:
                 yield SearchInput(id="search")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             search = app.query_one(SearchInput)
             assert search.placeholder == "Search..."
 
@@ -55,9 +53,7 @@ class TestSearchInputWidget:
             def compose(self) -> ComposeResult:
                 yield SearchInput(id="search")
 
-            def on_search_input_search_changed(
-                self, event: SearchInput.SearchChanged
-            ) -> None:
+            def on_search_input_search_changed(self, event: SearchInput.SearchChanged) -> None:
                 messages.append(event)
 
         app = TestApp()
@@ -78,9 +74,7 @@ class TestSearchInputWidget:
             def compose(self) -> ComposeResult:
                 yield SearchInput(id="search")
 
-            def on_search_input_search_submitted(
-                self, event: SearchInput.SearchSubmitted
-            ) -> None:
+            def on_search_input_search_submitted(self, event: SearchInput.SearchSubmitted) -> None:
                 submitted.append(event)
 
         app = TestApp()
@@ -102,9 +96,7 @@ class TestSearchInputWidget:
             def compose(self) -> ComposeResult:
                 yield SearchInput(id="search")
 
-            def on_search_input_search_cleared(
-                self, event: SearchInput.SearchCleared
-            ) -> None:
+            def on_search_input_search_cleared(self, event: SearchInput.SearchCleared) -> None:
                 cleared.append(event)
 
         app = TestApp()
@@ -127,9 +119,7 @@ class TestSearchInputWidget:
             def compose(self) -> ComposeResult:
                 yield SearchInput(id="search")
 
-            def on_search_input_search_submitted(
-                self, event: SearchInput.SearchSubmitted
-            ) -> None:
+            def on_search_input_search_submitted(self, event: SearchInput.SearchSubmitted) -> None:
                 submitted.append(event)
 
         app = TestApp()

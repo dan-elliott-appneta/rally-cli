@@ -106,8 +106,9 @@ class BulkActionsScreen(Screen[BulkAction | None]):
             f"Bulk Actions - {self._count} ticket{'s' if self._count != 1 else ''} selected",
             id="bulk-title",
         )
+        suffix = "s" if self._count != 1 else ""
         yield Static(
-            f"Select an action to perform on {self._count} ticket{'s' if self._count != 1 else ''}:",
+            f"Select an action to perform on {self._count} ticket{suffix}:",
             id="bulk-info",
         )
         with Vertical(id="bulk-buttons"):

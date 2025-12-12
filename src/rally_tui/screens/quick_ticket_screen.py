@@ -9,7 +9,6 @@ from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Input, Label, Static, TextArea
 
-
 TicketType = Literal["HierarchicalRequirement", "Defect"]
 
 

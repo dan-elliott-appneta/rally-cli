@@ -478,8 +478,12 @@ class TestRallyClientAttachments:
                 iter([MockRallyEntity(ObjectID="12345", Name="Test")]),  # Artifact query
             ]
             mock_instance.getAttachments.return_value = [
-                MockRallyEntity(Name="doc.pdf", Size=1024, ContentType="application/pdf", ObjectID="att1"),
-                MockRallyEntity(Name="img.png", Size=2048, ContentType="image/png", ObjectID="att2"),
+                MockRallyEntity(
+                    Name="doc.pdf", Size=1024, ContentType="application/pdf", ObjectID="att1"
+                ),
+                MockRallyEntity(
+                    Name="img.png", Size=2048, ContentType="image/png", ObjectID="att2"
+                ),
             ]
             mock_rally.return_value = mock_instance
 

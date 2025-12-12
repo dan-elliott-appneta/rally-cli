@@ -278,9 +278,7 @@ class StatusBar(Static):
         """Get the current selection count."""
         return self._selection_count
 
-    def set_cache_status(
-        self, status: CacheStatusDisplay, age_minutes: int | None = None
-    ) -> None:
+    def set_cache_status(self, status: CacheStatusDisplay, age_minutes: int | None = None) -> None:
         """Set the cache status display.
 
         Args:

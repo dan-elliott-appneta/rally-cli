@@ -1,6 +1,6 @@
 """Rally TUI - A terminal user interface for Rally work items."""
 
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, version
 
 try:
     __version__ = version("rally-tui")

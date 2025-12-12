@@ -4,7 +4,7 @@ import pytest
 
 from rally_tui.app import RallyTUI
 from rally_tui.models import Ticket
-from rally_tui.screens import FILTER_ALL, FILTER_BACKLOG, IterationScreen
+from rally_tui.screens import IterationScreen
 from rally_tui.services import MockRallyClient
 from rally_tui.widgets import StatusBar, TicketList
 
@@ -111,9 +111,7 @@ class TestIterationFilterKey:
 class TestIterationFilterBehavior:
     """Tests for iteration filter functionality."""
 
-    async def test_filter_by_iteration(
-        self, tickets_with_iterations: list[Ticket]
-    ) -> None:
+    async def test_filter_by_iteration(self, tickets_with_iterations: list[Ticket]) -> None:
         """Selecting an iteration should filter tickets."""
         client = MockRallyClient(tickets=tickets_with_iterations)
         app = RallyTUI(client=client, show_splash=False)
@@ -140,9 +138,7 @@ class TestIterationFilterBehavior:
             # Should show all tickets again
             assert len(ticket_list._tickets) == 5
 
-    async def test_filter_backlog(
-        self, tickets_with_iterations: list[Ticket]
-    ) -> None:
+    async def test_filter_backlog(self, tickets_with_iterations: list[Ticket]) -> None:
         """Selecting Backlog should show only unscheduled tickets."""
         client = MockRallyClient(tickets=tickets_with_iterations)
         app = RallyTUI(client=client, show_splash=False)
@@ -179,9 +175,7 @@ class TestIterationFilterBehavior:
 class TestUserFilterKey:
     """Tests for 'u' key to toggle user filter."""
 
-    async def test_u_key_toggles_user_filter(
-        self, tickets_with_iterations: list[Ticket]
-    ) -> None:
+    async def test_u_key_toggles_user_filter(self, tickets_with_iterations: list[Ticket]) -> None:
         """Pressing 'u' should toggle the user filter."""
         client = MockRallyClient(
             tickets=tickets_with_iterations,
@@ -209,9 +203,7 @@ class TestUserFilterKey:
             # Should show all 5 tickets
             assert len(ticket_list._tickets) == 5
 
-    async def test_status_bar_shows_my_items(
-        self, tickets_with_iterations: list[Ticket]
-    ) -> None:
+    async def test_status_bar_shows_my_items(self, tickets_with_iterations: list[Ticket]) -> None:
         """Status bar should show 'My Items' when user filter is active."""
         client = MockRallyClient(
             tickets=tickets_with_iterations,
@@ -229,9 +221,7 @@ class TestUserFilterKey:
 class TestCombinedFilters:
     """Tests for combined iteration and user filters."""
 
-    async def test_backlog_and_user_filter(
-        self, tickets_with_iterations: list[Ticket]
-    ) -> None:
+    async def test_backlog_and_user_filter(self, tickets_with_iterations: list[Ticket]) -> None:
         """Both backlog and user filter should apply together."""
         client = MockRallyClient(
             tickets=tickets_with_iterations,

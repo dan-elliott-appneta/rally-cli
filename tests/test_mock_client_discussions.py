@@ -2,8 +2,6 @@
 
 from datetime import datetime
 
-import pytest
-
 from rally_tui.models import Discussion, Ticket
 from rally_tui.services.mock_client import MockRallyClient
 
@@ -168,9 +166,9 @@ class TestMockClientAddComment:
             ticket_type="UserStory",
             state="Defined",
         )
-        before = datetime.now()
+        datetime.now()
         result = client.add_comment(ticket, "Comment")
-        after = datetime.now()
+        datetime.now()
         assert result is not None
         # Note: created_at is UTC, but we just check it's reasonable
         assert result.created_at is not None

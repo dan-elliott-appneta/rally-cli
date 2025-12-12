@@ -7,8 +7,9 @@ providing the same caching behavior as CachingRallyClient but for async operatio
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from rally_tui.models import Attachment, Discussion, Iteration, Ticket
 from rally_tui.services.cache_manager import CacheManager
@@ -47,25 +48,17 @@ class AsyncRallyClientProtocol(Protocol):
     async def get_iterations(self, count: int = 5) -> list[Iteration]: ...
     async def get_feature(self, formatted_id: str) -> tuple[str, str] | None: ...
     async def set_parent(self, ticket: Ticket, parent_id: str) -> Ticket | None: ...
-    async def bulk_set_parent(
-        self, tickets: list[Ticket], parent_id: str
-    ) -> BulkResult: ...
-    async def bulk_update_state(
-        self, tickets: list[Ticket], state: str
-    ) -> BulkResult: ...
+    async def bulk_set_parent(self, tickets: list[Ticket], parent_id: str) -> BulkResult: ...
+    async def bulk_update_state(self, tickets: list[Ticket], state: str) -> BulkResult: ...
     async def bulk_set_iteration(
         self, tickets: list[Ticket], iteration_name: str | None
     ) -> BulkResult: ...
-    async def bulk_update_points(
-        self, tickets: list[Ticket], points: float
-    ) -> BulkResult: ...
+    async def bulk_update_points(self, tickets: list[Ticket], points: float) -> BulkResult: ...
     async def get_attachments(self, ticket: Ticket) -> list[Attachment]: ...
     async def download_attachment(
         self, ticket: Ticket, attachment: Attachment, dest_path: str
     ) -> bool: ...
-    async def upload_attachment(
-        self, ticket: Ticket, file_path: str
-    ) -> Attachment | None: ...
+    async def upload_attachment(self, ticket: Ticket, file_path: str) -> Attachment | None: ...
     async def download_embedded_image(self, url: str, dest_path: str) -> bool: ...
 
 
@@ -163,9 +156,7 @@ class AsyncCachingRallyClient:
         """Set callback for cache status changes."""
         self._on_status_change = callback
 
-    def set_on_tickets_updated(
-        self, callback: Callable[[list[Ticket]], None] | None
-    ) -> None:
+    def set_on_tickets_updated(self, callback: Callable[[list[Ticket]], None] | None) -> None:
         """Set callback for when tickets are refreshed from API."""
         self._on_tickets_updated = callback
 
@@ -322,9 +313,7 @@ class AsyncCachingRallyClient:
             return None
         return await self._client.set_parent(ticket, parent_id)
 
-    async def bulk_set_parent(
-        self, tickets: list[Ticket], parent_id: str
-    ) -> BulkResult:
+    async def bulk_set_parent(self, tickets: list[Ticket], parent_id: str) -> BulkResult:
         """Set parent Feature on multiple tickets."""
         if self._is_offline:
             return BulkResult(
@@ -333,9 +322,7 @@ class AsyncCachingRallyClient:
             )
         return await self._client.bulk_set_parent(tickets, parent_id)
 
-    async def bulk_update_state(
-        self, tickets: list[Ticket], state: str
-    ) -> BulkResult:
+    async def bulk_update_state(self, tickets: list[Ticket], state: str) -> BulkResult:
         """Update state on multiple tickets."""
         if self._is_offline:
             return BulkResult(
@@ -355,9 +342,7 @@ class AsyncCachingRallyClient:
             )
         return await self._client.bulk_set_iteration(tickets, iteration_name)
 
-    async def bulk_update_points(
-        self, tickets: list[Ticket], points: float
-    ) -> BulkResult:
+    async def bulk_update_points(self, tickets: list[Ticket], points: float) -> BulkResult:
         """Update story points on multiple tickets."""
         if self._is_offline:
             return BulkResult(
@@ -376,9 +361,7 @@ class AsyncCachingRallyClient:
         """Download attachment content to a local file."""
         return await self._client.download_attachment(ticket, attachment, dest_path)
 
-    async def upload_attachment(
-        self, ticket: Ticket, file_path: str
-    ) -> Attachment | None:
+    async def upload_attachment(self, ticket: Ticket, file_path: str) -> Attachment | None:
         """Upload a local file as an attachment to a ticket."""
         if self._is_offline:
             return None

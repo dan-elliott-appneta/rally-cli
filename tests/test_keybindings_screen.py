@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 
 from rally_tui.screens.keybindings_screen import (
+    PROFILE_OPTIONS,
     KeybindingRow,
     KeybindingsScreen,
-    PROFILE_OPTIONS,
 )
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils.keybindings import VIM_KEYBINDINGS
@@ -96,9 +96,7 @@ class TestKeybindingsScreenInit:
 class TestKeybindingsScreenKeyString:
     """Tests for key string building."""
 
-    def test_build_key_string_single_char(
-        self, mock_user_settings: UserSettings
-    ) -> None:
+    def test_build_key_string_single_char(self, mock_user_settings: UserSettings) -> None:
         """Should build key string for single character."""
         screen = KeybindingsScreen(mock_user_settings)
 
@@ -108,9 +106,7 @@ class TestKeybindingsScreenKeyString:
         result = screen._build_key_string(MockEvent())
         assert result == "j"
 
-    def test_build_key_string_function_key(
-        self, mock_user_settings: UserSettings
-    ) -> None:
+    def test_build_key_string_function_key(self, mock_user_settings: UserSettings) -> None:
         """Should build key string for function key."""
         screen = KeybindingsScreen(mock_user_settings)
 
@@ -120,9 +116,7 @@ class TestKeybindingsScreenKeyString:
         result = screen._build_key_string(MockEvent())
         assert result == "f3"
 
-    def test_build_key_string_special_key(
-        self, mock_user_settings: UserSettings
-    ) -> None:
+    def test_build_key_string_special_key(self, mock_user_settings: UserSettings) -> None:
         """Should build key string for special key."""
         screen = KeybindingsScreen(mock_user_settings)
 
@@ -144,9 +138,7 @@ class TestKeybindingsScreenKeyString:
         result = screen._build_key_string(MockEvent())
         assert result is None
 
-    def test_build_key_string_ctrl_combo(
-        self, mock_user_settings: UserSettings
-    ) -> None:
+    def test_build_key_string_ctrl_combo(self, mock_user_settings: UserSettings) -> None:
         """Should handle ctrl+key combos."""
         screen = KeybindingsScreen(mock_user_settings)
 
@@ -156,9 +148,7 @@ class TestKeybindingsScreenKeyString:
         result = screen._build_key_string(MockEvent())
         assert result == "ctrl+s"
 
-    def test_build_key_string_tab(
-        self, mock_user_settings: UserSettings
-    ) -> None:
+    def test_build_key_string_tab(self, mock_user_settings: UserSettings) -> None:
         """Should handle tab key."""
         screen = KeybindingsScreen(mock_user_settings)
 
@@ -168,9 +158,7 @@ class TestKeybindingsScreenKeyString:
         result = screen._build_key_string(MockEvent())
         assert result == "tab"
 
-    def test_build_key_string_escape(
-        self, mock_user_settings: UserSettings
-    ) -> None:
+    def test_build_key_string_escape(self, mock_user_settings: UserSettings) -> None:
         """Should handle escape key."""
         screen = KeybindingsScreen(mock_user_settings)
 
@@ -180,9 +168,7 @@ class TestKeybindingsScreenKeyString:
         result = screen._build_key_string(MockEvent())
         assert result == "escape"
 
-    def test_build_key_string_enter(
-        self, mock_user_settings: UserSettings
-    ) -> None:
+    def test_build_key_string_enter(self, mock_user_settings: UserSettings) -> None:
         """Should handle enter key."""
         screen = KeybindingsScreen(mock_user_settings)
 
@@ -204,9 +190,7 @@ class TestKeybindingsScreenTempBindings:
         # Original settings unchanged
         assert mock_user_settings.get_keybinding("navigation.down") == "j"
 
-    def test_reset_restores_vim_defaults(
-        self, mock_user_settings: UserSettings
-    ) -> None:
+    def test_reset_restores_vim_defaults(self, mock_user_settings: UserSettings) -> None:
         """Reset should restore vim defaults."""
         screen = KeybindingsScreen(mock_user_settings)
         screen._temp_bindings["navigation.down"] = "x"
@@ -217,17 +201,13 @@ class TestKeybindingsScreenTempBindings:
 class TestKeybindingsScreenEditing:
     """Tests for editing mode."""
 
-    def test_start_editing_sets_action(
-        self, mock_user_settings: UserSettings
-    ) -> None:
+    def test_start_editing_sets_action(self, mock_user_settings: UserSettings) -> None:
         """Start editing should set the editing action."""
         screen = KeybindingsScreen(mock_user_settings)
         screen._editing_action = "navigation.down"
         assert screen._editing_action == "navigation.down"
 
-    def test_stop_editing_clears_action(
-        self, mock_user_settings: UserSettings
-    ) -> None:
+    def test_stop_editing_clears_action(self, mock_user_settings: UserSettings) -> None:
         """Stop editing should clear the editing action."""
         screen = KeybindingsScreen(mock_user_settings)
         screen._editing_action = "navigation.down"

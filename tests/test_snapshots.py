@@ -7,8 +7,6 @@ Note: Tickets are sorted by state order:
 - Completed (US1236) - index 7
 """
 
-import pytest
-
 
 class TestAppSnapshots:
     """Visual regression tests using pytest-textual-snapshot."""

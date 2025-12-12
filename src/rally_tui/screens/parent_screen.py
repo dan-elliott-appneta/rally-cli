@@ -137,8 +137,9 @@ class ParentScreen(Screen[str | None]):
 
         # Show different hint based on whether options are configured
         if self._parent_options:
+            num_opts = len(self._parent_options)
             yield Static(
-                f"Select a parent (1-{len(self._parent_options)}) or enter custom ID ({len(self._parent_options) + 1}):",
+                f"Select a parent (1-{num_opts}) or enter custom ID ({num_opts + 1}):",
                 id="parent-hint",
             )
         else:

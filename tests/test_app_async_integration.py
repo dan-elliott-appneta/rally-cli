@@ -1,11 +1,7 @@
 """Tests for async client integration in the RallyTUI app."""
 
-import pytest
-
 from rally_tui.app import RallyTUI
-from rally_tui.services.async_mock_client import AsyncMockRallyClient
 from rally_tui.services.mock_client import MockRallyClient
-from rally_tui.user_settings import UserSettings
 
 
 class TestAppAsyncInitialization:
@@ -211,12 +207,6 @@ class TestAppWorkerHandling:
         async with app.run_test():
             # The async worker names should be in the fetch workers tuple
             # This is tested implicitly by the handler not raising errors
-            async_names = (
-                "_load_initial_tickets_async",
-                "_load_all_tickets_async",
-                "_fetch_filtered_tickets_async",
-                "_refresh_all_tickets_async",
-            )
             # Verify these are recognized (they appear in the handler's conditions)
             # This test just ensures the app loads without errors
             assert app._connected is False

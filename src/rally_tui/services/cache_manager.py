@@ -7,7 +7,7 @@ import logging
 import os
 import tempfile
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -81,9 +81,7 @@ class CacheManager:
         self._ensure_cache_dir()
 
         # Write to temp file in same directory (same filesystem for rename)
-        fd, temp_path = tempfile.mkstemp(
-            dir=self._cache_dir, suffix=".tmp", prefix=path.stem
-        )
+        fd, temp_path = tempfile.mkstemp(dir=self._cache_dir, suffix=".tmp", prefix=path.stem)
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
@@ -170,9 +168,7 @@ class CacheManager:
 
         return tickets, metadata
 
-    def save_tickets(
-        self, tickets: list[Ticket], workspace: str = "", project: str = ""
-    ) -> None:
+    def save_tickets(self, tickets: list[Ticket], workspace: str = "", project: str = "") -> None:
         """Save tickets to cache.
 
         Args:
@@ -185,7 +181,7 @@ class CacheManager:
         self._atomic_write(self._tickets_file, ticket_data)
 
         # Save metadata
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         metadata = {
             "version": CACHE_VERSION,
             "workspace": workspace,
@@ -209,7 +205,7 @@ class CacheManager:
         if not metadata or not metadata.tickets_updated_dt:
             return False
 
-        age = datetime.now(timezone.utc) - metadata.tickets_updated_dt
+        age = datetime.now(UTC) - metadata.tickets_updated_dt
         return age.total_seconds() < ttl_minutes * 60
 
     def get_cache_age_minutes(self) -> int | None:
@@ -222,7 +218,7 @@ class CacheManager:
         if not metadata or not metadata.tickets_updated_dt:
             return None
 
-        age = datetime.now(timezone.utc) - metadata.tickets_updated_dt
+        age = datetime.now(UTC) - metadata.tickets_updated_dt
         return int(age.total_seconds() / 60)
 
     def clear_cache(self) -> None:

@@ -1,7 +1,5 @@
 """Tests for the TicketDetail widget."""
 
-import pytest
-
 from rally_tui.app import RallyTUI
 from rally_tui.widgets import TicketDetail
 
@@ -19,7 +17,7 @@ class TestTicketDetailWidget:
     async def test_initial_state_shows_first_ticket(self) -> None:
         """Detail panel should show first ticket on mount (sorted by state)."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             detail = app.query_one(TicketDetail)
             assert detail.ticket is not None
             # First ticket after sorting by state is US1235 (Defined)
@@ -39,7 +37,7 @@ class TestTicketDetailWidget:
     async def test_detail_shows_ticket_name(self) -> None:
         """Detail panel should display ticket name in header."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             header = app.query_one("#detail-header")
             rendered = str(header.render())
             # First ticket is US1235 (Password reset functionality)
@@ -48,7 +46,7 @@ class TestTicketDetailWidget:
     async def test_detail_shows_ticket_state(self) -> None:
         """Detail panel should display ticket state."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
             # First ticket is US1235 with state "Defined"
@@ -57,7 +55,7 @@ class TestTicketDetailWidget:
     async def test_detail_shows_owner(self) -> None:
         """Detail panel should display owner name."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
             # First ticket US1235 has owner Jane Doe
@@ -82,7 +80,7 @@ class TestTicketDetailWidget:
     async def test_detail_shows_description(self) -> None:
         """Detail panel should display ticket description."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             description = app.query_one("#detail-description")
             rendered = str(description.render())
             # First ticket is US1235 about password reset
@@ -91,7 +89,7 @@ class TestTicketDetailWidget:
     async def test_detail_shows_iteration(self) -> None:
         """Detail panel should display iteration name."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
             # First ticket US1235 is in Sprint 6
@@ -100,7 +98,7 @@ class TestTicketDetailWidget:
     async def test_detail_shows_points(self) -> None:
         """Detail panel should display story points."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
             # First ticket US1235 has 5 points
@@ -133,7 +131,7 @@ class TestTicketDetailWidget:
     async def test_detail_shows_formatted_id_in_header(self) -> None:
         """Detail panel header should include formatted ID."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             header = app.query_one("#detail-header")
             rendered = str(header.render())
             # First ticket is US1235
@@ -159,14 +157,14 @@ class TestPanelTitles:
     async def test_ticket_list_has_title(self) -> None:
         """Ticket list panel should have 'Tickets' as border title."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one("#ticket-list")
             assert ticket_list.border_title == "Tickets"
 
     async def test_ticket_detail_has_title(self) -> None:
         """Ticket detail panel should have 'Details' as border title."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_detail = app.query_one("#ticket-detail")
             assert ticket_detail.border_title == "Details"
 
@@ -177,7 +175,7 @@ class TestTicketDetailNotesToggle:
     async def test_default_view_is_description(self) -> None:
         """Detail panel should show description by default."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             detail = app.query_one(TicketDetail)
             assert detail.content_view == "description"
             label = app.query_one("#detail-description-label")
@@ -240,7 +238,7 @@ class TestTicketDetailNotesToggle:
     async def test_toggle_method_works(self) -> None:
         """toggle_content_view method should work correctly."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             detail = app.query_one(TicketDetail)
 
             assert detail.content_view == "description"
@@ -258,7 +256,7 @@ class TestTicketDetailMarkupEscape:
         from rally_tui.models import Ticket
 
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             detail = app.query_one(TicketDetail)
 
             # Set ticket with content containing Rich markup-like syntax
@@ -282,7 +280,7 @@ class TestTicketDetailMarkupEscape:
         from rally_tui.models import Ticket
 
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             detail = app.query_one(TicketDetail)
 
             # Set ticket with shell-style command substitution

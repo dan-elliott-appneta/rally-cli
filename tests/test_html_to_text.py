@@ -1,7 +1,5 @@
 """Tests for HTML to text conversion utility."""
 
-import pytest
-
 from rally_tui.utils import html_to_text
 
 
@@ -157,14 +155,17 @@ class TestHtmlToTextRallyExamples:
 
     def test_rally_user_story_description(self) -> None:
         """Typical Rally user story description."""
-        html = """<div>As a user, I want to log in with my email and password so that I can access my account securely.</div>
-        <div><br></div>
-        <div><strong>Acceptance Criteria:</strong></div>
-        <ul>
-        <li>User can enter email and password</li>
-        <li>System validates credentials</li>
-        <li>User is redirected to dashboard on success</li>
-        </ul>"""
+        html = (
+            "<div>As a user, I want to log in with my email and password "
+            "so that I can access my account securely.</div>"
+            "<div><br></div>"
+            "<div><strong>Acceptance Criteria:</strong></div>"
+            "<ul>"
+            "<li>User can enter email and password</li>"
+            "<li>System validates credentials</li>"
+            "<li>User is redirected to dashboard on success</li>"
+            "</ul>"
+        )
         result = html_to_text(html)
         assert "log in with my email and password" in result
         assert "Acceptance Criteria:" in result

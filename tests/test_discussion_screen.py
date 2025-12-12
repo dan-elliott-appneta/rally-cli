@@ -2,8 +2,6 @@
 
 from datetime import datetime
 
-import pytest
-
 from rally_tui.app import RallyTUI
 from rally_tui.models import Discussion, Ticket
 from rally_tui.screens import DiscussionScreen
@@ -25,7 +23,7 @@ class TestDiscussionScreenBasic:
         client = MockRallyClient()
 
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             await app.push_screen(DiscussionScreen(ticket, client))
 
             title = app.screen.query_one("#discussion-title")
@@ -44,7 +42,7 @@ class TestDiscussionScreenBasic:
         client = MockRallyClient(discussions={})
 
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             await app.push_screen(DiscussionScreen(ticket, client))
 
             no_discussions = app.screen.query_one("#no-discussions")
@@ -81,7 +79,7 @@ class TestDiscussionScreenBasic:
         client = MockRallyClient(discussions=discussions)
 
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             await app.push_screen(DiscussionScreen(ticket, client))
 
             # Check that DiscussionItems are displayed

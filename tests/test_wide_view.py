@@ -1,12 +1,9 @@
 """Tests for the wide view mode feature."""
 
-import pytest
-
 from rally_tui.app import RallyTUI
 from rally_tui.models import Ticket
 from rally_tui.widgets import TicketList, ViewMode
 from rally_tui.widgets.ticket_list import (
-    TicketListItem,
     WideTicketListItem,
 )
 
@@ -192,8 +189,12 @@ class TestWideViewIntegration:
             await pilot.pause()
 
             # Should have wide or wide-full class (wide-full if terminal too narrow)
-            has_wide_class = "wide" in list_container.classes or "wide-full" in list_container.classes
-            assert has_wide_class, f"Expected 'wide' or 'wide-full' class, got: {list_container.classes}"
+            has_wide_class = (
+                "wide" in list_container.classes or "wide-full" in list_container.classes
+            )
+            assert has_wide_class, (
+                f"Expected 'wide' or 'wide-full' class, got: {list_container.classes}"
+            )
 
             # Toggle back
             await pilot.press("v")
@@ -305,9 +306,7 @@ class TestViewModeChangedMessage:
             def compose(self) -> ComposeResult:
                 yield TicketList(id="ticket-list")
 
-            def on_ticket_list_view_mode_changed(
-                self, event: TicketList.ViewModeChanged
-            ) -> None:
+            def on_ticket_list_view_mode_changed(self, event: TicketList.ViewModeChanged) -> None:
                 messages_received.append(event.mode)
 
         app = TestApp()
@@ -412,6 +411,7 @@ class TestWideViewWithOperations:
     async def test_sort_mode_change_preserves_view_mode(self) -> None:
         """Changing sort mode should preserve wide view item type."""
         from textual.app import App, ComposeResult
+
         from rally_tui.widgets import SortMode
 
         tickets = [
@@ -486,7 +486,7 @@ class TestWideViewItemDisplay:
             state="Defined",
             points=5.0,
         )
-        item = WideTicketListItem(ticket)
+        WideTicketListItem(ticket)
         # Whole numbers display without decimal
         assert ticket.points == 5.0
         assert ticket.points == int(ticket.points)
@@ -500,7 +500,7 @@ class TestWideViewItemDisplay:
             state="Defined",
             points=2.5,
         )
-        item = WideTicketListItem(ticket)
+        WideTicketListItem(ticket)
         # Decimal points should show the decimal
         assert ticket.points == 2.5
         assert ticket.points != int(ticket.points)
@@ -514,7 +514,7 @@ class TestWideViewItemDisplay:
             state="Defined",
             owner=None,
         )
-        item = WideTicketListItem(ticket)
+        WideTicketListItem(ticket)
         assert ticket.owner is None
 
     def test_missing_points_displayed_as_dash(self) -> None:
@@ -526,7 +526,7 @@ class TestWideViewItemDisplay:
             state="Defined",
             points=None,
         )
-        item = WideTicketListItem(ticket)
+        WideTicketListItem(ticket)
         assert ticket.points is None
 
     def test_missing_parent_displayed_as_dash(self) -> None:
@@ -538,7 +538,7 @@ class TestWideViewItemDisplay:
             state="Defined",
             parent_id=None,
         )
-        item = WideTicketListItem(ticket)
+        WideTicketListItem(ticket)
         assert ticket.parent_id is None
 
     def test_long_owner_truncated(self) -> None:

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from typing import Any
 
 import httpx
@@ -110,9 +110,7 @@ class AsyncRallyClient:
             # Fetch current user and iteration concurrently
             user_task = self._fetch_current_user()
             iter_task = self._fetch_current_iteration()
-            self._current_user, self._current_iteration = await asyncio.gather(
-                user_task, iter_task
-            )
+            self._current_user, self._current_iteration = await asyncio.gather(user_task, iter_task)
 
             self._initialized = True
             _log.info(
@@ -247,7 +245,7 @@ class AsyncRallyClient:
     async def _fetch_current_iteration(self) -> str | None:
         """Fetch the current iteration name."""
         try:
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            today = datetime.now(UTC).strftime("%Y-%m-%d")
             query = f'((StartDate <= "{today}") AND (EndDate >= "{today}"))'
             response = await self._get(
                 "/iteration",
@@ -305,8 +303,7 @@ class AsyncRallyClient:
         # Fetch all entity types concurrently
         entity_types = ["HierarchicalRequirement", "Defect", "Task"]
         tasks = [
-            self._fetch_entity_type(entity_type, effective_query)
-            for entity_type in entity_types
+            self._fetch_entity_type(entity_type, effective_query) for entity_type in entity_types
         ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -480,10 +477,7 @@ class AsyncRallyClient:
             )
             results, _ = parse_query_result(response)
 
-            discussions = [
-                self._to_discussion(item, ticket.formatted_id)
-                for item in results
-            ]
+            discussions = [self._to_discussion(item, ticket.formatted_id) for item in results]
             _log.debug(f"Fetched {len(discussions)} discussions for {ticket.formatted_id}")
             return discussions
         except Exception as e:
@@ -497,7 +491,7 @@ class AsyncRallyClient:
         if user_obj and isinstance(user_obj, dict):
             user = user_obj.get("_refObjectName", "Unknown")
 
-        created_at = datetime.now(timezone.utc)
+        created_at = datetime.now(UTC)
         date_str = item.get("CreationDate")
         if date_str and isinstance(date_str, str):
             try:
@@ -733,7 +727,7 @@ class AsyncRallyClient:
         iterations: list[Iteration] = []
 
         try:
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            today = datetime.now(UTC).strftime("%Y-%m-%d")
 
             # Fetch current and past iterations concurrently
             current_task = self._get(
@@ -754,9 +748,7 @@ class AsyncRallyClient:
                 },
             )
 
-            current_response, past_response = await asyncio.gather(
-                current_task, past_task
-            )
+            current_response, past_response = await asyncio.gather(current_task, past_task)
 
             # Process current iteration
             current_results, _ = parse_query_result(current_response)
@@ -920,9 +912,7 @@ class AsyncRallyClient:
     # Bulk Operations (Phase 3)
     # -------------------------------------------------------------------------
 
-    async def bulk_set_parent(
-        self, tickets: list[Ticket], parent_id: str
-    ) -> BulkResult:
+    async def bulk_set_parent(self, tickets: list[Ticket], parent_id: str) -> BulkResult:
         """Set parent Feature on multiple tickets concurrently.
 
         Args:
@@ -955,12 +945,12 @@ class AsyncRallyClient:
                 result.failed_count += 1
                 result.errors.append(f"{tickets[i].formatted_id}: {str(res)}")
 
-        _log.info(f"Bulk parent complete: {result.success_count} success, {result.failed_count} failed")
+        _log.info(
+            f"Bulk parent complete: {result.success_count} success, {result.failed_count} failed"
+        )
         return result
 
-    async def bulk_update_state(
-        self, tickets: list[Ticket], state: str
-    ) -> BulkResult:
+    async def bulk_update_state(self, tickets: list[Ticket], state: str) -> BulkResult:
         """Update state on multiple tickets concurrently.
 
         Args:
@@ -990,7 +980,10 @@ class AsyncRallyClient:
                 result.failed_count += 1
                 result.errors.append(f"{tickets[i].formatted_id}: {str(res)}")
 
-        _log.info(f"Bulk state update complete: {result.success_count} success, {result.failed_count} failed")
+        _log.info(
+            f"Bulk state update complete: {result.success_count} success, "
+            f"{result.failed_count} failed"
+        )
         return result
 
     async def bulk_set_iteration(
@@ -1072,12 +1065,12 @@ class AsyncRallyClient:
                 result.failed_count += 1
                 result.errors.append(f"{tickets[i].formatted_id}: {str(res)}")
 
-        _log.info(f"Bulk iteration complete: {result.success_count} success, {result.failed_count} failed")
+        _log.info(
+            f"Bulk iteration complete: {result.success_count} success, {result.failed_count} failed"
+        )
         return result
 
-    async def bulk_update_points(
-        self, tickets: list[Ticket], points: float
-    ) -> BulkResult:
+    async def bulk_update_points(self, tickets: list[Ticket], points: float) -> BulkResult:
         """Update story points on multiple tickets concurrently.
 
         Args:
@@ -1107,7 +1100,10 @@ class AsyncRallyClient:
                 result.failed_count += 1
                 result.errors.append(f"{tickets[i].formatted_id}: {str(res)}")
 
-        _log.info(f"Bulk points update complete: {result.success_count} success, {result.failed_count} failed")
+        _log.info(
+            f"Bulk points update complete: {result.success_count} success, "
+            f"{result.failed_count} failed"
+        )
         return result
 
     # -------------------------------------------------------------------------
@@ -1130,7 +1126,7 @@ class AsyncRallyClient:
         _log.debug(f"Fetching attachments for {ticket.formatted_id}")
 
         try:
-            entity_type = get_entity_type_from_prefix(ticket.formatted_id)
+            get_entity_type_from_prefix(ticket.formatted_id)
             response = await self._get(
                 "/attachment",
                 params={
@@ -1196,9 +1192,7 @@ class AsyncRallyClient:
             _log.error(f"Error downloading attachment {attachment.name}: {e}")
             return False
 
-    async def upload_attachment(
-        self, ticket: Ticket, file_path: str
-    ) -> Attachment | None:
+    async def upload_attachment(self, ticket: Ticket, file_path: str) -> Attachment | None:
         """Upload a local file as an attachment to a ticket.
 
         Args:

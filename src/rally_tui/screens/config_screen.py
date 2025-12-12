@@ -10,7 +10,6 @@ from textual.widgets import Button, Footer, Header, Input, Label, Select, Static
 
 from rally_tui.user_settings import UserSettings
 
-
 # Available themes in Textual
 AVAILABLE_THEMES: list[tuple[str, str]] = [
     ("textual-dark", "Textual Dark"),
@@ -250,8 +249,10 @@ class ConfigScreen(Screen[ConfigData | None]):
         self._settings.parent_options = parent_options
 
         # Return the config data
-        self.dismiss(ConfigData(
-            theme_name=theme_name,
-            log_level=log_level,
-            parent_options=parent_options,
-        ))
+        self.dismiss(
+            ConfigData(
+                theme_name=theme_name,
+                log_level=log_level,
+                parent_options=parent_options,
+            )
+        )

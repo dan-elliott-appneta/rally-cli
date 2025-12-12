@@ -175,6 +175,4 @@ class DiscussionScreen(Screen[None]):
                 if result:
                     self._load_discussions()
 
-        self.app.push_screen(
-            CommentScreen(self._ticket, on_submit=on_comment_submitted)
-        )
+        self.app.push_screen(CommentScreen(self._ticket, on_submit=on_comment_submitted))

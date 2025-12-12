@@ -94,11 +94,13 @@ class TestBuildQueryString:
         assert "(Owner" in result
 
     def test_three_conditions(self) -> None:
-        result = build_query_string([
-            '(State = "Open")',
-            '(Owner = "John")',
-            '(Project = "Foo")',
-        ])
+        result = build_query_string(
+            [
+                '(State = "Open")',
+                '(Owner = "John")',
+                '(Project = "Foo")',
+            ]
+        )
         # Should be nested: (((cond1) AND cond2) AND cond3)
         assert result.count("AND") == 2
 

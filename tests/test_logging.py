@@ -3,10 +3,8 @@
 import logging
 from pathlib import Path
 
-import pytest
-
 from rally_tui.user_settings import UserSettings
-from rally_tui.utils.logging import get_logger, setup_logging, set_log_level
+from rally_tui.utils.logging import get_logger, set_log_level, setup_logging
 
 
 class TestSetupLogging:
@@ -21,6 +19,7 @@ class TestSetupLogging:
 
         # Reset initialization flag
         import rally_tui.utils.logging as logging_module
+
         logging_module._initialized = False
 
         settings = UserSettings()
@@ -39,6 +38,7 @@ class TestSetupLogging:
 
         # Reset initialization flag
         import rally_tui.utils.logging as logging_module
+
         logging_module._initialized = False
 
         settings = UserSettings()
@@ -57,6 +57,7 @@ class TestSetupLogging:
 
         # Reset initialization flag
         import rally_tui.utils.logging as logging_module
+
         logging_module._initialized = False
 
         settings = UserSettings()
@@ -96,6 +97,7 @@ class TestSetLogLevel:
 
         # Reset initialization flag
         import rally_tui.utils.logging as logging_module
+
         logging_module._initialized = False
 
         settings = UserSettings()
@@ -112,6 +114,7 @@ class TestSetLogLevel:
 
         # Reset initialization flag
         import rally_tui.utils.logging as logging_module
+
         logging_module._initialized = False
 
         settings = UserSettings()

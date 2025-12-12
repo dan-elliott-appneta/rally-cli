@@ -1,14 +1,10 @@
 """Tests for keybinding utilities."""
 
-import pytest
-
 from rally_tui.utils.keybindings import (
     ACTION_REGISTRY,
     EMACS_KEYBINDINGS,
     VALID_PROFILES,
     VIM_KEYBINDINGS,
-    KeyAction,
-    KeyConflict,
     find_conflicts,
     format_key_for_display,
     get_action_categories,
@@ -50,7 +46,17 @@ class TestActionRegistry:
 
     def test_action_categories(self) -> None:
         """Actions should have valid categories."""
-        valid_categories = {"Navigation", "Panel", "Selection", "Actions", "Filters", "View", "Bulk", "Cache", "App"}
+        valid_categories = {
+            "Navigation",
+            "Panel",
+            "Selection",
+            "Actions",
+            "Filters",
+            "View",
+            "Bulk",
+            "Cache",
+            "App",
+        }
         for action in ACTION_REGISTRY.values():
             assert action.category in valid_categories
 

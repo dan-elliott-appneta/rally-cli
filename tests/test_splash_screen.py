@@ -1,7 +1,5 @@
 """Tests for the SplashScreen."""
 
-import pytest
-
 from rally_tui.app import RallyTUI
 from rally_tui.screens import SplashScreen
 from rally_tui.services import MockRallyClient
@@ -12,7 +10,7 @@ class TestSplashScreenBasic:
 
     def test_splash_screen_has_ascii_art(self) -> None:
         """SplashScreen should have ASCII art and version."""
-        from rally_tui.screens.splash_screen import get_splash_text, RALLY_TUI_ART
+        from rally_tui.screens.splash_screen import RALLY_TUI_ART, get_splash_text
 
         # ASCII art should have the big block letters
         assert "RALLY" in RALLY_TUI_ART or "█" in RALLY_TUI_ART
@@ -62,6 +60,7 @@ class TestSplashScreenDismissal:
 
             # Tickets should be loaded
             from rally_tui.widgets import TicketList
+
             ticket_list = app.query_one(TicketList)
             assert len(ticket_list._tickets) > 0
 

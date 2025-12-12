@@ -270,9 +270,7 @@ class TestUserSettingsLogLevel:
         with pytest.raises(ValueError, match="Log level must be one of"):
             settings.log_level = "INVALID"
 
-    def test_invalid_stored_log_level_returns_default(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_invalid_stored_log_level_returns_default(self, tmp_path: Path, monkeypatch) -> None:
         """Invalid stored log_level should return default INFO."""
         config_file = tmp_path / "config.json"
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
@@ -342,9 +340,7 @@ class TestUserSettingsParentOptions:
         with pytest.raises(ValueError, match="Parent options must be a list of strings"):
             settings.parent_options = "not a list"  # type: ignore[assignment]
 
-    def test_invalid_parent_options_non_strings_raises(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_invalid_parent_options_non_strings_raises(self, tmp_path: Path, monkeypatch) -> None:
         """parent_options with non-strings should raise ValueError."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -407,9 +403,7 @@ class TestUserSettingsKeybindingProfile:
         with pytest.raises(ValueError, match="Profile must be one of"):
             settings.keybinding_profile = "invalid"
 
-    def test_invalid_stored_profile_returns_default(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_invalid_stored_profile_returns_default(self, tmp_path: Path, monkeypatch) -> None:
         """Invalid stored profile should return default vim."""
         config_file = tmp_path / "config.json"
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
@@ -451,9 +445,7 @@ class TestUserSettingsKeybindings:
         assert bindings["navigation.up"] == "k"
         assert bindings["action.quit"] == "q"
 
-    def test_emacs_keybindings_when_emacs_profile(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_emacs_keybindings_when_emacs_profile(self, tmp_path: Path, monkeypatch) -> None:
         """Emacs profile should use emacs keybindings."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -466,9 +458,7 @@ class TestUserSettingsKeybindings:
         assert bindings["navigation.up"] == "ctrl+p"
         assert bindings["action.quit"] == "ctrl+q"
 
-    def test_custom_bindings_override_defaults(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_custom_bindings_override_defaults(self, tmp_path: Path, monkeypatch) -> None:
         """Custom bindings should override profile defaults."""
         config_file = tmp_path / "config.json"
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
@@ -476,10 +466,7 @@ class TestUserSettingsKeybindings:
 
         # Write custom bindings to file
         with config_file.open("w") as f:
-            json.dump({
-                "keybinding_profile": "vim",
-                "keybindings": {"navigation.down": "x"}
-            }, f)
+            json.dump({"keybinding_profile": "vim", "keybindings": {"navigation.down": "x"}}, f)
 
         settings = UserSettings()
         bindings = settings.keybindings
@@ -500,9 +487,7 @@ class TestUserSettingsKeybindings:
         # Original should not be modified
         assert settings.keybindings["navigation.down"] == "j"
 
-    def test_set_keybindings_switches_to_custom(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_set_keybindings_switches_to_custom(self, tmp_path: Path, monkeypatch) -> None:
         """Setting keybindings should switch to custom profile."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -534,9 +519,7 @@ class TestUserSettingsGetKeybinding:
         assert settings.get_keybinding("navigation.down") == "j"
         assert settings.get_keybinding("action.quit") == "q"
 
-    def test_get_keybinding_unknown_action_raises(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_get_keybinding_unknown_action_raises(self, tmp_path: Path, monkeypatch) -> None:
         """get_keybinding should raise KeyError for unknown actions."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -561,9 +544,7 @@ class TestUserSettingsSetKeybinding:
         # Others unchanged
         assert settings.get_keybinding("navigation.up") == "k"
 
-    def test_set_keybinding_switches_to_custom(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_set_keybinding_switches_to_custom(self, tmp_path: Path, monkeypatch) -> None:
         """set_keybinding should switch to custom profile."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -573,9 +554,7 @@ class TestUserSettingsSetKeybinding:
 
         assert settings.keybinding_profile == "custom"
 
-    def test_set_keybinding_invalid_key_raises(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_set_keybinding_invalid_key_raises(self, tmp_path: Path, monkeypatch) -> None:
         """set_keybinding should reject invalid keys."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -584,9 +563,7 @@ class TestUserSettingsSetKeybinding:
         with pytest.raises(ValueError, match="Invalid key"):
             settings.set_keybinding("navigation.down", "invalid_key")
 
-    def test_set_keybinding_unknown_action_raises(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_set_keybinding_unknown_action_raises(self, tmp_path: Path, monkeypatch) -> None:
         """set_keybinding should reject unknown actions."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -742,9 +719,7 @@ class TestUserSettingsCacheTTLMinutes:
         settings.cache_ttl_minutes = 30
         assert settings.cache_ttl_minutes == 30
 
-    def test_cache_ttl_minutes_persists_to_file(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_cache_ttl_minutes_persists_to_file(self, tmp_path: Path, monkeypatch) -> None:
         """cache_ttl_minutes should persist to config file."""
         config_file = tmp_path / "config.json"
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
@@ -758,9 +733,7 @@ class TestUserSettingsCacheTTLMinutes:
             data = json.load(f)
         assert data["cache_ttl_minutes"] == 60
 
-    def test_cache_ttl_minutes_loads_from_file(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_cache_ttl_minutes_loads_from_file(self, tmp_path: Path, monkeypatch) -> None:
         """cache_ttl_minutes should load from config file."""
         config_file = tmp_path / "config.json"
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
@@ -773,9 +746,7 @@ class TestUserSettingsCacheTTLMinutes:
         settings = UserSettings()
         assert settings.cache_ttl_minutes == 45
 
-    def test_invalid_cache_ttl_minutes_raises(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_invalid_cache_ttl_minutes_raises(self, tmp_path: Path, monkeypatch) -> None:
         """Invalid cache_ttl_minutes should raise ValueError."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -793,9 +764,7 @@ class TestUserSettingsCacheTTLMinutes:
         with pytest.raises(ValueError, match="cache_ttl_minutes must be a positive integer"):
             settings.cache_ttl_minutes = 0
 
-    def test_invalid_stored_cache_ttl_returns_default(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_invalid_stored_cache_ttl_returns_default(self, tmp_path: Path, monkeypatch) -> None:
         """Invalid stored cache_ttl_minutes should return default."""
         config_file = tmp_path / "config.json"
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
@@ -829,9 +798,7 @@ class TestUserSettingsCacheAutoRefresh:
         settings.cache_auto_refresh = False
         assert settings.cache_auto_refresh is False
 
-    def test_cache_auto_refresh_persists_to_file(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_cache_auto_refresh_persists_to_file(self, tmp_path: Path, monkeypatch) -> None:
         """cache_auto_refresh should persist to config file."""
         config_file = tmp_path / "config.json"
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
@@ -845,9 +812,7 @@ class TestUserSettingsCacheAutoRefresh:
             data = json.load(f)
         assert data["cache_auto_refresh"] is False
 
-    def test_cache_auto_refresh_loads_from_file(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_cache_auto_refresh_loads_from_file(self, tmp_path: Path, monkeypatch) -> None:
         """cache_auto_refresh should load from config file."""
         config_file = tmp_path / "config.json"
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
@@ -860,9 +825,7 @@ class TestUserSettingsCacheAutoRefresh:
         settings = UserSettings()
         assert settings.cache_auto_refresh is False
 
-    def test_invalid_cache_auto_refresh_raises(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_invalid_cache_auto_refresh_raises(self, tmp_path: Path, monkeypatch) -> None:
         """Invalid cache_auto_refresh value should raise ValueError."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")

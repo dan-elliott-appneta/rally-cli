@@ -90,9 +90,7 @@ class TeamBreakdownScreen(Screen[None]):
 
     def _calculate_stats(self) -> list[OwnerStats]:
         """Calculate statistics grouped by owner."""
-        owner_data: dict[str, dict[str, float]] = defaultdict(
-            lambda: {"count": 0, "points": 0.0}
-        )
+        owner_data: dict[str, dict[str, float]] = defaultdict(lambda: {"count": 0, "points": 0.0})
 
         for ticket in self._tickets:
             owner = ticket.owner or "Unassigned"

@@ -201,7 +201,9 @@ class TestShortType:
             object_id="1",
         )
         # Takes everything after the first slash
-        assert attachment.short_type == "vnd.openxmlformats-officedocument.wordprocessingml.document"
+        assert (
+            attachment.short_type == "vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
 
 
 class TestDisplayLine:

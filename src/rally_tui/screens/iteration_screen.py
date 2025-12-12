@@ -10,7 +10,6 @@ from rally_tui.models import Iteration
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils.keybindings import VIM_KEYBINDINGS
 
-
 # Special filter values
 FILTER_ALL = "_all_"
 FILTER_BACKLOG = "_backlog_"
@@ -104,7 +103,8 @@ class IterationScreen(Screen[str | None]):
 
         Args:
             iterations: List of iterations to display.
-            current_filter: Current iteration filter (iteration name, FILTER_ALL, FILTER_BACKLOG, or None).
+            current_filter: Current iteration filter (iteration name, FILTER_ALL,
+                FILTER_BACKLOG, or None).
             name: Screen name.
             user_settings: User settings for keybindings.
         """

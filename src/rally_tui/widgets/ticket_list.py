@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 
 from textual.app import ComposeResult
 from textual.binding import Binding
+from textual.containers import Horizontal
 from textual.message import Message
 from textual.widgets import Label, ListItem, ListView
-from textual.containers import Horizontal
 
 from rally_tui.models import Ticket
 
@@ -142,6 +142,7 @@ def sort_tickets_by_created(tickets: list[Ticket]) -> list[Ticket]:
     Uses FormattedID as a proxy for creation order since higher IDs
     are assigned to newer tickets.
     """
+
     def get_id_number(ticket: Ticket) -> int:
         """Extract numeric part of FormattedID for sorting."""
         # Extract digits from FormattedID (e.g., "US1234" -> 1234)
@@ -153,6 +154,7 @@ def sort_tickets_by_created(tickets: list[Ticket]) -> list[Ticket]:
 
 def sort_tickets_by_owner(tickets: list[Ticket]) -> list[Ticket]:
     """Sort tickets by owner name (unassigned first, then alphabetical)."""
+
     def get_owner_key(ticket: Ticket) -> tuple[int, str]:
         """Return sort key: (0, "") for None, (1, name) for assigned."""
         if ticket.owner is None:
@@ -471,7 +473,9 @@ class TicketList(ListView):
             # Select all
             self._selected_ids = {t.formatted_id for t in self._tickets}
             self._update_all_selection_display()
-            self.post_message(self.SelectionChanged(len(self._selected_ids), set(self._selected_ids)))
+            self.post_message(
+                self.SelectionChanged(len(self._selected_ids), set(self._selected_ids))
+            )
 
     def clear_selection(self) -> None:
         """Clear all selections."""
@@ -589,9 +593,7 @@ class TicketList(ListView):
         # Re-apply any active filter with new sort order
         if self._filter_query:
             query_lower = self._filter_query.lower()
-            self._tickets = [
-                t for t in self._all_tickets if self._matches_query(t, query_lower)
-            ]
+            self._tickets = [t for t in self._all_tickets if self._matches_query(t, query_lower)]
         else:
             self._tickets = list(self._all_tickets)
 
@@ -618,9 +620,7 @@ class TicketList(ListView):
             filtered = list(self._all_tickets)
         else:
             query_lower = query.lower()
-            filtered = [
-                t for t in self._all_tickets if self._matches_query(t, query_lower)
-            ]
+            filtered = [t for t in self._all_tickets if self._matches_query(t, query_lower)]
 
         self._tickets = filtered
         # Use remove_children/mount for synchronous update to avoid race conditions
