@@ -499,11 +499,28 @@ class TicketList(ListView):
             ticket: The updated ticket (matched by formatted_id).
             resort: If True, re-sort and rebuild the list (for state changes).
         """
-        # Update in all_tickets
+        self.update_tickets([ticket], resort=resort)
+
+    def update_tickets(self, tickets: list[Ticket], resort: bool = True) -> None:
+        """Update multiple tickets and optionally re-sort the list.
+
+        This method batches updates to avoid UI rebuild issues when updating
+        multiple tickets in quick succession.
+
+        Args:
+            tickets: List of updated tickets (matched by formatted_id).
+            resort: If True, re-sort and rebuild the list (for state changes).
+        """
+        if not tickets:
+            return
+
+        # Build a lookup for quick access
+        updates = {t.formatted_id: t for t in tickets}
+
+        # Update all matching tickets in _all_tickets
         for i, t in enumerate(self._all_tickets):
-            if t.formatted_id == ticket.formatted_id:
-                self._all_tickets[i] = ticket
-                break
+            if t.formatted_id in updates:
+                self._all_tickets[i] = updates[t.formatted_id]
 
         if resort:
             # Re-sort all tickets by state
@@ -513,33 +530,23 @@ class TicketList(ListView):
             if not self._filter_query:
                 self._tickets = list(self._all_tickets)
                 # Rebuild the UI list (preserve selection state)
-                self.clear()
+                # Use remove_children for synchronous removal to avoid race conditions
+                self.remove_children()
                 for t in self._tickets:
                     is_selected = t.formatted_id in self._selected_ids
-                    self.append(TicketListItem(t, selected=is_selected))
-                # Keep selection on the same ticket
-                for i, t in enumerate(self._tickets):
-                    if t.formatted_id == ticket.formatted_id:
-                        self.index = i
-                        break
+                    self.mount(TicketListItem(t, selected=is_selected))
             else:
                 # Re-apply filter (which will also sort)
                 self.filter_tickets(self._filter_query)
-                # Keep selection on the same ticket
-                for i, t in enumerate(self._tickets):
-                    if t.formatted_id == ticket.formatted_id:
-                        self.index = i
-                        break
         else:
             # Update in filtered tickets without re-sorting
             for i, t in enumerate(self._tickets):
-                if t.formatted_id == ticket.formatted_id:
-                    self._tickets[i] = ticket
+                if t.formatted_id in updates:
+                    self._tickets[i] = updates[t.formatted_id]
                     # Update the corresponding list item
                     items = list(self.query(TicketListItem))
                     if i < len(items):
-                        items[i].ticket = ticket
-                    break
+                        items[i].ticket = updates[t.formatted_id]
 
     def add_ticket(self, ticket: Ticket) -> None:
         """Add a new ticket to the list.
