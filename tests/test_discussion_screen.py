@@ -138,20 +138,20 @@ class TestDiscussionScreenFromApp:
         """Discussion screen should show discussions for the selected ticket."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            # Press 'd' to open discussions for first ticket (US1235 - sorted by state)
+            # Press 'd' to open discussions for first ticket (US1237 - sorted by most recent)
             await pilot.press("d")
             await pilot.pause()
 
             # Verify the ticket ID in the title
             title = app.screen.query_one("#discussion-title")
             rendered = str(title.render())
-            assert "US1235" in rendered
+            assert "US1237" in rendered
 
     async def test_discussion_screen_for_different_ticket(self) -> None:
         """Discussion screen should show discussions for navigated ticket."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            # Navigate to second ticket (TC101 - sorted by state)
+            # Navigate to second ticket (US1236 - sorted by most recent)
             await pilot.press("j")
             await pilot.pause()
 
@@ -162,7 +162,7 @@ class TestDiscussionScreenFromApp:
             # Verify the ticket ID in the title
             title = app.screen.query_one("#discussion-title")
             rendered = str(title.render())
-            assert "TC101" in rendered
+            assert "US1236" in rendered
 
 
 class TestDiscussionScreenProperty:

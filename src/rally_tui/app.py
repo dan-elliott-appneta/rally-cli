@@ -1041,18 +1041,20 @@ class RallyTUI(App[None]):
         self._apply_filters()
 
     def action_cycle_sort(self) -> None:
-        """Cycle through sort modes: State → Created → Owner → State."""
+        """Cycle through sort modes: Created → State → Owner → Parent → Created."""
         ticket_list = self.query_one(TicketList)
         status_bar = self.query_one(StatusBar)
         current = ticket_list.sort_mode
 
-        # Cycle to next mode
-        if current == SortMode.STATE:
-            next_mode = SortMode.CREATED
-        elif current == SortMode.CREATED:
-            next_mode = SortMode.OWNER
-        else:
+        # Cycle to next mode: CREATED → STATE → OWNER → PARENT → CREATED
+        if current == SortMode.CREATED:
             next_mode = SortMode.STATE
+        elif current == SortMode.STATE:
+            next_mode = SortMode.OWNER
+        elif current == SortMode.OWNER:
+            next_mode = SortMode.PARENT
+        else:
+            next_mode = SortMode.CREATED
 
         # Show sorting indicator
         status_bar.set_loading(True)
@@ -1066,9 +1068,10 @@ class RallyTUI(App[None]):
 
         # Notify user
         mode_names = {
-            SortMode.STATE: "State Flow",
             SortMode.CREATED: "Recently Created",
+            SortMode.STATE: "State Flow",
             SortMode.OWNER: "Owner",
+            SortMode.PARENT: "Parent",
         }
         self.notify(f"Sorted by: {mode_names[next_mode]}", timeout=4)
         _log.info(f"Sort mode changed to {next_mode.value}")

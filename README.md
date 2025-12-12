@@ -9,7 +9,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Keyboard-driven interface with vim-style navigation
 - Color-coded ticket types (User Stories, Defects, Tasks, Test Cases)
 - **State indicators**: Visual workflow state with symbols (`.` not started, `+` in progress, `-` done, `✓` accepted)
-- **Sorted by workflow**: Tickets sorted by state progression (Ideas at top, Accepted at bottom)
+- **Sorting options**: Sort by most recent (default), state flow, owner, or parent (press `o` to cycle)
 - **Splash screen**: ASCII art "RALLY TUI" greeting on startup
 - **Theme support**: Full Textual theme support (catppuccin, nord, dracula, etc.) via command palette, persisted between sessions
 - **Copy URL**: Press `y` to copy Rally ticket URL to clipboard
@@ -63,7 +63,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Filter to Backlog (unscheduled items) from iteration picker
 - Status bar shows active filters (Sprint: X, My Items)
 - State indicators show workflow progress with colored symbols
-- Tickets sorted by workflow state (earlier states at top)
+- Sort by most recent (default), state flow, owner, or parent
 - Theme preference persisted to user config file
 - Copy ticket URL to clipboard with `y` key
 - Set story points with `p` key
@@ -174,7 +174,7 @@ rally-tui
 | a | list/detail | View/download/upload attachments |
 | i | list/detail | Filter by iteration/sprint |
 | u | list/detail | Toggle My Items filter |
-| o | list | Cycle sort mode (State/Recent/Owner) |
+| o | list | Cycle sort mode (Recent/State/Owner/Parent) |
 | b | list | Team breakdown (requires sprint filter) |
 | v | list | Toggle wide view mode |
 | r | list/detail | Refresh ticket cache |

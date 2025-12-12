@@ -252,9 +252,10 @@ class StatusBar(Static):
         from rally_tui.widgets.ticket_list import SortMode
 
         mode_names = {
-            SortMode.STATE: "State",
             SortMode.CREATED: "Recent",
+            SortMode.STATE: "State",
             SortMode.OWNER: "Owner",
+            SortMode.PARENT: "Parent",
         }
         self._sort_mode = mode_names.get(mode)
         self._update_display()

@@ -18,11 +18,15 @@ if TYPE_CHECKING:
 
 
 class SortMode(Enum):
-    """Available sort modes for the ticket list."""
+    """Available sort modes for the ticket list.
 
-    STATE = "state"  # By state flow (Defined → In-Progress → Completed)
-    CREATED = "created"  # By most recently created (newest first)
+    Order determines cycling sequence (o key): CREATED → STATE → OWNER → PARENT → CREATED
+    """
+
+    CREATED = "created"  # Most recently created (newest first) - DEFAULT
+    STATE = "state"  # By workflow state (Idea → Accepted)
     OWNER = "owner"  # By owner name (unassigned first, then alphabetical)
+    PARENT = "parent"  # By parent ID (orphans first, then alphabetical)
 
 
 class ViewMode(Enum):
@@ -164,6 +168,18 @@ def sort_tickets_by_owner(tickets: list[Ticket]) -> list[Ticket]:
     return sorted(tickets, key=get_owner_key)
 
 
+def sort_tickets_by_parent(tickets: list[Ticket]) -> list[Ticket]:
+    """Sort tickets by parent ID (orphans first, then alphabetical by parent)."""
+
+    def get_parent_key(ticket: Ticket) -> tuple[int, str]:
+        """Return sort key: (0, "") for None (orphans), (1, parent_id) for assigned."""
+        if ticket.parent_id is None:
+            return (0, "")
+        return (1, ticket.parent_id.lower())
+
+    return sorted(tickets, key=get_parent_key)
+
+
 def sort_tickets(tickets: list[Ticket], mode: SortMode) -> list[Ticket]:
     """Sort tickets by the specified mode.
 
@@ -174,14 +190,16 @@ def sort_tickets(tickets: list[Ticket], mode: SortMode) -> list[Ticket]:
     Returns:
         Sorted list of tickets.
     """
-    if mode == SortMode.STATE:
-        return sort_tickets_by_state(tickets)
-    elif mode == SortMode.CREATED:
+    if mode == SortMode.CREATED:
         return sort_tickets_by_created(tickets)
+    elif mode == SortMode.STATE:
+        return sort_tickets_by_state(tickets)
     elif mode == SortMode.OWNER:
         return sort_tickets_by_owner(tickets)
+    elif mode == SortMode.PARENT:
+        return sort_tickets_by_parent(tickets)
     else:
-        return sort_tickets_by_state(tickets)
+        return sort_tickets_by_created(tickets)  # Default to most recent
 
 
 class TicketListItem(ListItem):
@@ -362,7 +380,7 @@ class TicketList(ListView):
         *,
         id: str | None = None,
         classes: str | None = None,
-        sort_mode: SortMode = SortMode.STATE,
+        sort_mode: SortMode = SortMode.CREATED,
         view_mode: ViewMode = ViewMode.NORMAL,
         user_settings: UserSettings | None = None,
     ) -> None:
@@ -603,9 +621,11 @@ class TicketList(ListView):
             is_selected = ticket.formatted_id in self._selected_ids
             self.append(self._create_list_item(ticket, selected=is_selected))
 
-        # Select first item if list is not empty
+        # Select first item if list is not empty and notify listeners
         if self._tickets:
             self.index = 0
+            # Post message to update detail panel since index change may not trigger it
+            self.post_message(self.TicketHighlighted(self._tickets[0]))
 
     def filter_tickets(self, query: str) -> None:
         """Filter the ticket list by query.
@@ -698,8 +718,8 @@ class TicketList(ListView):
                 self._all_tickets[i] = updates[t.formatted_id]
 
         if resort:
-            # Re-sort all tickets by state
-            self._all_tickets = sort_tickets_by_state(self._all_tickets)
+            # Re-sort all tickets by current sort mode
+            self._all_tickets = sort_tickets(self._all_tickets, self._sort_mode)
 
             # If no filter is active, rebuild displayed tickets
             if not self._filter_query:
@@ -732,8 +752,8 @@ class TicketList(ListView):
         # Add to all_tickets
         self._all_tickets.append(ticket)
 
-        # Re-sort all tickets by state
-        self._all_tickets = sort_tickets_by_state(self._all_tickets)
+        # Re-sort all tickets by current sort mode
+        self._all_tickets = sort_tickets(self._all_tickets, self._sort_mode)
 
         # If no filter is active, add to displayed tickets
         if not self._filter_query:

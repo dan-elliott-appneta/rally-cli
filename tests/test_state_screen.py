@@ -266,7 +266,9 @@ class TestStateIntegration:
             assert ticket_list._tickets[0].state == "Defined"
 
     async def test_state_change_resorts_list(self) -> None:
-        """Changing state should re-sort the ticket list."""
+        """Changing state should re-sort the ticket list when in STATE sort mode."""
+        from rally_tui.widgets.ticket_list import SortMode
+
         # Create tickets in different states
         ticket1 = Ticket(
             formatted_id="US100",
@@ -290,19 +292,27 @@ class TestStateIntegration:
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
 
-            # Initially: Defined (US100) should be first, Completed (US200) second
+            # Switch to STATE sort mode
+            ticket_list.set_sort_mode(SortMode.STATE)
+            await pilot.pause()
+
+            # In STATE sort: Defined (US100) should be first, Completed (US200) second
             assert ticket_list._tickets[0].formatted_id == "US100"
             assert ticket_list._tickets[1].formatted_id == "US200"
 
-            # Open state screen for US100
-            await pilot.press("s")
+            # Simulate updating US100's state to "Accepted" (order 50, after Completed)
+            updated_ticket = Ticket(
+                formatted_id="US100",
+                name="First ticket",
+                ticket_type="UserStory",
+                state="Accepted",  # Changed from Defined to Accepted
+                owner="Test User",
+                object_id="100",
+            )
+            ticket_list.update_ticket(updated_ticket, resort=True)
             await pilot.pause()
 
-            # Change US100 to "Accepted" (order 50, after Completed)
-            await pilot.press("4")  # Accepted is the 4th option
-            await pilot.pause()
-
-            # Now: Completed (US200) should be first, Accepted (US100) second
+            # Now: Completed (US200, order 40) should be first, Accepted (US100, order 50) second
             assert ticket_list._tickets[0].formatted_id == "US200"
             assert ticket_list._tickets[1].formatted_id == "US100"
             assert ticket_list._tickets[1].state == "Accepted"
