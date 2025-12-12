@@ -26,7 +26,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **File logging**: Logs to `~/.config/rally-tui/rally-tui.log` with configurable log level
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
 - **Discussions**: View ticket discussions and add comments
-- **Attachments**: Press `a` to view, download, or upload ticket attachments
+- **Attachments**: Press `a` to view, download, or upload ticket attachments (includes embedded images from description/notes)
 - **Local caching**: Tickets cached to `~/.cache/rally-tui/` for performance and offline access
 - **Cache refresh**: Press `r` to manually refresh the ticket cache
 
@@ -111,7 +111,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 0.6.5
+# Output: rally-tui 0.7.0
 ```
 
 ### Running with Rally API

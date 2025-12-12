@@ -5,6 +5,49 @@ import re
 from html.parser import HTMLParser
 
 
+class _ImageExtractor(HTMLParser):
+    """Parser that extracts image URLs from HTML."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.images: list[dict[str, str]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        """Handle opening tags, looking for img tags."""
+        if tag == "img":
+            attrs_dict = dict(attrs)
+            src = attrs_dict.get("src", "")
+            alt = attrs_dict.get("alt", "")
+            if src:
+                self.images.append({"src": src, "alt": alt or ""})
+
+
+def extract_images_from_html(html_content: str) -> list[dict[str, str]]:
+    """Extract image URLs from HTML content.
+
+    Finds all <img> tags and extracts their src and alt attributes.
+    Useful for finding embedded images in Rally description fields.
+
+    Args:
+        html_content: HTML string from Rally description/notes field.
+
+    Returns:
+        List of dicts with 'src' (URL) and 'alt' (description) keys.
+    """
+    if not html_content:
+        return []
+
+    parser = _ImageExtractor()
+    try:
+        parser.feed(html_content)
+        return parser.images
+    except Exception:
+        # Fallback: use regex to find img tags
+        pattern = r'<img[^>]+src=["\']([^"\']+)["\'][^>]*>'
+        matches = re.findall(pattern, html_content, re.IGNORECASE)
+        return [{"src": url, "alt": ""} for url in matches]
+
+
 class _HTMLToTextParser(HTMLParser):
     """Parser that converts HTML to plain text."""
 

@@ -1,6 +1,10 @@
 """Screens for Rally TUI."""
 
-from rally_tui.screens.attachments_screen import AttachmentsResult, AttachmentsScreen
+from rally_tui.screens.attachments_screen import (
+    AttachmentsResult,
+    AttachmentsScreen,
+    EmbeddedImage,
+)
 from rally_tui.screens.bulk_actions_screen import BulkAction, BulkActionsScreen
 from rally_tui.screens.comment_screen import CommentScreen
 from rally_tui.screens.config_screen import ConfigData, ConfigScreen
@@ -21,6 +25,7 @@ __all__ = [
     "AttachmentsResult",
     "AttachmentsScreen",
     "BulkAction",
+    "EmbeddedImage",
     "BulkActionsScreen",
     "CommentScreen",
     "ConfigData",

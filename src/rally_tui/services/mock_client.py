@@ -610,3 +610,35 @@ class MockRallyClient:
         self._attachments[ticket.formatted_id].append(attachment)
 
         return attachment
+
+    def download_embedded_image(self, url: str, dest_path: str) -> bool:
+        """Download an embedded image from a URL (mock implementation).
+
+        In mock mode, this creates a placeholder file.
+
+        Args:
+            url: The URL of the embedded image.
+            dest_path: The local path to save the file to.
+
+        Returns:
+            True on success, False on failure.
+        """
+        try:
+            # Create a simple placeholder image (1x1 transparent PNG)
+            # This is a minimal valid PNG file
+            placeholder = bytes([
+                0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,  # PNG signature
+                0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,  # IHDR chunk
+                0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,  # 1x1 image
+                0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+                0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,  # IDAT chunk
+                0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+                0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+                0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,  # IEND chunk
+                0x42, 0x60, 0x82,
+            ])
+            with open(dest_path, "wb") as f:
+                f.write(placeholder)
+            return True
+        except Exception:
+            return False

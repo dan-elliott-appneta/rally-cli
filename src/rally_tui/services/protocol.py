@@ -277,3 +277,18 @@ class RallyClientProtocol(Protocol):
             The created Attachment on success, None on failure.
         """
         ...
+
+    def download_embedded_image(self, url: str, dest_path: str) -> bool:
+        """Download an embedded image from a URL.
+
+        Embedded images in Rally descriptions are referenced by URL.
+        This method downloads the image content to a local file.
+
+        Args:
+            url: The URL of the embedded image.
+            dest_path: The local path to save the file to.
+
+        Returns:
+            True on success, False on failure.
+        """
+        ...

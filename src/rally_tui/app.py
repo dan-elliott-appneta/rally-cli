@@ -514,6 +514,8 @@ class RallyTUI(App[None]):
 
         if result.action == "download":
             self._download_attachment(result)
+        elif result.action == "download_embedded":
+            self._download_embedded_image(result)
         elif result.action == "upload":
             self._upload_attachment(result)
 
@@ -545,6 +547,40 @@ class RallyTUI(App[None]):
                 _log.error(f"Download failed for {result.attachment.name}")
         except Exception as e:
             _log.exception(f"Error downloading attachment: {e}")
+            self.notify("Download failed", severity="error", timeout=3)
+
+    def _download_embedded_image(self, result: AttachmentsResult) -> None:
+        """Download an embedded image to the user's home directory."""
+        if not result.embedded_image:
+            return
+
+        import os
+
+        # Download to ~/Downloads/ or home directory
+        download_dir = os.path.expanduser("~/Downloads")
+        if not os.path.isdir(download_dir):
+            download_dir = os.path.expanduser("~")
+
+        # Generate filename from image name
+        filename = result.embedded_image.name
+        if not filename.lower().endswith((".png", ".jpg", ".jpeg", ".gif", ".bmp")):
+            filename = f"{filename}.png"
+        dest_path = os.path.join(download_dir, filename)
+
+        _log.info(f"Downloading embedded image to {dest_path}")
+
+        try:
+            success = self._client.download_embedded_image(
+                result.embedded_image.url, dest_path
+            )
+            if success:
+                self.notify(f"Downloaded: {dest_path}", timeout=3)
+                _log.info(f"Download successful: {dest_path}")
+            else:
+                self.notify("Download failed", severity="error", timeout=3)
+                _log.error(f"Download failed for embedded image")
+        except Exception as e:
+            _log.exception(f"Error downloading embedded image: {e}")
             self.notify("Download failed", severity="error", timeout=3)
 
     def _upload_attachment(self, result: AttachmentsResult) -> None:

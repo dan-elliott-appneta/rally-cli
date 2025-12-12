@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import NamedTuple
+from urllib.parse import urlparse
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -12,6 +13,33 @@ from textual.widgets import Button, Footer, Input, Label, Static
 
 from rally_tui.models import Attachment, Ticket
 from rally_tui.services.protocol import RallyClientProtocol
+from rally_tui.utils import extract_images_from_html
+
+
+@dataclass(frozen=True)
+class EmbeddedImage:
+    """Represents an image embedded in ticket description/notes."""
+
+    url: str
+    alt: str
+
+    @property
+    def name(self) -> str:
+        """Extract filename from URL or use alt text."""
+        if self.alt:
+            return self.alt[:30]
+        # Extract filename from URL path
+        path = urlparse(self.url).path
+        if path:
+            parts = path.rstrip("/").split("/")
+            if parts:
+                return parts[-1][:30]
+        return "embedded_image"
+
+    @property
+    def display_line(self) -> str:
+        """Formatted line for list display."""
+        return f"{self.name:<30} [embedded]    image"
 
 
 class AttachmentItem(Static):
@@ -72,6 +100,43 @@ class AttachmentItem(Static):
             )
 
 
+class EmbeddedImageItem(Static):
+    """Widget for displaying an embedded image."""
+
+    DEFAULT_CSS = """
+    EmbeddedImageItem {
+        height: 3;
+        padding: 0 2;
+        background: $surface;
+        margin: 0 0 1 0;
+    }
+
+    EmbeddedImageItem:hover {
+        background: $primary-lighten-2;
+    }
+    """
+
+    def __init__(self, image: EmbeddedImage, number: int) -> None:
+        super().__init__()
+        self._image = image
+        self._number = number
+
+    @property
+    def image(self) -> EmbeddedImage:
+        return self._image
+
+    @property
+    def number(self) -> int:
+        return self._number
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Label(
+                f"[{self._number}] {self._image.name:<30} "
+                f"{'[embedded]':>10}    image"
+            )
+
+
 class DownloadRequest(NamedTuple):
     """Request to download an attachment."""
 
@@ -90,9 +155,10 @@ class UploadRequest(NamedTuple):
 class AttachmentsResult:
     """Result from the attachments screen."""
 
-    action: str  # "download", "upload", "cancel"
+    action: str  # "download", "upload", "download_embedded", "cancel"
     ticket: Ticket
     attachment: Attachment | None = None
+    embedded_image: EmbeddedImage | None = None
     file_path: str | None = None
 
 
@@ -194,6 +260,8 @@ class AttachmentsScreen(ModalScreen[AttachmentsResult | None]):
         self._ticket = ticket
         self._client = client
         self._attachments: list[Attachment] = []
+        self._embedded_images: list[EmbeddedImage] = []
+        self._all_items: list[Attachment | EmbeddedImage] = []
         self._upload_mode = False
 
     @property
@@ -227,29 +295,58 @@ class AttachmentsScreen(ModalScreen[AttachmentsResult | None]):
         self._load_attachments()
 
     def _load_attachments(self) -> None:
-        """Load attachments from the client."""
+        """Load attachments and embedded images from the client."""
         container = self.query_one("#attachments-container")
         container.remove_children()
 
+        # Load regular attachments
         self._attachments = self._client.get_attachments(self._ticket)
 
-        if not self._attachments:
+        # Extract embedded images from description and notes
+        self._embedded_images = []
+        for html_content in [self._ticket.description, self._ticket.notes]:
+            if html_content:
+                images = extract_images_from_html(html_content)
+                for img in images:
+                    self._embedded_images.append(
+                        EmbeddedImage(url=img["src"], alt=img["alt"])
+                    )
+
+        # Combine all items for numbered access
+        self._all_items = list(self._attachments) + list(self._embedded_images)
+
+        if not self._all_items:
             container.mount(
-                Static("No attachments on this ticket.", id="no-attachments")
+                Static("No attachments or embedded images.", id="no-attachments")
             )
         else:
-            for i, att in enumerate(self._attachments, start=1):
-                container.mount(AttachmentItem(att, i))
+            number = 1
+            # Show regular attachments first
+            for att in self._attachments:
+                container.mount(AttachmentItem(att, number))
+                number += 1
+            # Then show embedded images
+            for img in self._embedded_images:
+                container.mount(EmbeddedImageItem(img, number))
+                number += 1
 
     def _download_attachment(self, number: int) -> None:
-        """Request download of attachment by number."""
-        if 1 <= number <= len(self._attachments):
-            attachment = self._attachments[number - 1]
-            result = AttachmentsResult(
-                action="download",
-                ticket=self._ticket,
-                attachment=attachment,
-            )
+        """Request download of attachment or embedded image by number."""
+        if 1 <= number <= len(self._all_items):
+            item = self._all_items[number - 1]
+            if isinstance(item, Attachment):
+                result = AttachmentsResult(
+                    action="download",
+                    ticket=self._ticket,
+                    attachment=item,
+                )
+            else:
+                # It's an EmbeddedImage
+                result = AttachmentsResult(
+                    action="download_embedded",
+                    ticket=self._ticket,
+                    embedded_image=item,
+                )
             self.dismiss(result)
 
     def action_cancel(self) -> None:

@@ -1150,3 +1150,41 @@ class RallyClient:
             _log.error(f"Error uploading attachment to {ticket.formatted_id}: {e}")
 
         return None
+
+    def download_embedded_image(self, url: str, dest_path: str) -> bool:
+        """Download an embedded image from a URL.
+
+        Embedded images in Rally are stored on Rally's servers and require
+        authentication to download.
+
+        Args:
+            url: The URL of the embedded image.
+            dest_path: The local path to save the file to.
+
+        Returns:
+            True on success, False on failure.
+        """
+        import requests
+
+        _log.info(f"Downloading embedded image from {url}")
+
+        try:
+            # Rally embedded images require API key authentication
+            headers = {
+                "ZSESSIONID": self._api_key,
+            }
+
+            response = requests.get(url, headers=headers, timeout=30)
+            response.raise_for_status()
+
+            with open(dest_path, "wb") as f:
+                f.write(response.content)
+
+            _log.info(f"Downloaded embedded image to {dest_path}")
+            return True
+        except requests.RequestException as e:
+            _log.error(f"Error downloading embedded image: {e}")
+            return False
+        except Exception as e:
+            _log.error(f"Error saving embedded image: {e}")
+            return False

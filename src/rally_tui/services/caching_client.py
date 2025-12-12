@@ -358,3 +358,7 @@ class CachingRallyClient:
         if self._is_offline:
             return None
         return self._client.upload_attachment(ticket, file_path)
+
+    def download_embedded_image(self, url: str, dest_path: str) -> bool:
+        """Download an embedded image from a URL."""
+        return self._client.download_embedded_image(url, dest_path)
