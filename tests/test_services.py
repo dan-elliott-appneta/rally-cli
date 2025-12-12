@@ -586,3 +586,153 @@ class TestMockRallyClientBulkOperations:
         client = MockRallyClient()
         assert hasattr(client, "bulk_update_points")
         assert callable(client.bulk_update_points)
+
+
+class TestMockRallyClientAttachments:
+    """Tests for MockRallyClient attachment methods."""
+
+    def test_get_attachments_returns_list(self) -> None:
+        """get_attachments should return a list."""
+        from rally_tui.models import Attachment
+
+        client = MockRallyClient()
+        ticket = client.get_ticket("US1234")
+        assert ticket is not None
+        attachments = client.get_attachments(ticket)
+        assert isinstance(attachments, list)
+        assert all(isinstance(a, Attachment) for a in attachments)
+
+    def test_get_attachments_returns_sample_attachments(self) -> None:
+        """Default client returns sample attachments for US1234."""
+        client = MockRallyClient()
+        ticket = client.get_ticket("US1234")
+        assert ticket is not None
+        attachments = client.get_attachments(ticket)
+        assert len(attachments) == 2
+        assert attachments[0].name == "requirements.pdf"
+        assert attachments[1].name == "screenshot.png"
+
+    def test_get_attachments_empty_for_unknown_ticket(self) -> None:
+        """get_attachments returns empty list for ticket without attachments."""
+        client = MockRallyClient()
+        ticket = Ticket("US9999", "Unknown", "UserStory", "Defined")
+        attachments = client.get_attachments(ticket)
+        assert attachments == []
+
+    def test_get_attachments_custom_attachments(self) -> None:
+        """Client should accept custom attachments dict."""
+        from rally_tui.models import Attachment
+
+        custom_attachments = {
+            "US1": [
+                Attachment("doc.pdf", 1024, "application/pdf", "att_1"),
+            ],
+        }
+        ticket = Ticket("US1", "Test", "UserStory", "Defined")
+        client = MockRallyClient(tickets=[ticket], attachments=custom_attachments)
+        attachments = client.get_attachments(ticket)
+        assert len(attachments) == 1
+        assert attachments[0].name == "doc.pdf"
+
+    def test_download_attachment_returns_true_for_valid(self) -> None:
+        """download_attachment returns True when attachment exists."""
+        client = MockRallyClient()
+        ticket = client.get_ticket("US1234")
+        assert ticket is not None
+        attachments = client.get_attachments(ticket)
+        result = client.download_attachment(ticket, attachments[0], "/tmp/test.pdf")
+        assert result is True
+
+    def test_download_attachment_returns_false_for_invalid(self) -> None:
+        """download_attachment returns False when attachment not found."""
+        from rally_tui.models import Attachment
+
+        client = MockRallyClient()
+        ticket = client.get_ticket("US1234")
+        assert ticket is not None
+        fake_attachment = Attachment("fake.pdf", 100, "application/pdf", "invalid_id")
+        result = client.download_attachment(ticket, fake_attachment, "/tmp/fake.pdf")
+        assert result is False
+
+    def test_upload_attachment_returns_attachment(self) -> None:
+        """upload_attachment creates and returns new Attachment."""
+        from rally_tui.models import Attachment
+
+        client = MockRallyClient()
+        ticket = client.get_ticket("US1234")
+        assert ticket is not None
+
+        result = client.upload_attachment(ticket, "/home/user/docs/report.pdf")
+
+        assert result is not None
+        assert isinstance(result, Attachment)
+        assert result.name == "report.pdf"
+        assert result.content_type == "application/pdf"
+
+    def test_upload_attachment_adds_to_ticket(self) -> None:
+        """upload_attachment adds the attachment to the ticket's list."""
+        client = MockRallyClient()
+        ticket = client.get_ticket("US1234")
+        assert ticket is not None
+        original_count = len(client.get_attachments(ticket))
+
+        client.upload_attachment(ticket, "/path/to/newfile.txt")
+
+        assert len(client.get_attachments(ticket)) == original_count + 1
+
+    def test_upload_attachment_guesses_mime_type(self) -> None:
+        """upload_attachment guesses MIME type from extension."""
+        client = MockRallyClient()
+        ticket = client.get_ticket("US1234")
+        assert ticket is not None
+
+        # Test various file types
+        png = client.upload_attachment(ticket, "/path/image.png")
+        csv = client.upload_attachment(ticket, "/path/data.csv")
+
+        assert png is not None
+        assert png.content_type == "image/png"
+        assert csv is not None
+        assert csv.content_type == "text/csv"
+
+    def test_upload_attachment_unknown_type(self) -> None:
+        """upload_attachment uses octet-stream for unknown types."""
+        client = MockRallyClient()
+        ticket = client.get_ticket("US1234")
+        assert ticket is not None
+
+        result = client.upload_attachment(ticket, "/path/file.qzx123")
+
+        assert result is not None
+        assert result.content_type == "application/octet-stream"
+
+    def test_upload_attachment_to_new_ticket(self) -> None:
+        """upload_attachment works for tickets without existing attachments."""
+        client = MockRallyClient()
+        ticket = Ticket("US9999", "New Ticket", "UserStory", "Defined")
+        client._tickets.append(ticket)
+
+        result = client.upload_attachment(ticket, "/path/new.pdf")
+
+        assert result is not None
+        attachments = client.get_attachments(ticket)
+        assert len(attachments) == 1
+        assert attachments[0].name == "new.pdf"
+
+    def test_has_get_attachments_method(self) -> None:
+        """MockRallyClient should have get_attachments method."""
+        client = MockRallyClient()
+        assert hasattr(client, "get_attachments")
+        assert callable(client.get_attachments)
+
+    def test_has_download_attachment_method(self) -> None:
+        """MockRallyClient should have download_attachment method."""
+        client = MockRallyClient()
+        assert hasattr(client, "download_attachment")
+        assert callable(client.download_attachment)
+
+    def test_has_upload_attachment_method(self) -> None:
+        """MockRallyClient should have upload_attachment method."""
+        client = MockRallyClient()
+        assert hasattr(client, "upload_attachment")
+        assert callable(client.upload_attachment)
