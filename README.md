@@ -37,6 +37,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 **Iteration 14 Complete** - Local Caching.
 
+- **NEW**: Vim motions (j/k/g/G) work on all screens (discussions, attachments, iteration picker, state picker, bulk actions)
 - **NEW**: Press `F3` to open keybindings configuration screen
 - **NEW**: Vim and Emacs keybinding profiles
 - **NEW**: Custom keybinding overrides
@@ -114,7 +115,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 0.7.7
+# Output: rally-tui 0.7.8
 ```
 
 ### Running with Rally API

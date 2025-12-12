@@ -148,6 +148,8 @@ Ticket types are color-coded:
 | `Esc` | Go back / Clear |
 | `q` | Quit |
 
+**Note**: Vim motions (`j`/`k`/`g`/`G`) work consistently across all screens including dialogs like iteration picker, state selector, discussions, and attachments.
+
 ### Panel Focus
 
 - Press `Tab` to switch focus between the ticket list and detail panel

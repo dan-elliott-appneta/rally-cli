@@ -514,14 +514,14 @@ class RallyTUI(App[None]):
         """Open discussions for the currently selected ticket."""
         detail = self.query_one(TicketDetail)
         if detail.ticket:
-            self.push_screen(DiscussionScreen(detail.ticket, self._client))
+            self.push_screen(DiscussionScreen(detail.ticket, self._client, user_settings=self._user_settings))
 
     def action_open_attachments(self) -> None:
         """Open attachments for the currently selected ticket."""
         detail = self.query_one(TicketDetail)
         if detail.ticket:
             self.push_screen(
-                AttachmentsScreen(detail.ticket, self._client),
+                AttachmentsScreen(detail.ticket, self._client, user_settings=self._user_settings),
                 callback=self._handle_attachments_result,
             )
 
@@ -704,7 +704,7 @@ class RallyTUI(App[None]):
         detail = self.query_one(TicketDetail)
         if detail.ticket:
             self.push_screen(
-                StateScreen(detail.ticket),
+                StateScreen(detail.ticket, user_settings=self._user_settings),
                 callback=self._handle_state_result,
             )
 
@@ -877,7 +877,7 @@ class RallyTUI(App[None]):
         """Open the iteration filter screen."""
         iterations = self._client.get_iterations()
         self.push_screen(
-            IterationScreen(iterations, current_filter=self._iteration_filter),
+            IterationScreen(iterations, current_filter=self._iteration_filter, user_settings=self._user_settings),
             callback=self._handle_iteration_filter_result,
         )
 
@@ -1079,7 +1079,7 @@ class RallyTUI(App[None]):
             return
 
         self.push_screen(
-            BulkActionsScreen(ticket_list.selection_count),
+            BulkActionsScreen(ticket_list.selection_count, user_settings=self._user_settings),
             callback=self._handle_bulk_action_result,
         )
 
@@ -1156,7 +1156,7 @@ class RallyTUI(App[None]):
         """Set state on multiple tickets."""
         # Use the first ticket for display purposes
         self.push_screen(
-            StateScreen(tickets[0]),
+            StateScreen(tickets[0], user_settings=self._user_settings),
             callback=lambda state: self._execute_bulk_state(tickets, state),
         )
 
@@ -1186,7 +1186,7 @@ class RallyTUI(App[None]):
         """Set iteration on multiple tickets."""
         iterations = self._client.get_iterations()
         self.push_screen(
-            IterationScreen(iterations, current_filter=None),
+            IterationScreen(iterations, current_filter=None, user_settings=self._user_settings),
             callback=lambda iter_name: self._execute_bulk_iteration(tickets, iter_name),
         )
 

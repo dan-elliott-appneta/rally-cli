@@ -7,6 +7,8 @@ from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Static
 
 from rally_tui.models import Iteration
+from rally_tui.user_settings import UserSettings
+from rally_tui.utils.keybindings import VIM_KEYBINDINGS
 
 
 # Special filter values
@@ -96,6 +98,7 @@ class IterationScreen(Screen[str | None]):
         iterations: list[Iteration],
         current_filter: str | None = None,
         name: str | None = None,
+        user_settings: UserSettings | None = None,
     ) -> None:
         """Initialize the iteration screen.
 
@@ -103,10 +106,12 @@ class IterationScreen(Screen[str | None]):
             iterations: List of iterations to display.
             current_filter: Current iteration filter (iteration name, FILTER_ALL, FILTER_BACKLOG, or None).
             name: Screen name.
+            user_settings: User settings for keybindings.
         """
         super().__init__(name=name)
         self._iterations = iterations[:5]  # Max 5 iterations
         self._current_filter = current_filter
+        self._user_settings = user_settings
 
     @property
     def iterations(self) -> list[Iteration]:
@@ -159,11 +164,37 @@ class IterationScreen(Screen[str | None]):
         yield Footer()
 
     def on_mount(self) -> None:
-        """Focus the first button."""
+        """Focus the first button and apply keybindings."""
+        self._apply_keybindings()
         if self._iterations:
             self.query_one("#btn-iter-1", Button).focus()
         else:
             self.query_one("#btn-iter-all", Button).focus()
+
+    def _apply_keybindings(self) -> None:
+        """Apply vim-style keybindings for button navigation."""
+        if self._user_settings:
+            keybindings = self._user_settings.keybindings
+        else:
+            keybindings = VIM_KEYBINDINGS
+
+        navigation_bindings = {
+            "navigation.down": "focus_next_button",
+            "navigation.up": "focus_prev_button",
+        }
+
+        for action_id, handler in navigation_bindings.items():
+            if action_id in keybindings:
+                key = keybindings[action_id]
+                self._bindings.bind(key, handler, show=False)
+
+    def action_focus_next_button(self) -> None:
+        """Move focus to the next button."""
+        self.focus_next()
+
+    def action_focus_prev_button(self) -> None:
+        """Move focus to the previous button."""
+        self.focus_previous()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button clicks."""

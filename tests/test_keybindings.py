@@ -50,7 +50,7 @@ class TestActionRegistry:
 
     def test_action_categories(self) -> None:
         """Actions should have valid categories."""
-        valid_categories = {"Navigation", "Panel", "Selection", "Actions", "Filters", "Bulk", "Cache", "App", "View"}
+        valid_categories = {"Navigation", "Panel", "Selection", "Actions", "Filters", "View", "Bulk", "Cache", "App"}
         for action in ACTION_REGISTRY.values():
             assert action.category in valid_categories
 

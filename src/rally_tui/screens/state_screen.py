@@ -7,6 +7,8 @@ from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Static
 
 from rally_tui.models import Ticket
+from rally_tui.user_settings import UserSettings
+from rally_tui.utils.keybindings import VIM_KEYBINDINGS
 
 
 # Common workflow states for User Stories and Defects
@@ -82,10 +84,12 @@ class StateScreen(Screen[str | None]):
         self,
         ticket: Ticket,
         name: str | None = None,
+        user_settings: UserSettings | None = None,
     ) -> None:
         super().__init__(name=name)
         self._ticket = ticket
         self._states = self._get_states_for_type()
+        self._user_settings = user_settings
 
     @property
     def ticket(self) -> Ticket:
@@ -118,8 +122,34 @@ class StateScreen(Screen[str | None]):
         yield Footer()
 
     def on_mount(self) -> None:
-        """Focus the first button."""
+        """Focus the first button and apply keybindings."""
+        self._apply_keybindings()
         self.query_one("#btn-state-1", Button).focus()
+
+    def _apply_keybindings(self) -> None:
+        """Apply vim-style keybindings for button navigation."""
+        if self._user_settings:
+            keybindings = self._user_settings.keybindings
+        else:
+            keybindings = VIM_KEYBINDINGS
+
+        navigation_bindings = {
+            "navigation.down": "focus_next_button",
+            "navigation.up": "focus_prev_button",
+        }
+
+        for action_id, handler in navigation_bindings.items():
+            if action_id in keybindings:
+                key = keybindings[action_id]
+                self._bindings.bind(key, handler, show=False)
+
+    def action_focus_next_button(self) -> None:
+        """Move focus to the next button."""
+        self.focus_next()
+
+    def action_focus_prev_button(self) -> None:
+        """Move focus to the previous button."""
+        self.focus_previous()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle state button clicks."""

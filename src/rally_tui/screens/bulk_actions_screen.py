@@ -8,6 +8,9 @@ from textual.containers import Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Static
 
+from rally_tui.user_settings import UserSettings
+from rally_tui.utils.keybindings import VIM_KEYBINDINGS
+
 
 class BulkAction(Enum):
     """Available bulk actions for selected tickets."""
@@ -79,15 +82,18 @@ class BulkActionsScreen(Screen[BulkAction | None]):
         self,
         count: int,
         name: str | None = None,
+        user_settings: UserSettings | None = None,
     ) -> None:
         """Initialize the bulk actions screen.
 
         Args:
             count: Number of selected tickets.
             name: Optional screen name.
+            user_settings: User settings for keybindings.
         """
         super().__init__(name=name)
         self._count = count
+        self._user_settings = user_settings
 
     @property
     def count(self) -> int:
@@ -117,8 +123,34 @@ class BulkActionsScreen(Screen[BulkAction | None]):
         yield Footer()
 
     def on_mount(self) -> None:
-        """Focus first button."""
+        """Focus first button and apply keybindings."""
+        self._apply_keybindings()
         self.query_one("#btn-parent", Button).focus()
+
+    def _apply_keybindings(self) -> None:
+        """Apply vim-style keybindings for button navigation."""
+        if self._user_settings:
+            keybindings = self._user_settings.keybindings
+        else:
+            keybindings = VIM_KEYBINDINGS
+
+        navigation_bindings = {
+            "navigation.down": "focus_next_button",
+            "navigation.up": "focus_prev_button",
+        }
+
+        for action_id, handler in navigation_bindings.items():
+            if action_id in keybindings:
+                key = keybindings[action_id]
+                self._bindings.bind(key, handler, show=False)
+
+    def action_focus_next_button(self) -> None:
+        """Move focus to the next button."""
+        self.focus_next()
+
+    def action_focus_prev_button(self) -> None:
+        """Move focus to the previous button."""
+        self.focus_previous()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button clicks."""

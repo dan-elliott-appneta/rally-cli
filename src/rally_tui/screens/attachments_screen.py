@@ -13,7 +13,9 @@ from textual.widgets import Button, Footer, Input, Label, Static
 
 from rally_tui.models import Attachment, Ticket
 from rally_tui.services.protocol import RallyClientProtocol
+from rally_tui.user_settings import UserSettings
 from rally_tui.utils import extract_images_from_html
+from rally_tui.utils.keybindings import VIM_KEYBINDINGS
 
 
 @dataclass(frozen=True)
@@ -255,6 +257,7 @@ class AttachmentsScreen(ModalScreen[AttachmentsResult | None]):
         ticket: Ticket,
         client: RallyClientProtocol,
         name: str | None = None,
+        user_settings: UserSettings | None = None,
     ) -> None:
         super().__init__(name=name)
         self._ticket = ticket
@@ -263,6 +266,7 @@ class AttachmentsScreen(ModalScreen[AttachmentsResult | None]):
         self._embedded_images: list[EmbeddedImage] = []
         self._all_items: list[Attachment | EmbeddedImage] = []
         self._upload_mode = False
+        self._user_settings = user_settings
 
     @property
     def ticket(self) -> Ticket:
@@ -291,8 +295,49 @@ class AttachmentsScreen(ModalScreen[AttachmentsResult | None]):
     def on_mount(self) -> None:
         # Initially hide upload container
         self.query_one("#upload-container").display = False
+        # Apply vim keybindings
+        self._apply_keybindings()
         # Load attachments
         self._load_attachments()
+
+    def _apply_keybindings(self) -> None:
+        """Apply vim-style keybindings for navigation."""
+        if self._user_settings:
+            keybindings = self._user_settings.keybindings
+        else:
+            keybindings = VIM_KEYBINDINGS
+
+        navigation_bindings = {
+            "navigation.down": "scroll_down",
+            "navigation.up": "scroll_up",
+            "navigation.top": "scroll_top",
+            "navigation.bottom": "scroll_bottom",
+        }
+
+        for action_id, handler in navigation_bindings.items():
+            if action_id in keybindings:
+                key = keybindings[action_id]
+                self._bindings.bind(key, handler, show=False)
+
+    def action_scroll_down(self) -> None:
+        """Scroll attachments container down."""
+        container = self.query_one("#attachments-container", VerticalScroll)
+        container.scroll_down()
+
+    def action_scroll_up(self) -> None:
+        """Scroll attachments container up."""
+        container = self.query_one("#attachments-container", VerticalScroll)
+        container.scroll_up()
+
+    def action_scroll_top(self) -> None:
+        """Scroll attachments container to top."""
+        container = self.query_one("#attachments-container", VerticalScroll)
+        container.scroll_home()
+
+    def action_scroll_bottom(self) -> None:
+        """Scroll attachments container to bottom."""
+        container = self.query_one("#attachments-container", VerticalScroll)
+        container.scroll_end()
 
     def _load_attachments(self) -> None:
         """Load attachments and embedded images from the client."""
