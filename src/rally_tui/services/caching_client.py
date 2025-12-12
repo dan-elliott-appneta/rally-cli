@@ -188,20 +188,23 @@ class CachingRallyClient:
         """Fetch tickets from the underlying API.
 
         Args:
-            query: Optional query filter
+            query: Optional query filter. When provided, results are NOT cached
+                   to avoid overwriting the full ticket cache with filtered data.
 
         Returns:
             List of tickets from API
 
         Note:
-            Sets offline mode if API call fails
+            Sets offline mode if API call fails.
+            Only caches results when no query is provided.
         """
         try:
             self._set_status(CacheStatus.REFRESHING)
             tickets = self._client.get_tickets(query)
 
-            # Save to cache
-            if self._enabled:
+            # Only save to cache when fetching all tickets (no query)
+            # Filtered results should not overwrite the full ticket cache
+            if self._enabled and not query:
                 self._cache.save_tickets(
                     tickets,
                     workspace=self.workspace,
