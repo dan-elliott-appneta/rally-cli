@@ -148,3 +148,15 @@ TicketListItem.-highlight > Label {
     color: $text-muted;
     padding: 0 1;
 }
+
+/* Toast notification styling - bigger and more visible */
+Toast {
+    width: auto;
+    min-width: 40;
+    max-width: 80;
+    padding: 1 2;
+}
+
+Toast > .toast--title {
+    text-style: bold;
+}

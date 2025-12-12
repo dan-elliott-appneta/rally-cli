@@ -400,9 +400,9 @@ class RallyTUI(App[None]):
             filter_desc.append("My Items")
 
         if filter_desc:
-            self.notify(f"Filter: {', '.join(filter_desc)} ({len(tickets)} items)", timeout=2)
+            self.notify(f"Filter: {', '.join(filter_desc)} ({len(tickets)} items)", timeout=4)
         else:
-            self.notify(f"Showing all items ({len(tickets)})", timeout=2)
+            self.notify(f"Showing all items ({len(tickets)})", timeout=4)
 
         _log.info(f"Filtered tickets loaded: {len(tickets)} items")
 
@@ -550,14 +550,14 @@ class RallyTUI(App[None]):
                 result.ticket, result.attachment, dest_path
             )
             if success:
-                self.notify(f"Downloaded: {dest_path}", timeout=3)
+                self.notify(f"Downloaded: {dest_path}", timeout=5)
                 _log.info(f"Download successful: {dest_path}")
             else:
-                self.notify("Download failed", severity="error", timeout=3)
+                self.notify("Download failed", severity="error", timeout=5)
                 _log.error(f"Download failed for {result.attachment.name}")
         except Exception as e:
             _log.exception(f"Error downloading attachment: {e}")
-            self.notify("Download failed", severity="error", timeout=3)
+            self.notify("Download failed", severity="error", timeout=5)
 
     def _download_embedded_image(self, result: AttachmentsResult) -> None:
         """Download an embedded image to the user's home directory."""
@@ -584,14 +584,14 @@ class RallyTUI(App[None]):
                 result.embedded_image.url, dest_path
             )
             if success:
-                self.notify(f"Downloaded: {dest_path}", timeout=3)
+                self.notify(f"Downloaded: {dest_path}", timeout=5)
                 _log.info(f"Download successful: {dest_path}")
             else:
-                self.notify("Download failed", severity="error", timeout=3)
+                self.notify("Download failed", severity="error", timeout=5)
                 _log.error(f"Download failed for embedded image")
         except Exception as e:
             _log.exception(f"Error downloading embedded image: {e}")
-            self.notify("Download failed", severity="error", timeout=3)
+            self.notify("Download failed", severity="error", timeout=5)
 
     def _upload_attachment(self, result: AttachmentsResult) -> None:
         """Upload a file as an attachment to a ticket."""
@@ -604,7 +604,7 @@ class RallyTUI(App[None]):
         file_path = os.path.expanduser(result.file_path)
 
         if not os.path.isfile(file_path):
-            self.notify(f"File not found: {file_path}", severity="error", timeout=3)
+            self.notify(f"File not found: {file_path}", severity="error", timeout=5)
             _log.error(f"Upload failed: file not found: {file_path}")
             return
 
@@ -613,14 +613,14 @@ class RallyTUI(App[None]):
         try:
             attachment = self._client.upload_attachment(result.ticket, file_path)
             if attachment:
-                self.notify(f"Uploaded: {attachment.name}", timeout=3)
+                self.notify(f"Uploaded: {attachment.name}", timeout=5)
                 _log.info(f"Upload successful: {attachment.name}")
             else:
-                self.notify("Upload failed", severity="error", timeout=3)
+                self.notify("Upload failed", severity="error", timeout=5)
                 _log.error(f"Upload failed for {file_path}")
         except Exception as e:
             _log.exception(f"Error uploading attachment: {e}")
-            self.notify("Upload failed", severity="error", timeout=3)
+            self.notify("Upload failed", severity="error", timeout=5)
 
     def action_toggle_theme(self) -> None:
         """Toggle between dark and light theme and persist setting."""
@@ -642,7 +642,7 @@ class RallyTUI(App[None]):
             url = detail.ticket.rally_url(self._server)
             if url:
                 self.copy_to_clipboard(url)
-                self.notify(f"Copied: {url}", timeout=2)
+                self.notify(f"Copied: {url}", timeout=4)
 
     def action_toggle_notes(self) -> None:
         """Toggle between description and notes view in detail panel."""
@@ -681,14 +681,14 @@ class RallyTUI(App[None]):
                 ticket_list.update_ticket(updated, resort=False)
                 # Display as int if whole number
                 display_points = int(points) if points == int(points) else points
-                self.notify(f"Points set to {display_points}", timeout=2)
+                self.notify(f"Points set to {display_points}", timeout=4)
                 _log.info(f"Points updated successfully for {ticket_id}")
             else:
                 _log.error(f"Failed to update points for {ticket_id}")
-                self.notify("Failed to update points", severity="error", timeout=3)
+                self.notify("Failed to update points", severity="error", timeout=5)
         except Exception as e:
             _log.exception(f"Error updating points for {ticket_id}: {e}")
-            self.notify("Failed to update points", severity="error", timeout=3)
+            self.notify("Failed to update points", severity="error", timeout=5)
 
     def action_set_state(self) -> None:
         """Open the state selection screen for the selected ticket."""
@@ -785,7 +785,7 @@ class RallyTUI(App[None]):
                 detail.ticket = updated
                 ticket_list = self.query_one(TicketList)
                 ticket_list.update_ticket(updated, resort=False)
-                self.notify(f"Parent set to {parent_id}", timeout=2)
+                self.notify(f"Parent set to {parent_id}", timeout=4)
                 _log.info(f"Parent set successfully for {ticket_id}")
 
                 # Now update the state if we have a pending state
@@ -795,11 +795,11 @@ class RallyTUI(App[None]):
                     self._update_ticket_state(updated, pending)
             else:
                 _log.error(f"Failed to set parent for {ticket_id}")
-                self.notify("Failed to set parent", severity="error", timeout=3)
+                self.notify("Failed to set parent", severity="error", timeout=5)
                 self._pending_state = None
         except Exception as e:
             _log.exception(f"Error setting parent for {ticket_id}: {e}")
-            self.notify("Failed to set parent", severity="error", timeout=3)
+            self.notify("Failed to set parent", severity="error", timeout=5)
             self._pending_state = None
 
     def _update_ticket_state(self, ticket: "Ticket", state: str) -> None:
@@ -816,14 +816,14 @@ class RallyTUI(App[None]):
                 # Update the ticket in the list
                 ticket_list = self.query_one(TicketList)
                 ticket_list.update_ticket(updated)
-                self.notify(f"State set to {state}", timeout=2)
+                self.notify(f"State set to {state}", timeout=4)
                 _log.info(f"State updated successfully for {ticket_id}")
             else:
                 _log.error(f"Failed to update state for {ticket_id}")
-                self.notify("Failed to update state", severity="error", timeout=3)
+                self.notify("Failed to update state", severity="error", timeout=5)
         except Exception as e:
             _log.exception(f"Error updating state for {ticket_id}: {e}")
-            self.notify("Failed to update state", severity="error", timeout=3)
+            self.notify("Failed to update state", severity="error", timeout=5)
 
     def action_quick_ticket(self) -> None:
         """Open the quick ticket creation screen."""
@@ -855,14 +855,14 @@ class RallyTUI(App[None]):
                 detail.ticket = created
                 # Show notification
                 type_display = "User Story" if data.ticket_type == "HierarchicalRequirement" else "Defect"
-                self.notify(f"Created {type_display}: {created.formatted_id}", timeout=3)
+                self.notify(f"Created {type_display}: {created.formatted_id}", timeout=5)
                 _log.info(f"Created ticket: {created.formatted_id}")
             else:
                 _log.error("Failed to create ticket")
-                self.notify("Failed to create ticket", severity="error", timeout=3)
+                self.notify("Failed to create ticket", severity="error", timeout=5)
         except Exception as e:
             _log.exception(f"Error creating ticket: {e}")
-            self.notify("Failed to create ticket", severity="error", timeout=3)
+            self.notify("Failed to create ticket", severity="error", timeout=5)
 
     def action_iteration_filter(self) -> None:
         """Open the iteration filter screen."""
@@ -900,6 +900,7 @@ class RallyTUI(App[None]):
     def action_cycle_sort(self) -> None:
         """Cycle through sort modes: State → Created → Owner → State."""
         ticket_list = self.query_one(TicketList)
+        status_bar = self.query_one(StatusBar)
         current = ticket_list.sort_mode
 
         # Cycle to next mode
@@ -910,11 +911,15 @@ class RallyTUI(App[None]):
         else:
             next_mode = SortMode.STATE
 
+        # Show sorting indicator
+        status_bar.set_loading(True)
+
+        # Perform sort
         ticket_list.set_sort_mode(next_mode)
 
         # Update status bar
-        status_bar = self.query_one(StatusBar)
         status_bar.set_sort_mode(next_mode)
+        status_bar.set_loading(False)
 
         # Notify user
         mode_names = {
@@ -922,7 +927,7 @@ class RallyTUI(App[None]):
             SortMode.CREATED: "Recently Created",
             SortMode.OWNER: "Owner",
         }
-        self.notify(f"Sort: {mode_names[next_mode]}", timeout=2)
+        self.notify(f"Sorted by: {mode_names[next_mode]}", timeout=4)
         _log.info(f"Sort mode changed to {next_mode.value}")
 
     def action_refresh_cache(self) -> None:
@@ -959,7 +964,7 @@ class RallyTUI(App[None]):
         # Re-apply current filters
         self._apply_filters()
 
-        self.notify(f"Refreshed: {len(tickets)} tickets", timeout=2)
+        self.notify(f"Refreshed: {len(tickets)} tickets", timeout=4)
         _log.info(f"Refresh complete: {len(tickets)} tickets")
 
     def _on_cache_status_change(self, status: CacheStatus, age_minutes: int | None) -> None:
@@ -1003,7 +1008,7 @@ class RallyTUI(App[None]):
         """Open bulk actions menu if tickets are selected."""
         ticket_list = self.query_one(TicketList)
         if ticket_list.selection_count == 0:
-            self.notify("No tickets selected. Use Space to select.", timeout=2)
+            self.notify("No tickets selected. Use Space to select.", timeout=4)
             return
 
         self.push_screen(
@@ -1021,7 +1026,7 @@ class RallyTUI(App[None]):
         selected = ticket_list.selected_tickets
 
         if not selected:
-            self.notify("No tickets selected", severity="warning", timeout=2)
+            self.notify("No tickets selected", severity="warning", timeout=4)
             return
 
         _log.info(f"Bulk action {action.value} on {len(selected)} tickets")
@@ -1058,7 +1063,7 @@ class RallyTUI(App[None]):
             _log.debug("Bulk parent cancelled")
             return
 
-        self.notify(f"Setting parent {parent_id} on {len(tickets)} tickets...", timeout=2)
+        self.notify(f"Setting parent {parent_id} on {len(tickets)} tickets...", timeout=4)
 
         result = self._client.bulk_set_parent(tickets, parent_id)
         self._handle_bulk_result(result, "parent")
@@ -1082,13 +1087,13 @@ class RallyTUI(App[None]):
             eligible = [t for t in tickets if t.parent_id]
             skipped = len(tickets) - len(eligible)
             if skipped > 0:
-                self.notify(f"Skipping {skipped} tickets without parent", timeout=2)
+                self.notify(f"Skipping {skipped} tickets without parent", timeout=4)
             if not eligible:
-                self.notify("No tickets have parents set", severity="warning", timeout=3)
+                self.notify("No tickets have parents set", severity="warning", timeout=5)
                 return
             tickets = eligible
 
-        self.notify(f"Setting state to {state} on {len(tickets)} tickets...", timeout=2)
+        self.notify(f"Setting state to {state} on {len(tickets)} tickets...", timeout=4)
 
         result = self._client.bulk_update_state(tickets, state)
         self._handle_bulk_result(result, "state")
@@ -1114,7 +1119,7 @@ class RallyTUI(App[None]):
             iteration = None  # Same as backlog
 
         iter_name = iteration or "Backlog"
-        self.notify(f"Moving {len(tickets)} tickets to {iter_name}...", timeout=2)
+        self.notify(f"Moving {len(tickets)} tickets to {iter_name}...", timeout=4)
 
         result = self._client.bulk_set_iteration(tickets, iteration)
         self._handle_bulk_result(result, "iteration")
@@ -1133,7 +1138,7 @@ class RallyTUI(App[None]):
             _log.debug("Bulk points cancelled")
             return
 
-        self.notify(f"Setting {points} points on {len(tickets)} tickets...", timeout=2)
+        self.notify(f"Setting {points} points on {len(tickets)} tickets...", timeout=4)
 
         result = self._client.bulk_update_points(tickets, points)
         self._handle_bulk_result(result, "points")
@@ -1185,7 +1190,7 @@ class RallyTUI(App[None]):
             self.theme = result.theme_name
 
         # Note: Log level change takes effect on next startup
-        self.notify("Settings saved", timeout=2)
+        self.notify("Settings saved", timeout=4)
 
     def action_open_keybindings(self) -> None:
         """Open the keybindings configuration screen."""
@@ -1269,9 +1274,9 @@ class RallyTUI(App[None]):
             filter_desc.append("My Items")
 
         if filter_desc:
-            self.notify(f"Filter: {', '.join(filter_desc)} ({len(filtered)} items)", timeout=2)
+            self.notify(f"Filter: {', '.join(filter_desc)} ({len(filtered)} items)", timeout=4)
         else:
-            self.notify(f"Showing all items ({len(filtered)})", timeout=2)
+            self.notify(f"Showing all items ({len(filtered)})", timeout=4)
 
 
 def main() -> None:
