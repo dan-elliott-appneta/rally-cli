@@ -281,6 +281,188 @@ class TestWideViewIntegration:
             assert "wide-full" not in list_container.classes
 
 
+class TestViewModeChangedMessage:
+    """Tests for ViewModeChanged message."""
+
+    async def test_view_mode_changed_message_posted(self) -> None:
+        """ViewModeChanged message should be posted when view mode changes."""
+        from textual.app import App, ComposeResult
+
+        messages_received: list = []
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield TicketList(id="ticket-list")
+
+            def on_ticket_list_view_mode_changed(
+                self, event: TicketList.ViewModeChanged
+            ) -> None:
+                messages_received.append(event.mode)
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Toggle to wide
+            ticket_list.toggle_view_mode()
+            await pilot.pause()
+
+            assert len(messages_received) == 1
+            assert messages_received[0] == ViewMode.WIDE
+
+            # Toggle back to normal
+            ticket_list.toggle_view_mode()
+            await pilot.pause()
+
+            assert len(messages_received) == 2
+            assert messages_received[1] == ViewMode.NORMAL
+
+
+class TestWideViewWithOperations:
+    """Tests for wide view mode with various operations."""
+
+    def _create_ticket(
+        self,
+        formatted_id: str = "US1234",
+        owner: str | None = "Alice",
+        points: float | None = 5,
+    ) -> Ticket:
+        """Create a test ticket."""
+        return Ticket(
+            formatted_id=formatted_id,
+            name=f"Test {formatted_id}",
+            ticket_type="UserStory",
+            state="In Progress",
+            owner=owner,
+            points=points,
+        )
+
+    async def test_set_tickets_uses_correct_item_type(self) -> None:
+        """set_tickets should use WideTicketListItem in wide mode."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield TicketList(id="ticket-list", view_mode=ViewMode.WIDE)
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Set new tickets
+            new_tickets = [self._create_ticket("US001"), self._create_ticket("US002")]
+            ticket_list.set_tickets(new_tickets)
+            await pilot.pause()
+
+            # Should have WideTicketListItem
+            wide_items = list(app.query("WideTicketListItem"))
+            normal_items = list(app.query("TicketListItem"))
+            assert len(wide_items) == 2
+            assert len(normal_items) == 0
+
+    async def test_filter_tickets_uses_correct_item_type(self) -> None:
+        """filter_tickets should use WideTicketListItem in wide mode."""
+        from textual.app import App, ComposeResult
+
+        tickets = [
+            Ticket(
+                formatted_id="US001",
+                name="First ticket",
+                ticket_type="UserStory",
+                state="Defined",
+            ),
+            Ticket(
+                formatted_id="US002",
+                name="Second ticket",
+                ticket_type="UserStory",
+                state="Defined",
+            ),
+        ]
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield TicketList(tickets, id="ticket-list", view_mode=ViewMode.WIDE)
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Filter to one ticket
+            ticket_list.filter_tickets("First")
+            await pilot.pause()
+
+            # Should still have WideTicketListItem
+            wide_items = list(app.query("WideTicketListItem"))
+            assert len(wide_items) == 1
+
+    async def test_sort_mode_change_preserves_view_mode(self) -> None:
+        """Changing sort mode should preserve wide view item type."""
+        from textual.app import App, ComposeResult
+        from rally_tui.widgets import SortMode
+
+        tickets = [
+            Ticket(
+                formatted_id="US001",
+                name="First",
+                ticket_type="UserStory",
+                state="In Progress",
+            ),
+            Ticket(
+                formatted_id="US002",
+                name="Second",
+                ticket_type="UserStory",
+                state="Defined",
+            ),
+        ]
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield TicketList(tickets, id="ticket-list", view_mode=ViewMode.WIDE)
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Change sort mode
+            ticket_list.set_sort_mode(SortMode.CREATED)
+            await pilot.pause()
+
+            # Should still have WideTicketListItem
+            wide_items = list(app.query("WideTicketListItem"))
+            assert len(wide_items) == 2
+
+    async def test_add_ticket_uses_correct_item_type(self) -> None:
+        """add_ticket should use WideTicketListItem in wide mode."""
+        from textual.app import App, ComposeResult
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield TicketList(id="ticket-list", view_mode=ViewMode.WIDE)
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Add a ticket
+            new_ticket = Ticket(
+                formatted_id="US999",
+                name="New ticket",
+                ticket_type="UserStory",
+                state="Defined",
+            )
+            ticket_list.add_ticket(new_ticket)
+            await pilot.pause()
+
+            # Should have WideTicketListItem
+            wide_items = list(app.query("WideTicketListItem"))
+            assert len(wide_items) == 1
+
+
 class TestWideViewItemDisplay:
     """Tests for WideTicketListItem display formatting."""
 
