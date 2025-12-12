@@ -70,7 +70,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 495 tests passing
+- 498 tests passing
 
 Next: Iteration 13 (Attachments).
 

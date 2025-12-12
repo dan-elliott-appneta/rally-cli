@@ -665,3 +665,99 @@ class TestTicketListSelection:
             # Status bar should show selection count
             status_bar = app.query_one(StatusBar)
             assert status_bar.selection_count == 1
+
+
+class TestTicketListBulkUpdate:
+    """Tests for TicketList bulk update functionality."""
+
+    async def test_update_tickets_updates_multiple(self) -> None:
+        """update_tickets should update multiple tickets at once."""
+        from rally_tui.services import MockRallyClient
+        from rally_tui.widgets.ticket_list import TicketListItem
+
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+            Ticket("US3", "Story 3", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Update two tickets at once
+            updated = [
+                Ticket("US1", "Story 1", "UserStory", "Completed"),
+                Ticket("US2", "Story 2", "UserStory", "Completed"),
+            ]
+            ticket_list.update_tickets(updated)
+            await pilot.pause()
+
+            # Check internal state
+            states = {t.formatted_id: t.state for t in ticket_list._all_tickets}
+            assert states["US1"] == "Completed"
+            assert states["US2"] == "Completed"
+            assert states["US3"] == "Defined"
+
+            # Check UI items
+            items = list(ticket_list.query(TicketListItem))
+            assert len(items) == 3  # Should still have 3 items
+            ui_states = {item.ticket.formatted_id: item.ticket.state for item in items}
+            assert ui_states["US1"] == "Completed"
+            assert ui_states["US2"] == "Completed"
+            assert ui_states["US3"] == "Defined"
+
+    async def test_update_tickets_preserves_selection(self) -> None:
+        """update_tickets should preserve selection state."""
+        from rally_tui.services import MockRallyClient
+        from rally_tui.widgets.ticket_list import TicketListItem
+
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+            Ticket("US2", "Story 2", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Select first ticket
+            await pilot.press("space")
+            await pilot.pause()
+            assert ticket_list.selection_count == 1
+
+            # Update both tickets
+            updated = [
+                Ticket("US1", "Story 1", "UserStory", "Completed"),
+                Ticket("US2", "Story 2", "UserStory", "Completed"),
+            ]
+            ticket_list.update_tickets(updated)
+            await pilot.pause()
+
+            # Selection should be preserved
+            assert "US1" in ticket_list._selected_ids
+
+    async def test_update_tickets_empty_list(self) -> None:
+        """update_tickets with empty list should do nothing."""
+        from rally_tui.services import MockRallyClient
+        from rally_tui.widgets.ticket_list import TicketListItem
+
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+        app = RallyTUI(client=client, show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+
+            # Update with empty list
+            ticket_list.update_tickets([])
+            await pilot.pause()
+
+            # Should still have original ticket
+            items = list(ticket_list.query(TicketListItem))
+            assert len(items) == 1
+            assert items[0].ticket.state == "Defined"

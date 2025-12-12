@@ -875,9 +875,8 @@ class RallyTUI(App[None]):
         """Handle the result of a bulk operation."""
         ticket_list = self.query_one(TicketList)
 
-        # Update tickets in the list
-        for updated in result.updated_tickets:
-            ticket_list.update_ticket(updated)
+        # Update all tickets at once (batched to avoid UI rebuild issues)
+        ticket_list.update_tickets(result.updated_tickets)
 
         # Clear selection after bulk operation
         ticket_list.clear_selection()
