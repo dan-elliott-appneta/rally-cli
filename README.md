@@ -22,20 +22,26 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **My Items Filter**: Press `u` to toggle showing only your tickets
 - **User settings**: Preferences saved to `~/.config/rally-tui/config.json`
 - **Settings UI**: Press `F2` to open settings screen and configure theme, log level, and parent options
+- **Keybindings UI**: Press `F3` to view/edit keyboard shortcuts with Vim and Emacs presets
 - **File logging**: Logs to `~/.config/rally-tui/rally-tui.log` with configurable log level
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
 - **Discussions**: View ticket discussions and add comments
 
 ## Status
 
-**Iteration 12 Complete** - Bulk Operations / Multi-Select.
+**Iteration 9 Complete** - Configurable Keybindings.
 
-- **NEW**: Multi-select tickets with `Space` key (toggle selection)
-- **NEW**: Select all tickets with `Ctrl+A` (toggle select all/deselect all)
-- **NEW**: Press `m` to open bulk actions menu on selected tickets
-- **NEW**: Bulk operations: Set Parent, Set State, Set Iteration, Set Points
-- **NEW**: Status bar shows selection count when tickets selected
-- **NEW**: Checkbox indicators in ticket list for selected items
+- **NEW**: Press `F3` to open keybindings configuration screen
+- **NEW**: Vim and Emacs keybinding profiles
+- **NEW**: Custom keybinding overrides
+- **NEW**: Click rows to edit individual bindings
+- **NEW**: Conflict detection for duplicate key assignments
+- **NEW**: Profile selector (Vim, Emacs, Custom)
+- **NEW**: Reset button to restore defaults
+- Multi-select tickets with `Space` key (toggle selection)
+- Select all tickets with `Ctrl+A` (toggle select all/deselect all)
+- Press `m` to open bulk actions menu on selected tickets
+- Bulk operations: Set Parent, Set State, Set Iteration, Set Points
 - Press `F2` to open ConfigScreen for editing settings
 - Configure theme, log level, and parent options from the TUI
 - Settings saved immediately with Ctrl+S or Save button
@@ -70,7 +76,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 498 tests passing
+- 591 tests passing
 
 Next: Iteration 13 (Attachments).
 
@@ -160,6 +166,7 @@ rally-tui
 | o | list | Cycle sort mode (State/Recent/Owner) |
 | w | list/detail | New workitem |
 | F2 | any | Open settings |
+| F3 | any | Open keybindings |
 | c | discussion | Add comment |
 | Ctrl+S | comment/settings | Submit/Save |
 | q | any | Quit |
@@ -173,11 +180,20 @@ Settings are stored in `~/.config/rally-tui/config.json`:
   "theme": "dark",
   "theme_name": "catppuccin-mocha",
   "log_level": "INFO",
-  "parent_options": ["F12345", "F12346", "F12347"]
+  "parent_options": ["F12345", "F12346", "F12347"],
+  "keybinding_profile": "vim",
+  "keybindings": {
+    "navigation.down": "j",
+    "navigation.up": "k"
+  }
 }
 ```
 
 **Important**: The `parent_options` array must be configured with valid Feature IDs from your Rally workspace. These are shown when selecting a parent for a ticket before moving to "In Progress" state. If not configured, you can still enter a custom Feature ID manually.
+
+**Keybinding Profiles**: `vim` (default), `emacs`, or `custom`. Press F3 to view and edit keybindings.
+- Vim profile: j/k navigation, g/G jump, / search
+- Emacs profile: Ctrl+n/Ctrl+p navigation, Ctrl+a/Ctrl+e jump
 
 Available themes: `textual-dark`, `textual-light`, `catppuccin-mocha`, `catppuccin-latte`, `nord`, `gruvbox`, `dracula`, `tokyo-night`, `monokai`, `flexoki`, `solarized-light`
 
@@ -211,6 +227,7 @@ rally-cli/
 │   │   ├── iteration_screen.py   # IterationScreen (filter by sprint)
 │   │   ├── parent_screen.py      # ParentScreen (select parent Feature)
 │   │   ├── config_screen.py      # ConfigScreen (edit settings)
+│   │   ├── keybindings_screen.py # KeybindingsScreen (edit shortcuts)
 │   │   ├── bulk_actions_screen.py # BulkActionsScreen (multi-select operations)
 │   │   └── quick_ticket_screen.py # QuickTicketScreen (create tickets)
 │   ├── widgets/
@@ -220,7 +237,8 @@ rally-cli/
 │   │   └── search_input.py  # SearchInput widget (search mode)
 │   ├── utils/               # Utility functions
 │   │   ├── html_to_text.py  # HTML to plain text converter
-│   │   └── logging.py       # File-based logging configuration
+│   │   ├── logging.py       # File-based logging configuration
+│   │   └── keybindings.py   # Keybinding profiles and utilities
 │   └── services/            # Rally API client layer
 │       ├── protocol.py      # RallyClientProtocol interface
 │       ├── rally_client.py  # Real Rally API client
@@ -252,11 +270,13 @@ rally-cli/
 │   ├── test_rally_client.py      # RallyClient tests
 │   ├── test_html_to_text.py      # HTML conversion tests
 │   ├── test_logging.py           # Logging module tests
+│   ├── test_keybindings.py       # Keybinding utilities tests
+│   ├── test_keybindings_screen.py # KeybindingsScreen tests
 │   └── test_snapshots.py         # Visual regression tests
 └── docs/
     ├── API.md               # Rally WSAPI reference
     ├── PLAN.md              # Development roadmap
-    └── ITERATION_*.md       # Implementation guides (1-10)
+    └── ITERATION_*.md       # Implementation guides (1-12)
 ```
 
 ### Running Tests
@@ -285,6 +305,7 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 - [ITERATION_5.md](docs/ITERATION_5.md) - Iteration 5 implementation guide (complete)
 - [ITERATION_6.md](docs/ITERATION_6.md) - Iteration 6 implementation guide (complete)
 - [ITERATION_8.md](docs/ITERATION_8.md) - Iteration 8 implementation guide (Discussions & Comments)
+- [ITERATION_9.md](docs/ITERATION_9.md) - Iteration 9 implementation guide (Configurable Keybindings)
 - [ITERATION_10.md](docs/ITERATION_10.md) - Iteration 10 implementation guide (Iteration & User Filtering)
 - [ITERATION_12.md](docs/ITERATION_12.md) - Iteration 12 implementation guide (Bulk Operations)
 

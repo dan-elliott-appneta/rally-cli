@@ -65,7 +65,7 @@ rally-cli/
 │           ├── protocol.py     # RallyClientProtocol interface
 │           ├── rally_client.py # Real Rally API client (pyral)
 │           └── mock_client.py  # Mock client for testing/offline
-├── tests/                      # 495 tests
+├── tests/                      # 591 tests
 │   ├── conftest.py             # Fixtures, mock Rally client
 │   ├── test_ticket_model.py
 │   ├── test_discussion_model.py
@@ -91,7 +91,7 @@ rally-cli/
 └── docs/
     ├── API.md                  # Rally WSAPI reference
     ├── PLAN.md                 # This file
-    └── ITERATION_*.md          # Implementation guides (1-8)
+    └── ITERATION_*.md          # Implementation guides (1-12)
 ```
 
 ### Testability Strategy
@@ -787,23 +787,71 @@ tests/
 
 ---
 
-### Iteration 9: Configurable Keybindings
+### Iteration 9: Configurable Keybindings ✅ COMPLETE
 
 **Goal**: Allow users to customize keyboard shortcuts
 
-**Tasks**:
-- [ ] Create keybindings schema in UserSettings
-- [ ] Load custom keybindings from config file
-- [ ] KeybindingsScreen for viewing/editing bindings
-- [ ] Default bindings with override support
-- [ ] Vim/Emacs preset profiles
+**Detailed Guide**: See [ITERATION_9.md](./ITERATION_9.md) for step-by-step implementation.
 
-**Deliverable**: Users can customize keyboard shortcuts via config or UI
+**Tasks**:
+- [x] Create keybindings schema in UserSettings
+- [x] Load custom keybindings from config file
+- [x] Create ACTION_REGISTRY with all configurable actions
+- [x] Implement VIM_KEYBINDINGS and EMACS_KEYBINDINGS profiles
+- [x] Create utility functions (normalize_key, validate_key, find_conflicts)
+- [x] KeybindingsScreen for viewing/editing bindings
+- [x] Profile selector (Vim, Emacs, Custom)
+- [x] Conflict detection and highlighting
+- [x] Add F3 keybinding to open KeybindingsScreen
+- [x] Write comprehensive tests (93+ new tests)
+- [x] Update documentation
+
+**Implementation Notes**:
+- KeyAction NamedTuple defines action ID, description, handler, category
+- ACTION_REGISTRY maps 20+ actions to their definitions
+- Vim and Emacs preset profiles with idiomatic keybindings
+- UserSettings stores keybinding_profile and optional keybindings overrides
+- KeybindingsScreen shows all actions organized by category (Navigation, Actions)
+- Click rows to edit individual bindings
+- Conflict detection highlights duplicate key assignments
+- Reset button restores vim defaults
+- 591 total tests passing
+
+**Deliverable**: Users can customize keyboard shortcuts via config or F3 UI
+
+**Key Bindings**:
+| Key | Action |
+|-----|--------|
+| `F3` | Open keybindings screen |
+| `Ctrl+S` | Save keybindings |
+| `Esc` | Cancel without saving |
+
+**Key Files**:
+```
+src/rally_tui/
+├── utils/
+│   └── keybindings.py         # ACTION_REGISTRY, VIM/EMACS profiles, utilities
+├── user_settings.py           # keybinding_profile, keybindings properties
+├── screens/
+│   └── keybindings_screen.py  # KeybindingsScreen modal
+└── app.py                     # F3 binding, action_open_keybindings
+
+tests/
+├── test_keybindings.py        # 46 tests for keybinding utilities
+├── test_keybindings_screen.py # 24 tests for KeybindingsScreen
+└── test_user_settings.py      # 23 new keybinding-related tests
+```
 
 **Test Coverage**:
-- Unit: Keybinding loading and defaults
-- Unit: Override precedence
-- Integration: Custom bindings work in app
+- Unit: ACTION_REGISTRY contains all required actions
+- Unit: VIM_KEYBINDINGS and EMACS_KEYBINDINGS have all keys
+- Unit: normalize_key, validate_key, find_conflicts utilities
+- Unit: KeybindingsScreen initialization and state
+- Unit: Key string building from events
+- Unit: UserSettings keybinding_profile get/set
+- Unit: UserSettings keybindings with profile defaults + overrides
+- Unit: get_keybinding, set_keybinding, reset_keybindings
+- Integration: F3 opens KeybindingsScreen
 
 ---
 
@@ -1058,7 +1106,6 @@ tests/
 - **Iteration 14**: Custom fields support
 - **Iteration 15**: CRUD Operations (edit tickets, delete with confirmation)
 - **Iteration 16**: Caching and offline mode
-- **Iteration 17**: Configurable Keybindings
 
 ---
 
