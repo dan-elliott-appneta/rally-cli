@@ -427,6 +427,31 @@ class TestAttachmentItem:
         assert item.number == 3
 
 
+class TestAttachmentsScreenFromApp:
+    """Tests for opening AttachmentsScreen from the main app."""
+
+    async def test_a_key_opens_attachments_screen(self) -> None:
+        """Pressing 'a' should open the attachments screen."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.press("a")
+            await pilot.pause()
+
+            assert app.screen.__class__.__name__ == "AttachmentsScreen"
+
+    async def test_a_key_shows_attachments_for_selected_ticket(self) -> None:
+        """Attachments screen should show the selected ticket ID."""
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.press("a")
+            await pilot.pause()
+
+            title = app.screen.query_one("#attachments-title")
+            rendered = str(title.render())
+            # First ticket in sorted list (by state)
+            assert "US1235" in rendered
+
+
 class TestAttachmentsResult:
     """Tests for AttachmentsResult dataclass."""
 
