@@ -396,3 +396,127 @@ class TestStatusBarInApp:
         async with app.run_test() as pilot:
             status_bar = app.query_one(StatusBar)
             assert "My Project" in status_bar.display_content
+
+
+class TestStatusBarCacheStatus:
+    """Tests for cache status display in StatusBar."""
+
+    def test_default_cache_status_is_none(self) -> None:
+        """Default cache_status should be None."""
+        bar = StatusBar()
+        assert bar.cache_status is None
+
+    def test_default_cache_age_is_none(self) -> None:
+        """Default cache_age_minutes should be None."""
+        bar = StatusBar()
+        assert bar.cache_age_minutes is None
+
+    def test_set_cache_status_live(self) -> None:
+        """set_cache_status should set LIVE status."""
+        from rally_tui.widgets.status_bar import CacheStatusDisplay
+
+        bar = StatusBar()
+        bar.set_cache_status(CacheStatusDisplay.LIVE)
+        assert bar.cache_status == CacheStatusDisplay.LIVE
+
+    def test_set_cache_status_cached_with_age(self) -> None:
+        """set_cache_status should set CACHED status with age."""
+        from rally_tui.widgets.status_bar import CacheStatusDisplay
+
+        bar = StatusBar()
+        bar.set_cache_status(CacheStatusDisplay.CACHED, age_minutes=5)
+        assert bar.cache_status == CacheStatusDisplay.CACHED
+        assert bar.cache_age_minutes == 5
+
+    def test_set_cache_status_refreshing(self) -> None:
+        """set_cache_status should set REFRESHING status."""
+        from rally_tui.widgets.status_bar import CacheStatusDisplay
+
+        bar = StatusBar()
+        bar.set_cache_status(CacheStatusDisplay.REFRESHING)
+        assert bar.cache_status == CacheStatusDisplay.REFRESHING
+
+    def test_set_cache_status_offline(self) -> None:
+        """set_cache_status should set OFFLINE status."""
+        from rally_tui.widgets.status_bar import CacheStatusDisplay
+
+        bar = StatusBar()
+        bar.set_cache_status(CacheStatusDisplay.OFFLINE)
+        assert bar.cache_status == CacheStatusDisplay.OFFLINE
+
+    def test_clear_cache_status(self) -> None:
+        """clear_cache_status should clear the status."""
+        from rally_tui.widgets.status_bar import CacheStatusDisplay
+
+        bar = StatusBar()
+        bar.set_cache_status(CacheStatusDisplay.LIVE)
+        bar.clear_cache_status()
+        assert bar.cache_status is None
+        assert bar.cache_age_minutes is None
+
+    async def test_cache_status_live_display(self) -> None:
+        """Live status should show green bullet."""
+        from textual.app import App, ComposeResult
+
+        from rally_tui.widgets.status_bar import CacheStatusDisplay
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            status_bar.set_cache_status(CacheStatusDisplay.LIVE)
+            assert "Live" in status_bar.display_content
+
+    async def test_cache_status_cached_display(self) -> None:
+        """Cached status should show age in minutes."""
+        from textual.app import App, ComposeResult
+
+        from rally_tui.widgets.status_bar import CacheStatusDisplay
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            status_bar.set_cache_status(CacheStatusDisplay.CACHED, age_minutes=5)
+            assert "Cached" in status_bar.display_content
+            assert "5m" in status_bar.display_content
+
+    async def test_cache_status_refreshing_display(self) -> None:
+        """Refreshing status should show loading indicator."""
+        from textual.app import App, ComposeResult
+
+        from rally_tui.widgets.status_bar import CacheStatusDisplay
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            status_bar.set_cache_status(CacheStatusDisplay.REFRESHING)
+            assert "Refreshing" in status_bar.display_content
+
+    async def test_cache_status_offline_display(self) -> None:
+        """Offline status should show warning."""
+        from textual.app import App, ComposeResult
+
+        from rally_tui.widgets.status_bar import CacheStatusDisplay
+
+        class TestApp(App[None]):
+            def compose(self) -> ComposeResult:
+                yield StatusBar(id="status-bar")
+
+        app = TestApp()
+        async with app.run_test() as pilot:
+            status_bar = app.query_one(StatusBar)
+            status_bar.set_cache_status(CacheStatusDisplay.OFFLINE)
+            # Note: "Offline" appears twice - once for cache status, once for connection
+            content = status_bar.display_content
+            assert "Offline" in content

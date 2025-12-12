@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from textual.widgets import Static
 
 if TYPE_CHECKING:
     from rally_tui.widgets.ticket_list import SortMode
+
+
+class CacheStatusDisplay(Enum):
+    """Cache status for display in status bar."""
+
+    LIVE = "live"
+    CACHED = "cached"
+    REFRESHING = "refreshing"
+    OFFLINE = "offline"
 
 
 class StatusBar(Static):
@@ -58,6 +68,8 @@ class StatusBar(Static):
         self._user_filter_active = False
         self._sort_mode: str | None = None  # Display name of current sort mode
         self._selection_count = 0  # Number of selected tickets
+        self._cache_status: CacheStatusDisplay | None = None
+        self._cache_age_minutes: int | None = None
 
     def on_mount(self) -> None:
         """Set initial content when mounted."""
@@ -88,6 +100,13 @@ class StatusBar(Static):
 
         if self._filter_info:
             parts.append(self._filter_info)
+
+        # Show cache status if set
+        if self._cache_status:
+            cache_display = self._format_cache_status()
+            if cache_display:
+                parts.append(cache_display)
+
         if self._connected:
             if self._current_user:
                 status = f"Connected as {self._current_user}"
@@ -98,6 +117,26 @@ class StatusBar(Static):
         parts.append(status)
         self._display_content = " | ".join(parts)
         self.update(self._display_content)
+
+    def _format_cache_status(self) -> str:
+        """Format cache status for display.
+
+        Returns:
+            Formatted cache status string with symbol and optional age.
+        """
+        if not self._cache_status:
+            return ""
+
+        if self._cache_status == CacheStatusDisplay.LIVE:
+            return "[green]● Live[/]"
+        elif self._cache_status == CacheStatusDisplay.CACHED:
+            age_str = f" ({self._cache_age_minutes}m)" if self._cache_age_minutes else ""
+            return f"[yellow]○ Cached{age_str}[/]"
+        elif self._cache_status == CacheStatusDisplay.REFRESHING:
+            return "[blue]◌ Refreshing...[/]"
+        elif self._cache_status == CacheStatusDisplay.OFFLINE:
+            return "[red]⚠ Offline[/]"
+        return ""
 
     @property
     def display_content(self) -> str:
@@ -230,3 +269,32 @@ class StatusBar(Static):
     def selection_count(self) -> int:
         """Get the current selection count."""
         return self._selection_count
+
+    def set_cache_status(
+        self, status: CacheStatusDisplay, age_minutes: int | None = None
+    ) -> None:
+        """Set the cache status display.
+
+        Args:
+            status: The cache status to display.
+            age_minutes: Age of the cache in minutes (for CACHED status).
+        """
+        self._cache_status = status
+        self._cache_age_minutes = age_minutes
+        self._update_display()
+
+    @property
+    def cache_status(self) -> CacheStatusDisplay | None:
+        """Get the current cache status."""
+        return self._cache_status
+
+    @property
+    def cache_age_minutes(self) -> int | None:
+        """Get the current cache age in minutes."""
+        return self._cache_age_minutes
+
+    def clear_cache_status(self) -> None:
+        """Clear the cache status from display."""
+        self._cache_status = None
+        self._cache_age_minutes = None
+        self._update_display()
