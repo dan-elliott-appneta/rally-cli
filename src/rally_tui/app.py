@@ -1106,6 +1106,19 @@ class RallyTUI(App[None]):
             self._bulk_set_iteration(selected)
         elif action == BulkAction.SET_POINTS:
             self._bulk_set_points(selected)
+        elif action == BulkAction.YANK:
+            self._bulk_yank(selected)
+
+    def _bulk_yank(self, tickets: list[Ticket]) -> None:
+        """Copy comma-separated list of ticket IDs to clipboard."""
+        ids = ", ".join(t.formatted_id for t in tickets)
+        self.copy_to_clipboard(ids)
+        self.notify(f"Copied {len(tickets)} IDs: {ids}", timeout=4)
+        _log.info(f"Yanked {len(tickets)} ticket IDs to clipboard")
+
+        # Clear selection after yank
+        ticket_list = self.query_one(TicketList)
+        ticket_list.clear_selection()
 
     def _bulk_set_parent(self, tickets: list[Ticket]) -> None:
         """Set parent on multiple tickets."""

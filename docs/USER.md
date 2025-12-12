@@ -320,6 +320,7 @@ Press `m` with tickets selected to open the bulk actions menu:
 2. **Set State** - Change state on all selected tickets
 3. **Set Iteration** - Move all selected tickets to a sprint
 4. **Set Points** - Set story points on all selected tickets
+5. **Yank (Copy IDs)** - Copy comma-separated list of ticket IDs to clipboard
 
 ### Example: Move Multiple Tickets to a Sprint
 
