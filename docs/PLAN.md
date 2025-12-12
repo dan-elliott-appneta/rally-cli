@@ -1450,7 +1450,7 @@ With Iteration 14, rally-tui will be a fully-featured, high-performance Rally TU
 - ✅ Parent selection (Iteration 11)
 - ✅ Bulk operations (Iteration 12)
 - ✅ Attachments (Iteration 13)
-- ⏳ **Local caching and offline mode (Iteration 14)**
+- ✅ Local caching and offline mode (Iteration 14)
 
 ---
 
