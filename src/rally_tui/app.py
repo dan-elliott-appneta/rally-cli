@@ -178,6 +178,7 @@ class RallyTUI(App[None]):
             "action.my_items": ("toggle_user_filter", "My Items", True),
             "action.sort": ("cycle_sort", "Sort", True),
             "action.team": ("team_breakdown", "Team", True),
+            "action.wide_view": ("toggle_wide_view", "Wide", True),
             "action.bulk": ("bulk_actions", "Bulk", True),
             "action.refresh": ("refresh_cache", "Refresh", True),
             "action.settings": ("open_settings", "Settings", True),
@@ -959,6 +960,25 @@ class RallyTUI(App[None]):
 
         # Show the team breakdown screen
         self.push_screen(TeamBreakdownScreen(tickets, self._iteration_filter))
+
+    def action_toggle_wide_view(self) -> None:
+        """Toggle between normal and wide view mode."""
+        ticket_list = self.query_one(TicketList)
+        ticket_list.toggle_view_mode()
+
+    def _on_ticket_list_view_mode_changed(
+        self, event: TicketList.ViewModeChanged
+    ) -> None:
+        """Handle view mode change from ticket list."""
+        from rally_tui.widgets import ViewMode
+
+        list_container = self.query_one("#list-container")
+        if event.mode == ViewMode.WIDE:
+            list_container.add_class("wide")
+            self.notify("Wide view enabled", timeout=2)
+        else:
+            list_container.remove_class("wide")
+            self.notify("Normal view enabled", timeout=2)
 
     def action_refresh_cache(self) -> None:
         """Refresh the ticket cache by fetching fresh data from Rally."""

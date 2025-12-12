@@ -21,6 +21,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Sprint Filter**: Press `i` to filter tickets by iteration/sprint
 - **My Items Filter**: Press `u` to toggle showing only your tickets
 - **Team Breakdown**: Press `b` to view ticket count and points breakdown by owner for a sprint
+- **Wide View**: Press `v` to toggle wide view mode showing owner, points, and parent columns
 - **User settings**: Preferences saved to `~/.config/rally-tui/config.json`
 - **Settings UI**: Press `F2` to open settings screen and configure theme, log level, and parent options
 - **Keybindings UI**: Press `F3` to view/edit keyboard shortcuts with Vim and Emacs presets
@@ -81,7 +82,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 755 tests passing
+- 774 tests passing
 
 Next: Iteration 15 (Custom fields support).
 
@@ -171,6 +172,7 @@ rally-tui
 | u | list/detail | Toggle My Items filter |
 | o | list | Cycle sort mode (State/Recent/Owner) |
 | b | list | Team breakdown (requires sprint filter) |
+| v | list | Toggle wide view mode |
 | r | list/detail | Refresh ticket cache |
 | w | list/detail | New workitem |
 | F2 | any | Open settings |
