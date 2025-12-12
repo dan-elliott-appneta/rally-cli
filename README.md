@@ -26,10 +26,11 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **File logging**: Logs to `~/.config/rally-tui/rally-tui.log` with configurable log level
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
 - **Discussions**: View ticket discussions and add comments
+- **Attachments**: Press `a` to view, download, or upload ticket attachments
 
 ## Status
 
-**Iteration 9 Complete** - Configurable Keybindings.
+**Iteration 13 Complete** - Attachments.
 
 - **NEW**: Press `F3` to open keybindings configuration screen
 - **NEW**: Vim and Emacs keybinding profiles
@@ -76,9 +77,9 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 591 tests passing
+- 657 tests passing
 
-Next: Iteration 13 (Attachments).
+Next: Iteration 14 (Custom fields support).
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -161,6 +162,7 @@ rally-tui
 | p | list/detail | Set story points |
 | n | list/detail | Toggle description/notes |
 | d | list/detail | Open discussions |
+| a | list/detail | View/download/upload attachments |
 | i | list/detail | Filter by iteration/sprint |
 | u | list/detail | Toggle My Items filter |
 | o | list | Cycle sort mode (State/Recent/Owner) |
@@ -217,6 +219,7 @@ rally-cli/
 │   │   ├── ticket.py        # Ticket dataclass
 │   │   ├── discussion.py    # Discussion dataclass
 │   │   ├── iteration.py     # Iteration dataclass
+│   │   ├── attachment.py    # Attachment dataclass
 │   │   └── sample_data.py   # Sample data for offline mode
 │   ├── screens/
 │   │   ├── splash_screen.py      # SplashScreen (startup)
@@ -229,7 +232,8 @@ rally-cli/
 │   │   ├── config_screen.py      # ConfigScreen (edit settings)
 │   │   ├── keybindings_screen.py # KeybindingsScreen (edit shortcuts)
 │   │   ├── bulk_actions_screen.py # BulkActionsScreen (multi-select operations)
-│   │   └── quick_ticket_screen.py # QuickTicketScreen (create tickets)
+│   │   ├── quick_ticket_screen.py # QuickTicketScreen (create tickets)
+│   │   └── attachments_screen.py  # AttachmentsScreen (view/download/upload)
 │   ├── widgets/
 │   │   ├── ticket_list.py   # TicketList widget (left panel, state sorting)
 │   │   ├── ticket_detail.py # TicketDetail widget (right panel)
@@ -260,6 +264,8 @@ rally-cli/
 │   ├── test_config_screen.py     # ConfigScreen tests
 │   ├── test_bulk_actions_screen.py # BulkActionsScreen tests
 │   ├── test_quick_ticket_screen.py # QuickTicketScreen tests
+│   ├── test_attachments_screen.py  # AttachmentsScreen tests
+│   ├── test_attachment_model.py    # Attachment model tests
 │   ├── test_filter_integration.py # Filter integration tests
 │   ├── test_status_bar.py        # StatusBar widget tests
 │   ├── test_search_input.py      # SearchInput widget tests
@@ -308,6 +314,7 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 - [ITERATION_9.md](docs/ITERATION_9.md) - Iteration 9 implementation guide (Configurable Keybindings)
 - [ITERATION_10.md](docs/ITERATION_10.md) - Iteration 10 implementation guide (Iteration & User Filtering)
 - [ITERATION_12.md](docs/ITERATION_12.md) - Iteration 12 implementation guide (Bulk Operations)
+- [ITERATION_13.md](docs/ITERATION_13.md) - Iteration 13 implementation guide (Attachments)
 
 ## Technology Stack
 
