@@ -452,8 +452,12 @@ class RallyTUI(App[None]):
             return []
 
     def _build_iteration_query(self) -> str:
-        """Build query string for iteration filter, including user filter if active."""
+        """Build query string for iteration filter, including user and project filters."""
         conditions: list[str] = []
+
+        # Always scope to current project to prevent cross-project leakage
+        if self._client and self._client.project:
+            conditions.append(f'(Project.Name = "{self._client.project}")')
 
         # Add iteration condition
         if self._iteration_filter == FILTER_BACKLOG:

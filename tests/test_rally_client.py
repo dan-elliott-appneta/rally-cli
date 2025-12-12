@@ -376,7 +376,7 @@ class TestRallyClientDefaultQuery:
     """Tests for default query building."""
 
     def test_build_default_query_both_user_and_iteration(self) -> None:
-        """Query includes both user and iteration when available."""
+        """Query includes project, user, and iteration when available."""
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
@@ -393,6 +393,7 @@ class TestRallyClientDefaultQuery:
 
             query = client._build_default_query()
             assert query is not None
+            assert 'Project.Name = "Project"' in query
             assert 'Iteration.Name = "Sprint 5"' in query
             assert 'Owner.DisplayName = "John Doe"' in query
             assert "AND" in query
@@ -401,7 +402,7 @@ class TestRallyClientDefaultQuery:
             assert ") AND (" in query
 
     def test_build_default_query_only_iteration(self) -> None:
-        """Query includes only iteration when user not available."""
+        """Query includes project and iteration when user not available."""
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
@@ -418,12 +419,14 @@ class TestRallyClientDefaultQuery:
 
             query = client._build_default_query()
             assert query is not None
+            assert 'Project.Name = "Project"' in query
             assert 'Iteration.Name = "Sprint 5"' in query
             assert "Owner" not in query
-            assert "AND" not in query
+            # Has AND because project + iteration
+            assert "AND" in query
 
     def test_build_default_query_only_user(self) -> None:
-        """Query includes only user when iteration not available."""
+        """Query includes project and user when iteration not available."""
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
@@ -440,12 +443,14 @@ class TestRallyClientDefaultQuery:
 
             query = client._build_default_query()
             assert query is not None
+            assert 'Project.Name = "Project"' in query
             assert 'Owner.DisplayName = "John Doe"' in query
             assert "Iteration" not in query
-            assert "AND" not in query
+            # Has AND because project + user
+            assert "AND" in query
 
-    def test_build_default_query_none_when_neither_available(self) -> None:
-        """Query is None when neither user nor iteration available."""
+    def test_build_default_query_project_only_when_neither_available(self) -> None:
+        """Query returns project-only scope when neither user nor iteration available."""
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
@@ -457,7 +462,8 @@ class TestRallyClientDefaultQuery:
             client = RallyClient(config)
 
             query = client._build_default_query()
-            assert query is None
+            assert query is not None
+            assert query == '(Project.Name = "Project")'
 
 
 class TestRallyClientAttachments:

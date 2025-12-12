@@ -33,6 +33,8 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Cache refresh**: Press `r` to manually refresh the ticket cache
 - **Loading indicator**: Visual feedback in status bar when fetching tickets from API
 - **Async API client**: High-performance httpx-based async Rally client with concurrent operations
+- **Project scoping**: All queries are automatically scoped to your project to prevent cross-project data leakage
+- **CI pipeline**: GitHub Actions workflow with tests, linting, type checking, and coverage reports
 
 ## Status
 
@@ -84,7 +86,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 860 tests passing (including 74 new async tests)
+- 853 tests passing (including 74 async tests)
 
 Next: Iteration 15 (Custom fields support).
 
@@ -328,6 +330,16 @@ pytest --cov=rally_tui
 # Update snapshot baselines
 pytest --snapshot-update
 ```
+
+### Continuous Integration
+
+The project uses GitHub Actions for CI. On every PR:
+- **Tests**: Run across Python 3.11, 3.12, 3.13
+- **Lint**: Ruff check and format verification
+- **Type Check**: Mypy static type analysis
+- **Coverage**: Reports uploaded to Codecov
+
+All checks must pass before merging.
 
 See [TESTING.md](TESTING.md) for detailed testing documentation.
 

@@ -63,7 +63,7 @@ class TestAppAsyncWorkerMethods:
             assert isinstance(tickets, list)
 
     async def test_build_iteration_query_for_backlog(self) -> None:
-        """Should build correct query for backlog filter."""
+        """Should build correct query for backlog filter with project scoping."""
         client = MockRallyClient()
         app = RallyTUI(client=client, show_splash=False)
 
@@ -72,27 +72,32 @@ class TestAppAsyncWorkerMethods:
 
             app._iteration_filter = FILTER_BACKLOG
             query = app._build_iteration_query()
-            assert query == "(Iteration = null)"
+            # Query should include both project scope AND iteration filter
+            assert '(Project.Name = "My Project")' in query
+            assert "(Iteration = null)" in query
 
     async def test_build_iteration_query_for_iteration(self) -> None:
-        """Should build correct query for iteration filter."""
+        """Should build correct query for iteration filter with project scoping."""
         client = MockRallyClient()
         app = RallyTUI(client=client, show_splash=False)
 
         async with app.run_test():
             app._iteration_filter = "Sprint 42"
             query = app._build_iteration_query()
-            assert query == '(Iteration.Name = "Sprint 42")'
+            # Query should include both project scope AND iteration filter
+            assert '(Project.Name = "My Project")' in query
+            assert '(Iteration.Name = "Sprint 42")' in query
 
     async def test_build_iteration_query_for_none(self) -> None:
-        """Should return empty query when no iteration filter."""
+        """Should return project-only query when no iteration filter."""
         client = MockRallyClient()
         app = RallyTUI(client=client, show_splash=False)
 
         async with app.run_test():
             app._iteration_filter = None
             query = app._build_iteration_query()
-            assert query == ""
+            # Should still have project scoping even without iteration filter
+            assert query == '(Project.Name = "My Project")'
 
 
 class TestAppAsyncLoadMethods:

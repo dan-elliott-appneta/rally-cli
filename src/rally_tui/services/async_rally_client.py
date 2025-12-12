@@ -268,8 +268,12 @@ class AsyncRallyClient:
     # -------------------------------------------------------------------------
 
     def _build_default_query(self) -> str | None:
-        """Build the default query for current user and iteration."""
+        """Build the default query for current user, iteration, and project."""
         conditions = []
+
+        # Always scope to current project to prevent cross-project leakage
+        if self._project:
+            conditions.append(f'(Project.Name = "{self._project}")')
 
         if self._current_iteration:
             conditions.append(f'(Iteration.Name = "{self._current_iteration}")')
@@ -283,7 +287,11 @@ class AsyncRallyClient:
         if len(conditions) == 1:
             return conditions[0]
 
-        return f"({conditions[0]} AND {conditions[1]})"
+        # Rally WSAPI requires nested ANDs: ((cond1) AND (cond2))
+        result = conditions[0]
+        for condition in conditions[1:]:
+            result = f"({result} AND {condition})"
+        return result
 
     async def get_tickets(self, query: str | None = None) -> list[Ticket]:
         """Fetch tickets from Rally concurrently.
