@@ -429,9 +429,11 @@ class TicketList(ListView):
         # Clear selection when tickets are replaced
         had_selection = bool(self._selected_ids)
         self._selected_ids.clear()
-        self.clear()
+        # Use remove_children/mount for synchronous update to avoid race conditions
+        # (clear/append can have timing issues when called from worker callbacks)
+        self.remove_children()
         for ticket in sorted_tickets:
-            self.append(TicketListItem(ticket, selected=False))
+            self.mount(TicketListItem(ticket, selected=False))
         # Select first item if list is not empty
         if sorted_tickets:
             self.index = 0
@@ -489,10 +491,11 @@ class TicketList(ListView):
             ]
 
         self._tickets = filtered
-        self.clear()
+        # Use remove_children/mount for synchronous update to avoid race conditions
+        self.remove_children()
         for ticket in filtered:
             is_selected = ticket.formatted_id in self._selected_ids
-            self.append(TicketListItem(ticket, selected=is_selected))
+            self.mount(TicketListItem(ticket, selected=is_selected))
 
         self.post_message(self.FilterApplied(len(filtered), len(self._all_tickets)))
 
@@ -599,10 +602,11 @@ class TicketList(ListView):
         if not self._filter_query:
             self._tickets = list(self._all_tickets)
             # Rebuild the UI list (preserve selection state)
-            self.clear()
+            # Use remove_children/mount for synchronous update
+            self.remove_children()
             for t in self._tickets:
                 is_selected = t.formatted_id in self._selected_ids
-                self.append(TicketListItem(t, selected=is_selected))
+                self.mount(TicketListItem(t, selected=is_selected))
             # Select the new ticket
             for i, t in enumerate(self._tickets):
                 if t.formatted_id == ticket.formatted_id:
