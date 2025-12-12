@@ -38,7 +38,7 @@ class TestTeamBreakdownScreen:
         return Ticket(
             formatted_id=formatted_id,
             name=f"Test {formatted_id}",
-            type="User Story",
+            ticket_type="UserStory",
             state="In Progress",
             owner=owner,
             description="Test description",
@@ -161,7 +161,7 @@ class TestTeamBreakdownScreenWidget:
         return Ticket(
             formatted_id=formatted_id,
             name=f"Test {formatted_id}",
-            type="User Story",
+            ticket_type="UserStory",
             state="In Progress",
             owner=owner,
             description="Test description",

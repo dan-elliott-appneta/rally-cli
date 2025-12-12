@@ -232,9 +232,11 @@ class TestBulkYankIntegration:
             app.push_screen(BulkActionsScreen(3), callback=capture_result)
             await pilot.pause()
 
-            # Click the yank button
+            # Scroll to and click the yank button
             btn_yank = app.screen.query_one("#btn-yank")
-            await pilot.click(btn_yank)
+            btn_yank.scroll_visible()
+            await pilot.pause()
+            btn_yank.press()
             await pilot.pause()
 
         assert result == BulkAction.YANK
