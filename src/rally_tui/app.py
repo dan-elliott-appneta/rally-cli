@@ -951,7 +951,7 @@ class RallyTUI(App[None]):
 
         # Get current tickets from the list
         ticket_list = self.query_one(TicketList)
-        tickets = ticket_list.tickets
+        tickets = ticket_list.filtered_tickets
 
         if not tickets:
             self.notify("No tickets to analyze", severity="warning", timeout=4)

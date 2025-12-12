@@ -530,6 +530,11 @@ class TicketList(ListView):
         """Get filtered ticket count."""
         return len(self._tickets)
 
+    @property
+    def filtered_tickets(self) -> list[Ticket]:
+        """Get the list of currently displayed (filtered) tickets."""
+        return list(self._tickets)
+
     def update_ticket(self, ticket: Ticket, resort: bool = True) -> None:
         """Update a ticket and optionally re-sort the list.
 
