@@ -52,6 +52,17 @@ class RedactingFilter(logging.Filter):
             'Owner.DisplayName = "[REDACTED]"',
             re.compile(r'Owner\.DisplayName\s*=\s*"[^"]+"', re.IGNORECASE),
         ),
+        # Connection log messages
+        (
+            "current_user",
+            "Current user: [REDACTED]",
+            re.compile(r"Current user: .+", re.IGNORECASE),
+        ),
+        (
+            "workspace_project",
+            "workspace: [REDACTED], project: [REDACTED]",
+            re.compile(r"workspace: [^,]+, project: [^\s]+", re.IGNORECASE),
+        ),
         (
             "owner_display_name_neq",
             'Owner.DisplayName != "[REDACTED]"',

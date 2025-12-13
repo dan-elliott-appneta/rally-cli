@@ -151,6 +151,21 @@ class TestRedactRallyQueries:
         assert "John Doe" not in result
         assert result.count("[REDACTED]") == 2
 
+    def test_redacts_current_user_log(self, filter: RedactingFilter) -> None:
+        """Redacts current user from connection logs."""
+        msg = "Current user: John Doe"
+        result = filter._redact(msg)
+        assert "[REDACTED]" in result
+        assert "John Doe" not in result
+
+    def test_redacts_workspace_project_log(self, filter: RedactingFilter) -> None:
+        """Redacts workspace and project from connection logs."""
+        msg = "Connected to Rally workspace: MyWorkspace, project: SecretProject"
+        result = filter._redact(msg)
+        assert "[REDACTED]" in result
+        assert "MyWorkspace" not in result
+        assert "SecretProject" not in result
+
 
 class TestRedactGenericCredentials:
     """Tests for generic credential redaction."""
