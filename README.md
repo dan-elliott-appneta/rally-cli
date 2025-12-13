@@ -26,6 +26,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Settings UI**: Press `F2` to open settings screen and configure theme, log level, and parent options
 - **Keybindings UI**: Press `F3` to view/edit keyboard shortcuts with Vim and Emacs presets
 - **File logging**: Logs to `~/.config/rally-tui/rally-tui.log` with configurable log level
+- **Log redaction**: Sensitive data (API keys, emails, user names) automatically redacted from logs
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
 - **Discussions**: View ticket discussions and add comments
 - **Attachments**: Press `a` to view, download, or upload ticket attachments (includes embedded images from description/notes)
@@ -93,7 +94,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 871 tests passing (including 74 async tests)
+- 904 tests passing (including 74 async tests)
 
 Next: Iteration 15 (Custom fields support).
 

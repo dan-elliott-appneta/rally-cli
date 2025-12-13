@@ -16,6 +16,7 @@ from rally_tui.utils.keybindings import (
     validate_key,
 )
 from rally_tui.utils.logging import get_logger, set_log_level, setup_logging
+from rally_tui.utils.redacting_filter import RedactingFilter
 
 __all__ = [
     "extract_images_from_html",
@@ -23,6 +24,7 @@ __all__ = [
     "get_logger",
     "set_log_level",
     "setup_logging",
+    "RedactingFilter",
     # Keybinding exports
     "ACTION_REGISTRY",
     "EMACS_KEYBINDINGS",

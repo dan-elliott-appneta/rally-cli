@@ -7,6 +7,8 @@ import sys
 from logging.handlers import RotatingFileHandler
 from typing import TYPE_CHECKING
 
+from rally_tui.utils.redacting_filter import RedactingFilter
+
 if TYPE_CHECKING:
     from rally_tui.user_settings import UserSettings
 
@@ -79,8 +81,15 @@ def setup_logging(settings: UserSettings | None = None) -> logging.Logger:
     stderr_handler.setFormatter(formatter)
     logger.addHandler(stderr_handler)
 
+    # Add redacting filter to all handlers (enabled by default)
+    redact_enabled = settings.redact_logs
+    redacting_filter = RedactingFilter(enabled=redact_enabled)
+    for handler in logger.handlers:
+        handler.addFilter(redacting_filter)
+
     _initialized = True
-    logger.info(f"Logging initialized at level {level_name}")
+    redact_status = "enabled" if redact_enabled else "disabled"
+    logger.info(f"Logging initialized at level {level_name} (redaction: {redact_status})")
 
     return logger
 

@@ -38,6 +38,8 @@ class UserSettings:
     DEFAULT_CACHE_ENABLED = True
     DEFAULT_CACHE_TTL_MINUTES = 15
     DEFAULT_CACHE_AUTO_REFRESH = True
+    # Log redaction default (enabled for security)
+    DEFAULT_REDACT_LOGS = True
 
     def __init__(self) -> None:
         """Initialize user settings, loading from file if exists."""
@@ -288,4 +290,23 @@ class UserSettings:
         if not isinstance(value, bool):
             raise ValueError("cache_auto_refresh must be a boolean")
         self._settings["cache_auto_refresh"] = value
+        self._save()
+
+    # Log redaction properties
+
+    @property
+    def redact_logs(self) -> bool:
+        """Get whether log redaction is enabled.
+
+        When enabled, sensitive data like API keys, emails, and user names
+        are redacted from log files.
+        """
+        return self._settings.get("redact_logs", self.DEFAULT_REDACT_LOGS)
+
+    @redact_logs.setter
+    def redact_logs(self, value: bool) -> None:
+        """Set and persist log redaction setting."""
+        if not isinstance(value, bool):
+            raise ValueError("redact_logs must be a boolean")
+        self._settings["redact_logs"] = value
         self._save()
