@@ -447,8 +447,23 @@ class AsyncRallyClient:
             except (ValueError, TypeError):
                 pass
 
-        # Get state
-        state = item.get("FlowState") or item.get("State") or "Unknown"
+        # Get state - FlowState/State can be a string or a reference object
+        state = "Unknown"
+        flow_state = item.get("FlowState")
+        if flow_state:
+            if isinstance(flow_state, dict):
+                state = flow_state.get("_refObjectName") or flow_state.get("Name") or "Unknown"
+            else:
+                state = str(flow_state)
+        else:
+            defect_state = item.get("State")
+            if defect_state:
+                if isinstance(defect_state, dict):
+                    state = (
+                        defect_state.get("_refObjectName") or defect_state.get("Name") or "Unknown"
+                    )
+                else:
+                    state = str(defect_state)
 
         # Extract parent ID
         parent_id = None
