@@ -276,8 +276,12 @@ class RallyClient:
                 state = flow_state
             elif isinstance(flow_state, dict):
                 state = flow_state.get("_refObjectName") or flow_state.get("Name") or "Unknown"
+            elif hasattr(flow_state, "_refObjectName"):
+                # pyral reference object with _refObjectName
+                ref_name = flow_state._refObjectName
+                state = str(ref_name) if ref_name else "Unknown"
             elif hasattr(flow_state, "Name"):
-                # pyral reference object
+                # pyral reference object with Name
                 state = str(flow_state.Name) if flow_state.Name else "Unknown"
             else:
                 state = str(flow_state)
@@ -290,8 +294,12 @@ class RallyClient:
                     state = (
                         defect_state.get("_refObjectName") or defect_state.get("Name") or "Unknown"
                     )
+                elif hasattr(defect_state, "_refObjectName"):
+                    # pyral reference object with _refObjectName
+                    ref_name = defect_state._refObjectName
+                    state = str(ref_name) if ref_name else "Unknown"
                 elif hasattr(defect_state, "Name"):
-                    # pyral reference object
+                    # pyral reference object with Name
                     state = str(defect_state.Name) if defect_state.Name else "Unknown"
                 else:
                     state = str(defect_state)
