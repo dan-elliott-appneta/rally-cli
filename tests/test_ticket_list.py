@@ -422,10 +422,10 @@ class TestTicketListSorting:
         parents = [t.parent_id for t in sorted_list]
         assert parents == [None, None, "F100", "F200", "F200"]
 
-    def test_default_sort_mode_is_created(self) -> None:
-        """TicketList should default to CREATED sort mode (most recent)."""
+    def test_default_sort_mode_is_state(self) -> None:
+        """TicketList should default to STATE sort mode (workflow order)."""
         ticket_list = TicketList([])
-        assert ticket_list.sort_mode == SortMode.CREATED
+        assert ticket_list.sort_mode == SortMode.STATE
 
     def test_custom_sort_mode_on_init(self, sort_tickets_fixture: list[Ticket]) -> None:
         """TicketList should accept custom sort mode on init."""
@@ -433,27 +433,27 @@ class TestTicketListSorting:
         assert ticket_list.sort_mode == SortMode.OWNER
 
     async def test_sort_mode_change_in_app(self) -> None:
-        """Pressing 'o' should cycle through sort modes: CREATED → STATE → OWNER → PARENT."""
+        """Pressing 'o' should cycle through sort modes: STATE → OWNER → PARENT → CREATED."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
-            assert ticket_list.sort_mode == SortMode.CREATED
-
-            # First press: CREATED -> STATE
-            await pilot.press("o")
             assert ticket_list.sort_mode == SortMode.STATE
 
-            # Second press: STATE -> OWNER
+            # First press: STATE -> OWNER
             await pilot.press("o")
             assert ticket_list.sort_mode == SortMode.OWNER
 
-            # Third press: OWNER -> PARENT
+            # Second press: OWNER -> PARENT
             await pilot.press("o")
             assert ticket_list.sort_mode == SortMode.PARENT
 
-            # Fourth press: PARENT -> CREATED
+            # Third press: PARENT -> CREATED
             await pilot.press("o")
             assert ticket_list.sort_mode == SortMode.CREATED
+
+            # Fourth press: CREATED -> STATE
+            await pilot.press("o")
+            assert ticket_list.sort_mode == SortMode.STATE
 
     async def test_sort_mode_persists_with_filter(self) -> None:
         """Sort mode should be preserved when filtering."""
@@ -480,14 +480,14 @@ class TestTicketListSorting:
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
 
-            # Change to STATE sort (default is CREATED, one press goes to STATE)
+            # Change to OWNER sort (default is STATE, one press goes to OWNER)
             await pilot.press("o")
-            assert ticket_list.sort_mode == SortMode.STATE
+            assert ticket_list.sort_mode == SortMode.OWNER
 
             # Apply filter
             ticket_list.filter_tickets("Log")
             assert ticket_list.filtered_count == 2
-            assert ticket_list.sort_mode == SortMode.STATE
+            assert ticket_list.sort_mode == SortMode.OWNER
 
     async def test_set_sort_mode_method(self, sort_tickets_fixture: list[Ticket]) -> None:
         """set_sort_mode should change mode and re-sort."""
@@ -500,7 +500,7 @@ class TestTicketListSorting:
         app = SortTestApp()
         async with app.run_test():
             ticket_list = app.query_one(TicketList)
-            assert ticket_list.sort_mode == SortMode.CREATED
+            assert ticket_list.sort_mode == SortMode.STATE
 
             ticket_list.set_sort_mode(SortMode.OWNER)
             assert ticket_list.sort_mode == SortMode.OWNER
@@ -659,13 +659,13 @@ class TestTicketListSelection:
             await pilot.pause()
             ticket_list = app.query_one(TicketList)
 
-            # Select first ticket (US2 - sorted by most recent/highest ID)
+            # Select first ticket (US1 - sorted by state, stable order)
             await pilot.press("space")
             await pilot.pause()
 
             selected = ticket_list.selected_tickets
             assert len(selected) == 1
-            assert selected[0].formatted_id == "US2"
+            assert selected[0].formatted_id == "US1"
 
     async def test_selection_message_posted(self) -> None:
         """SelectionChanged message should be posted when selection changes."""
@@ -745,7 +745,7 @@ class TestTicketListBulkUpdate:
             await pilot.pause()
             ticket_list = app.query_one(TicketList)
 
-            # Select first ticket (US2 - sorted by most recent/highest ID)
+            # Select first ticket (US1 - sorted by state, stable order)
             await pilot.press("space")
             await pilot.pause()
             assert ticket_list.selection_count == 1
@@ -759,7 +759,7 @@ class TestTicketListBulkUpdate:
             await pilot.pause()
 
             # Selection should be preserved
-            assert "US2" in ticket_list._selected_ids
+            assert "US1" in ticket_list._selected_ids
 
     async def test_update_tickets_empty_list(self) -> None:
         """update_tickets with empty list should do nothing."""

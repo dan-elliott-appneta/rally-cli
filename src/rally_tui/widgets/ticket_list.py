@@ -380,7 +380,7 @@ class TicketList(ListView):
         *,
         id: str | None = None,
         classes: str | None = None,
-        sort_mode: SortMode = SortMode.CREATED,
+        sort_mode: SortMode = SortMode.STATE,
         view_mode: ViewMode = ViewMode.NORMAL,
         user_settings: UserSettings | None = None,
     ) -> None:

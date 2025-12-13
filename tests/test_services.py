@@ -259,19 +259,19 @@ class TestRallyTUIWithClient:
         app = RallyTUI(client=client, show_splash=False)
         async with app.run_test():
             detail = app.query_one(TicketDetail)
-            # First ticket should be shown in detail (sorted by most recent/highest ID)
+            # First ticket should be shown in detail (sorted by state - Defined before Open)
             assert detail.ticket is not None
-            assert detail.ticket.formatted_id == "TEST002"
+            assert detail.ticket.formatted_id == "TEST001"
 
     async def test_app_default_client(self) -> None:
         """App should use MockRallyClient with SAMPLE_TICKETS by default."""
         app = RallyTUI(show_splash=False)  # No client passed
         async with app.run_test():
             detail = app.query_one(TicketDetail)
-            # Should show first ticket from SAMPLE_TICKETS (sorted by most recent/highest ID)
-            # First ticket after sorting is US1237
+            # Should show first ticket from SAMPLE_TICKETS (sorted by state)
+            # First ticket after sorting is US1235 (Defined)
             assert detail.ticket is not None
-            assert detail.ticket.formatted_id == "US1237"
+            assert detail.ticket.formatted_id == "US1235"
 
 
 class TestMockRallyClientIterations:

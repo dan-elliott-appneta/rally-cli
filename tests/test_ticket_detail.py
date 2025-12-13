@@ -7,18 +7,21 @@ from rally_tui.widgets import TicketDetail
 class TestTicketDetailWidget:
     """Tests for TicketDetail widget behavior.
 
-    Note: Tickets are sorted by most recent (highest ID first):
-    - US1237, US1236, US1235, US1234, TC101, TA789, DE457, DE456
+    Note: Tickets are sorted by state (workflow order):
+    - 0: US1235 (Defined), 1: TC101 (Defined), 2: US1237 (Defined)
+    - 3: DE456 (Open), 4: DE457 (Open)
+    - 5: US1234 (In-Progress), 6: TA789 (In-Progress)
+    - 7: US1236 (Completed)
     """
 
     async def test_initial_state_shows_first_ticket(self) -> None:
-        """Detail panel should show first ticket on mount (sorted by most recent)."""
+        """Detail panel should show first ticket on mount (sorted by state)."""
         app = RallyTUI(show_splash=False)
         async with app.run_test():
             detail = app.query_one(TicketDetail)
             assert detail.ticket is not None
-            # First ticket after sorting by most recent is US1237
-            assert detail.ticket.formatted_id == "US1237"
+            # First ticket after sorting by state is US1235 (Defined)
+            assert detail.ticket.formatted_id == "US1235"
 
     async def test_detail_updates_on_navigation(self) -> None:
         """Detail panel should update when navigating list."""
@@ -26,10 +29,10 @@ class TestTicketDetailWidget:
         async with app.run_test() as pilot:
             detail = app.query_one(TicketDetail)
 
-            # Move to second item (US1236)
+            # Move to second item (TC101 - sorted by state)
             await pilot.press("j")
             assert detail.ticket is not None
-            assert detail.ticket.formatted_id == "US1236"
+            assert detail.ticket.formatted_id == "TC101"
 
     async def test_detail_shows_ticket_name(self) -> None:
         """Detail panel should display ticket name in header."""
@@ -37,8 +40,8 @@ class TestTicketDetailWidget:
         async with app.run_test():
             header = app.query_one("#detail-header")
             rendered = str(header.render())
-            # First ticket is US1237 (Implement dark mode toggle)
-            assert "Implement dark mode toggle" in rendered
+            # First ticket is US1235 (Password reset functionality)
+            assert "Password reset functionality" in rendered
 
     async def test_detail_shows_ticket_state(self) -> None:
         """Detail panel should display ticket state."""
@@ -46,25 +49,26 @@ class TestTicketDetailWidget:
         async with app.run_test():
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
-            # First ticket is US1237 with state "Defined"
+            # First ticket is US1235 with state "Defined"
             assert "Defined" in rendered
 
     async def test_detail_shows_owner(self) -> None:
         """Detail panel should display owner name."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
-            # Navigate to US1236 which has owner Alice Chen (index 1)
-            await pilot.press("j")
-
+        async with app.run_test():
+            # First ticket US1235 has owner Jane Doe
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
-            assert "Alice Chen" in rendered
+            assert "Jane Doe" in rendered
 
     async def test_detail_shows_unassigned_for_no_owner(self) -> None:
         """Detail panel should show 'Unassigned' when owner is None."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test():
-            # First ticket US1237 has no owner
+        async with app.run_test() as pilot:
+            # Navigate to US1237 (index 2) which has no owner
+            await pilot.press("j")
+            await pilot.press("j")
+
             detail = app.query_one(TicketDetail)
             assert detail.ticket is not None
             assert detail.ticket.owner is None
@@ -79,17 +83,14 @@ class TestTicketDetailWidget:
         async with app.run_test():
             description = app.query_one("#detail-description")
             rendered = str(description.render())
-            # First ticket is US1237 about dark mode
-            assert "switch between light and dark themes" in rendered
+            # First ticket is US1235 about password reset
+            assert "reset my password via email" in rendered
 
     async def test_detail_shows_iteration(self) -> None:
         """Detail panel should display iteration name."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
-            # Navigate to US1235 which is in Sprint 6 (index 2)
-            await pilot.press("j")
-            await pilot.press("j")
-
+        async with app.run_test():
+            # First ticket US1235 is in Sprint 6
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
             assert "Sprint 6" in rendered
@@ -100,14 +101,17 @@ class TestTicketDetailWidget:
         async with app.run_test():
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
-            # First ticket US1237 has 8 points
-            assert "Points: 8" in rendered
+            # First ticket US1235 has 5 points
+            assert "Points: 5" in rendered
 
     async def test_detail_shows_unscheduled_for_no_iteration(self) -> None:
         """Detail panel should show 'Unscheduled' when iteration is None."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test():
-            # First ticket US1237 has no iteration (Backlog)
+        async with app.run_test() as pilot:
+            # Navigate to US1237 (index 2) which has no iteration
+            await pilot.press("j")
+            await pilot.press("j")
+
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
             assert "Unscheduled" in rendered
@@ -116,9 +120,8 @@ class TestTicketDetailWidget:
         """Detail panel should show '—' when points is None."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            # Navigate to TA789 which has no points (index 5)
-            for _ in range(5):
-                await pilot.press("j")
+            # Navigate to TC101 (index 1) which has no points
+            await pilot.press("j")
 
             metadata = app.query_one("#detail-metadata")
             rendered = str(metadata.render())
@@ -130,20 +133,20 @@ class TestTicketDetailWidget:
         async with app.run_test():
             header = app.query_one("#detail-header")
             rendered = str(header.render())
-            # First ticket is US1237
-            assert "US1237" in rendered
+            # First ticket is US1235
+            assert "US1235" in rendered
 
     async def test_detail_navigation_to_defect(self) -> None:
         """Detail panel should update correctly when navigating to defect."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            # Navigate to DE457 (index 5 in CREATED sort order)
-            for _ in range(5):
+            # Navigate to DE456 (index 3)
+            for _ in range(3):
                 await pilot.press("j")
 
             detail = app.query_one(TicketDetail)
             assert detail.ticket is not None
-            assert detail.ticket.formatted_id == "DE457"
+            assert detail.ticket.formatted_id == "DE456"
             assert detail.ticket.ticket_type == "Defect"
 
 
@@ -208,20 +211,21 @@ class TestTicketDetailNotesToggle:
         """Notes view should display ticket notes."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            # First ticket is US1237 with notes about design spec
+            # First ticket is US1235 with notes about reset tokens
             await pilot.press("n")
 
             content = app.query_one("#detail-description")
             rendered = str(content.render())
-            # US1237 has notes: "Design spec: Toggle should persist across sessions..."
-            assert "Design spec" in rendered or "Toggle should persist" in rendered
+            # US1235 has notes: "Implementation notes: Reset tokens valid for 1 hour..."
+            assert "Reset tokens" in rendered or "Implementation notes" in rendered
 
     async def test_empty_notes_shows_message(self) -> None:
         """Empty notes should show 'No notes available' message."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            # Navigate to US1236 (index 1) which has empty notes
-            await pilot.press("j")
+            # Navigate to US1236 (index 7) which has empty notes
+            for _ in range(7):
+                await pilot.press("j")
 
             # Toggle to notes
             await pilot.press("n")

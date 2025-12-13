@@ -446,8 +446,8 @@ class TestAttachmentsScreenFromApp:
 
             title = app.screen.query_one("#attachments-title")
             rendered = str(title.render())
-            # First ticket in sorted list (by most recent/highest ID)
-            assert "US1237" in rendered
+            # First ticket in sorted list (by state - Defined tickets first)
+            assert "US1235" in rendered
 
 
 class TestAttachmentsResult:
