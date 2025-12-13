@@ -291,6 +291,9 @@ class AsyncRallyClient:
         if self._project:
             conditions.append(f'(Project.Name = "{self._project}")')
 
+        # Exclude Jira Migration items
+        conditions.append('(Owner.DisplayName != "Jira Migration")')
+
         if self._current_iteration:
             conditions.append(f'(Iteration.Name = "{self._current_iteration}")')
 
@@ -346,7 +349,7 @@ class AsyncRallyClient:
         entity_type: str,
         query: str | None,
     ) -> list[Ticket]:
-        """Fetch tickets of a specific entity type.
+        """Fetch tickets of a specific entity type with pagination.
 
         Args:
             entity_type: Rally entity type name
@@ -363,19 +366,35 @@ class AsyncRallyClient:
         if query:
             params["query"] = query
 
-        try:
-            response = await self._get(path, params)
-            results, total = parse_query_result(response)
+        all_tickets: list[Ticket] = []
+        start = 1  # Rally API uses 1-based indexing
 
-            tickets = [self._to_ticket(item, entity_type) for item in results]
-            _log.debug(f"Fetched {len(tickets)} {entity_type} items")
-            return tickets
+        try:
+            while True:
+                params["start"] = start
+                response = await self._get(path, params)
+                results, total = parse_query_result(response)
+
+                if not results:
+                    break
+
+                tickets = [self._to_ticket(item, entity_type) for item in results]
+                all_tickets.extend(tickets)
+
+                # Check if we have all results
+                if len(all_tickets) >= total:
+                    break
+
+                start += MAX_PAGE_SIZE
+
+            _log.debug(f"Fetched {len(all_tickets)} {entity_type} items (total: {total})")
+            return all_tickets
         except RallyAPIError as e:
             _log.warning(f"Rally API error fetching {entity_type}: {e}")
-            return []
+            return all_tickets  # Return what we got so far
         except Exception as e:
             _log.warning(f"Failed to fetch {entity_type}: {e}")
-            return []
+            return all_tickets  # Return what we got so far
 
     async def get_ticket(self, formatted_id: str) -> Ticket | None:
         """Fetch a single ticket by formatted ID.

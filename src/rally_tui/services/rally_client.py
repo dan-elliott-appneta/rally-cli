@@ -134,6 +134,9 @@ class RallyClient:
         if self._project:
             conditions.append(f'(Project.Name = "{self._project}")')
 
+        # Exclude Jira Migration items
+        conditions.append('(Owner.DisplayName != "Jira Migration")')
+
         if self._current_iteration:
             conditions.append(f'(Iteration.Name = "{self._current_iteration}")')
 
@@ -265,8 +268,33 @@ class RallyClient:
             except (ValueError, TypeError):
                 points = None
 
-        # Get state - use FlowState for stories/tasks, State for defects
-        state: str = getattr(item, "FlowState", None) or getattr(item, "State", None) or "Unknown"
+        # Get state - FlowState/State can be a string, dict, or pyral reference object
+        state: str = "Unknown"
+        flow_state = getattr(item, "FlowState", None)
+        if flow_state:
+            if isinstance(flow_state, str):
+                state = flow_state
+            elif isinstance(flow_state, dict):
+                state = flow_state.get("_refObjectName") or flow_state.get("Name") or "Unknown"
+            elif hasattr(flow_state, "Name"):
+                # pyral reference object
+                state = str(flow_state.Name) if flow_state.Name else "Unknown"
+            else:
+                state = str(flow_state)
+        else:
+            defect_state = getattr(item, "State", None)
+            if defect_state:
+                if isinstance(defect_state, str):
+                    state = defect_state
+                elif isinstance(defect_state, dict):
+                    state = (
+                        defect_state.get("_refObjectName") or defect_state.get("Name") or "Unknown"
+                    )
+                elif hasattr(defect_state, "Name"):
+                    # pyral reference object
+                    state = str(defect_state.Name) if defect_state.Name else "Unknown"
+                else:
+                    state = str(defect_state)
 
         # Get description, handle None
         description = getattr(item, "Description", "") or ""

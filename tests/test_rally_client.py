@@ -421,8 +421,10 @@ class TestRallyClientDefaultQuery:
             assert query is not None
             assert 'Project.Name = "Project"' in query
             assert 'Iteration.Name = "Sprint 5"' in query
-            assert "Owner" not in query
-            # Has AND because project + iteration
+            assert 'Owner.DisplayName != "Jira Migration"' in query
+            # Current user's Owner should not be in query (only Jira Migration exclusion)
+            assert "Owner.DisplayName =" not in query
+            # Has AND because project + exclusion + iteration
             assert "AND" in query
 
     def test_build_default_query_only_user(self) -> None:
@@ -463,7 +465,9 @@ class TestRallyClientDefaultQuery:
 
             query = client._build_default_query()
             assert query is not None
-            assert query == '(Project.Name = "Project")'
+            assert 'Project.Name = "Project"' in query
+            assert 'Owner.DisplayName != "Jira Migration"' in query
+            assert "AND" in query
 
 
 class TestRallyClientAttachments:

@@ -148,11 +148,18 @@ class CacheManager:
         tickets = []
         for ticket_data in data["tickets"]:
             try:
+                # Handle state as dict (Rally reference object) or string
+                raw_state = ticket_data["state"]
+                if isinstance(raw_state, dict):
+                    state = raw_state.get("_refObjectName") or raw_state.get("Name") or "Unknown"
+                else:
+                    state = str(raw_state) if raw_state else "Unknown"
+
                 ticket = Ticket(
                     formatted_id=ticket_data["formatted_id"],
                     name=ticket_data["name"],
                     ticket_type=ticket_data["ticket_type"],
-                    state=ticket_data["state"],
+                    state=state,
                     owner=ticket_data.get("owner"),
                     description=ticket_data.get("description", ""),
                     notes=ticket_data.get("notes", ""),

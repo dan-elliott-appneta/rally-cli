@@ -40,6 +40,13 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 **Iteration 14 Complete** - Local Caching + Async API Integration.
 
+### Recent Bug Fixes
+- **Fixed**: FlowState/State handling for Rally reference objects (prevents "unhashable type: dict" errors)
+- **Fixed**: Async client pagination - now fetches all results instead of first 200
+- **Fixed**: Package data for .tcss files in pipx installations
+- **Fixed**: Cache loader handles dict states from stale cache files
+- **Added**: Exclude "Jira Migration" owned items from all queries
+
 - **NEW**: Vim motions (j/k/g/G) work on all screens (discussions, attachments, iteration picker, state picker, bulk actions)
 - **NEW**: Press `F3` to open keybindings configuration screen
 - **NEW**: Vim and Emacs keybinding profiles
@@ -86,7 +93,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 864 tests passing (including 74 async tests)
+- 871 tests passing (including 74 async tests)
 
 Next: Iteration 15 (Custom fields support).
 
