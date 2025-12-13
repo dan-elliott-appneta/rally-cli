@@ -82,6 +82,10 @@ class AsyncRallyClient:
         self._current_iteration: str | None = None
         self._initialized = False
 
+    def set_current_user(self, user: str | None) -> None:
+        """Set the current user (can be passed from sync client)."""
+        self._current_user = user
+
     async def __aenter__(self) -> AsyncRallyClient:
         """Async context manager entry."""
         await self.initialize()
@@ -229,11 +233,23 @@ class AsyncRallyClient:
             self._project = results[0].get("Name", "")
 
     async def _fetch_current_user(self) -> str | None:
-        """Fetch the current user's display name."""
+        """Fetch the current user's display name.
+
+        If already set (e.g., from sync client), return that value.
+        Otherwise try to fetch from Rally API.
+        """
+        # If already set (from sync client), use that
+        if self._current_user:
+            return self._current_user
+
         try:
+            # Query /user - Rally typically returns the API key owner first
             response = await self._get(
                 "/user",
-                params={"fetch": "DisplayName", "pagesize": 1},
+                params={
+                    "fetch": "DisplayName,UserName",
+                    "pagesize": 1,
+                },
             )
             results, _ = parse_query_result(response)
             if results:

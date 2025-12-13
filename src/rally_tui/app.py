@@ -282,6 +282,9 @@ class RallyTUI(App[None]):
 
         _log.info("Initializing async Rally client...")
         self._async_client = AsyncRallyClient(self._config)
+        # Pass sync client's user to async client (Rally API user lookup is complex)
+        if self._client and self._client.current_user:
+            self._async_client.set_current_user(self._client.current_user)
         await self._async_client.initialize()
 
         # Wrap with caching if enabled
