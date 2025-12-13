@@ -663,12 +663,9 @@ class AsyncRallyClient:
             entity_type = get_entity_type_from_prefix(ticket.formatted_id)
             path = f"/{get_url_path(entity_type)}/{ticket.object_id}"
 
-            # Defects use "State", others use "FlowState"
-            state_field = "State" if entity_type == "Defect" else "FlowState"
-
             response = await self._post(
                 path,
-                data={entity_type: {state_field: state}},
+                data={entity_type: {"FlowState": state}},
             )
             results, _ = parse_query_result(response)
 
