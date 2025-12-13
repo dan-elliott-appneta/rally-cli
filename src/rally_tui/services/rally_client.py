@@ -180,7 +180,7 @@ class RallyClient:
             try:
                 response = self._rally.get(
                     entity_type,
-                    fetch="FormattedID,Name,FlowState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
+                    fetch="FormattedID,Name,FlowState,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
                     query=effective_query,
                     pagesize=200,
                 )
@@ -213,7 +213,7 @@ class RallyClient:
         try:
             response = self._rally.get(
                 entity_type,
-                fetch="FormattedID,Name,FlowState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
+                fetch="FormattedID,Name,FlowState,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
                 query=f'FormattedID = "{formatted_id}"',
             )
 
@@ -268,7 +268,7 @@ class RallyClient:
             except (ValueError, TypeError):
                 points = None
 
-        # Get state - FlowState/State can be a string, dict, or pyral reference object
+        # Get state - FlowState can be a string, dict, or pyral reference object
         state: str = "Unknown"
         flow_state = getattr(item, "FlowState", None)
         if flow_state:
@@ -285,24 +285,6 @@ class RallyClient:
                 state = str(flow_state.Name) if flow_state.Name else "Unknown"
             else:
                 state = str(flow_state)
-        else:
-            defect_state = getattr(item, "State", None)
-            if defect_state:
-                if isinstance(defect_state, str):
-                    state = defect_state
-                elif isinstance(defect_state, dict):
-                    state = (
-                        defect_state.get("_refObjectName") or defect_state.get("Name") or "Unknown"
-                    )
-                elif hasattr(defect_state, "_refObjectName"):
-                    # pyral reference object with _refObjectName
-                    ref_name = defect_state._refObjectName
-                    state = str(ref_name) if ref_name else "Unknown"
-                elif hasattr(defect_state, "Name"):
-                    # pyral reference object with Name
-                    state = str(defect_state.Name) if defect_state.Name else "Unknown"
-                else:
-                    state = str(defect_state)
 
         # Get description, handle None
         description = getattr(item, "Description", "") or ""
@@ -588,7 +570,7 @@ class RallyClient:
     def update_state(self, ticket: Ticket, state: str) -> Ticket | None:
         """Update a ticket's workflow state.
 
-        Updates FlowState for User Stories/Tasks or State for Defects.
+        Updates FlowState for all entity types.
 
         Args:
             ticket: The ticket to update.
@@ -606,12 +588,9 @@ class RallyClient:
         try:
             entity_type = self._get_entity_type(ticket.formatted_id)
 
-            # Defects use "State", others use "FlowState"
-            state_field = "State" if entity_type == "Defect" else "FlowState"
-
             update_data = {
                 "ObjectID": ticket.object_id,
-                state_field: state,
+                "FlowState": state,
             }
 
             self._rally.update(entity_type, update_data)

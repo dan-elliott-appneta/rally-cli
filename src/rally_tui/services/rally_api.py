@@ -59,7 +59,7 @@ DEFAULT_FETCH_FIELDS = {
     "Defect": [
         "FormattedID",
         "Name",
-        "State",
+        "FlowState",
         "Owner",
         "Description",
         "Notes",

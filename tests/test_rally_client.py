@@ -99,7 +99,7 @@ class TestRallyClientTicketMapping:
         entity = MockRallyEntity(
             FormattedID="DE456",
             Name="Bug name",
-            State="Open",
+            FlowState="Accepted",
             Owner=None,
             Description="",
             Iteration=None,
@@ -110,7 +110,7 @@ class TestRallyClientTicketMapping:
 
         assert ticket.formatted_id == "DE456"
         assert ticket.ticket_type == "Defect"
-        assert ticket.state == "Open"
+        assert ticket.state == "Accepted"
         assert ticket.owner is None
         assert ticket.points is None
 
@@ -216,12 +216,11 @@ class TestRallyClientTicketMapping:
 
         assert ticket.state == "Accepted"
 
-    def test_map_falls_back_to_state(self, client: RallyClient) -> None:
-        """Falls back to State when FlowState is not set."""
+    def test_map_without_flow_state(self, client: RallyClient) -> None:
+        """State is Unknown when FlowState is not set."""
         entity = MockRallyEntity(
             FormattedID="DE100",
             Name="Defect",
-            State="Fixed",
             Owner=None,
             Description="",
             Iteration=None,
@@ -233,7 +232,7 @@ class TestRallyClientTicketMapping:
 
         ticket = client._to_ticket(entity, "Defect")
 
-        assert ticket.state == "Fixed"
+        assert ticket.state == "Unknown"
 
 
 class TestRallyClientConnection:
