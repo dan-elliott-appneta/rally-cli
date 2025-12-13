@@ -1,7 +1,5 @@
 """Tests for the StatusBar widget."""
 
-import pytest
-
 from rally_tui.app import RallyTUI
 from rally_tui.widgets import StatusBar
 
@@ -130,7 +128,7 @@ class TestStatusBarWidget:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             assert status_bar is not None
             assert status_bar.workspace == "Not Connected"
@@ -148,7 +146,7 @@ class TestStatusBarWidget:
                 )
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             assert "Test Project" in status_bar.display_content
 
@@ -161,7 +159,7 @@ class TestStatusBarWidget:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             assert "Offline" in status_bar.display_content
 
@@ -174,7 +172,7 @@ class TestStatusBarWidget:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_workspace("Updated Workspace")
             assert status_bar.workspace == "Updated Workspace"
@@ -192,7 +190,7 @@ class TestStatusBarWidget:
                 )
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             content = status_bar.display_content
             # Should contain project and offline with separators
@@ -212,7 +210,7 @@ class TestStatusBarWidget:
                 )
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             content = status_bar.display_content
             assert "Project:" not in content
@@ -226,7 +224,7 @@ class TestStatusBarWidget:
                 yield StatusBar(connected=True, id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             assert "Connected" in status_bar.display_content
             assert "Offline" not in status_bar.display_content
@@ -240,7 +238,7 @@ class TestStatusBarWidget:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             assert "Offline" in status_bar.display_content
             status_bar.set_connected(True)
@@ -255,7 +253,7 @@ class TestStatusBarWidget:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_filter_info(3, 10)
             assert "Filtered: 3/10" in status_bar.display_content
@@ -269,7 +267,7 @@ class TestStatusBarWidget:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_filter_info(3, 10)
             assert "Filtered: 3/10" in status_bar.display_content
@@ -285,7 +283,7 @@ class TestStatusBarWidget:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_iteration_filter("Sprint 26")
             assert "Sprint: Sprint 26" in status_bar.display_content
@@ -299,7 +297,7 @@ class TestStatusBarWidget:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_iteration_filter("Sprint 26")
             assert "Sprint:" in status_bar.display_content
@@ -315,7 +313,7 @@ class TestStatusBarWidget:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_user_filter(True)
             assert "My Items" in status_bar.display_content
@@ -329,7 +327,7 @@ class TestStatusBarWidget:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_user_filter(True)
             assert "My Items" in status_bar.display_content
@@ -345,7 +343,7 @@ class TestStatusBarWidget:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_iteration_filter("Sprint 26")
             status_bar.set_user_filter(True)
@@ -360,14 +358,14 @@ class TestStatusBarInApp:
     async def test_status_bar_exists_in_app(self) -> None:
         """StatusBar should be present in the app."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             assert status_bar is not None
 
     async def test_status_bar_shows_project_in_app(self) -> None:
         """StatusBar should show project name in app."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             assert "My Project" in status_bar.display_content
 
@@ -439,7 +437,7 @@ class TestStatusBarCacheStatus:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_cache_status(CacheStatusDisplay.LIVE)
             assert "Live" in status_bar.display_content
@@ -455,7 +453,7 @@ class TestStatusBarCacheStatus:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_cache_status(CacheStatusDisplay.CACHED, age_minutes=5)
             assert "Cached" in status_bar.display_content
@@ -472,7 +470,7 @@ class TestStatusBarCacheStatus:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_cache_status(CacheStatusDisplay.REFRESHING)
             assert "Refreshing" in status_bar.display_content
@@ -488,7 +486,7 @@ class TestStatusBarCacheStatus:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_cache_status(CacheStatusDisplay.OFFLINE)
             # Note: "Offline" appears twice - once for cache status, once for connection
@@ -502,20 +500,20 @@ class TestStatusBarLoading:
     def test_default_loading_is_false(self) -> None:
         """Default loading should be False."""
         bar = StatusBar()
-        assert bar.loading is False
+        assert bar.is_loading is False
 
     def test_set_loading_true(self) -> None:
         """set_loading(True) should set loading to True."""
         bar = StatusBar()
         bar.set_loading(True)
-        assert bar.loading is True
+        assert bar.is_loading is True
 
     def test_set_loading_false(self) -> None:
         """set_loading(False) should set loading to False."""
         bar = StatusBar()
         bar.set_loading(True)
         bar.set_loading(False)
-        assert bar.loading is False
+        assert bar.is_loading is False
 
     async def test_loading_indicator_display(self) -> None:
         """Loading indicator should show 'Loading...' when active."""
@@ -526,7 +524,7 @@ class TestStatusBarLoading:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_loading(True)
             assert "Loading..." in status_bar.display_content
@@ -540,7 +538,7 @@ class TestStatusBarLoading:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             assert "Loading..." not in status_bar.display_content
 
@@ -553,7 +551,7 @@ class TestStatusBarLoading:
                 yield StatusBar(id="status-bar")
 
         app = TestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             status_bar = app.query_one(StatusBar)
             status_bar.set_loading(True)
             assert "Loading..." in status_bar.display_content

@@ -8,7 +8,6 @@ from textual.widgets import Static
 
 from rally_tui import __version__
 
-
 RALLY_TUI_ART = r"""
 
  ██████╗  █████╗ ██╗     ██╗  ██╗   ██╗    ████████╗██╗   ██╗██╗

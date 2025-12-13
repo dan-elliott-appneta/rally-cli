@@ -9,7 +9,7 @@ from textual.binding import Binding
 from textual.containers import Vertical, VerticalScroll
 from textual.message import Message
 from textual.screen import ModalScreen
-from textual.widgets import Button, Footer, Input, Label, Static
+from textual.widgets import Footer, Input, Label, Static
 
 from rally_tui.models import Attachment, Ticket
 from rally_tui.services.protocol import RallyClientProtocol
@@ -133,10 +133,7 @@ class EmbeddedImageItem(Static):
 
     def compose(self) -> ComposeResult:
         with Vertical():
-            yield Label(
-                f"[{self._number}] {self._image.name:<30} "
-                f"{'[embedded]':>10}    image"
-            )
+            yield Label(f"[{self._number}] {self._image.name:<30} {'[embedded]':>10}    image")
 
 
 class DownloadRequest(NamedTuple):
@@ -353,17 +350,13 @@ class AttachmentsScreen(ModalScreen[AttachmentsResult | None]):
             if html_content:
                 images = extract_images_from_html(html_content)
                 for img in images:
-                    self._embedded_images.append(
-                        EmbeddedImage(url=img["src"], alt=img["alt"])
-                    )
+                    self._embedded_images.append(EmbeddedImage(url=img["src"], alt=img["alt"]))
 
         # Combine all items for numbered access
         self._all_items = list(self._attachments) + list(self._embedded_images)
 
         if not self._all_items:
-            container.mount(
-                Static("No attachments or embedded images.", id="no-attachments")
-            )
+            container.mount(Static("No attachments or embedded images.", id="no-attachments"))
         else:
             number = 1
             # Show regular attachments first
@@ -371,8 +364,8 @@ class AttachmentsScreen(ModalScreen[AttachmentsResult | None]):
                 container.mount(AttachmentItem(att, number))
                 number += 1
             # Then show embedded images
-            for img in self._embedded_images:
-                container.mount(EmbeddedImageItem(img, number))
+            for embedded_img in self._embedded_images:
+                container.mount(EmbeddedImageItem(embedded_img, number))
                 number += 1
 
     def _download_attachment(self, number: int) -> None:

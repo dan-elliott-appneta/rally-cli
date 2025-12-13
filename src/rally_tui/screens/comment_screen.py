@@ -1,6 +1,6 @@
 """Comment input screen for adding discussions."""
 
-from typing import Callable
+from collections.abc import Callable
 
 from textual.app import ComposeResult
 from textual.binding import Binding

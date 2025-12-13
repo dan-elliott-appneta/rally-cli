@@ -1,12 +1,10 @@
 """Tests for the CommentScreen."""
 
-import pytest
+from textual.widgets import TextArea
 
 from rally_tui.app import RallyTUI
 from rally_tui.models import Ticket
 from rally_tui.screens import CommentScreen
-from rally_tui.services.mock_client import MockRallyClient
-from textual.widgets import TextArea
 
 
 class TestCommentScreenBasic:
@@ -22,7 +20,7 @@ class TestCommentScreenBasic:
         )
 
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             await app.push_screen(CommentScreen(ticket))
 
             title = app.screen.query_one("#comment-title")
@@ -39,7 +37,7 @@ class TestCommentScreenBasic:
         )
 
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             await app.push_screen(CommentScreen(ticket))
 
             hint = app.screen.query_one("#comment-hint")
@@ -57,7 +55,7 @@ class TestCommentScreenBasic:
         )
 
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             await app.push_screen(CommentScreen(ticket))
 
             text_area = app.screen.query_one("#comment-input", TextArea)

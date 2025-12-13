@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import Horizontal, VerticalScroll
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Label, Select, Static
 
@@ -15,7 +15,6 @@ from rally_tui.utils.keybindings import (
     format_key_for_display,
     get_action_categories,
 )
-
 
 # Profile options for selector
 PROFILE_OPTIONS: list[tuple[str, str]] = [
@@ -287,6 +286,7 @@ class KeybindingsScreen(Screen[bool]):
             if profile in ("vim", "emacs"):
                 # Load profile defaults
                 from rally_tui.utils.keybindings import get_profile_keybindings
+
                 self._temp_bindings = get_profile_keybindings(profile)
                 self._refresh_all_rows()
                 self._changed = True
@@ -470,6 +470,7 @@ class KeybindingsScreen(Screen[bool]):
     def _reset_to_vim(self) -> None:
         """Reset keybindings to vim defaults."""
         from rally_tui.utils.keybindings import VIM_KEYBINDINGS
+
         self._temp_bindings = dict(VIM_KEYBINDINGS)
         self._changed = True
 

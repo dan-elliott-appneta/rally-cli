@@ -43,21 +43,11 @@ ACTION_REGISTRY: dict[str, KeyAction] = {
         "selection.all", "Select All", "select_all", "Selection", show_in_footer=False
     ),
     # Work item actions
-    "action.workitem": KeyAction(
-        "action.workitem", "Workitem", "quick_ticket", "Actions"
-    ),
-    "action.state": KeyAction(
-        "action.state", "State", "set_state", "Actions"
-    ),
-    "action.points": KeyAction(
-        "action.points", "Points", "set_points", "Actions"
-    ),
-    "action.notes": KeyAction(
-        "action.notes", "Notes", "toggle_notes", "Actions"
-    ),
-    "action.discuss": KeyAction(
-        "action.discuss", "Discuss", "open_discussions", "Actions"
-    ),
+    "action.workitem": KeyAction("action.workitem", "Workitem", "quick_ticket", "Actions"),
+    "action.state": KeyAction("action.state", "State", "set_state", "Actions"),
+    "action.points": KeyAction("action.points", "Points", "set_points", "Actions"),
+    "action.notes": KeyAction("action.notes", "Notes", "toggle_notes", "Actions"),
+    "action.discuss": KeyAction("action.discuss", "Discuss", "open_discussions", "Actions"),
     "action.attachments": KeyAction(
         "action.attachments", "Attachments", "open_attachments", "Actions"
     ),
@@ -65,46 +55,22 @@ ACTION_REGISTRY: dict[str, KeyAction] = {
         "action.copy_url", "Copy URL", "copy_ticket_url", "Actions", show_in_footer=False
     ),
     # Filter actions
-    "action.search": KeyAction(
-        "action.search", "Search", "start_search", "Filters"
-    ),
-    "action.sprint": KeyAction(
-        "action.sprint", "Sprint", "iteration_filter", "Filters"
-    ),
-    "action.my_items": KeyAction(
-        "action.my_items", "My Items", "toggle_user_filter", "Filters"
-    ),
-    "action.sort": KeyAction(
-        "action.sort", "Sort", "cycle_sort", "Filters"
-    ),
-    "action.team": KeyAction(
-        "action.team", "Team", "team_breakdown", "Filters"
-    ),
+    "action.search": KeyAction("action.search", "Search", "start_search", "Filters"),
+    "action.sprint": KeyAction("action.sprint", "Sprint", "iteration_filter", "Filters"),
+    "action.my_items": KeyAction("action.my_items", "My Items", "toggle_user_filter", "Filters"),
+    "action.sort": KeyAction("action.sort", "Sort", "cycle_sort", "Filters"),
+    "action.team": KeyAction("action.team", "Team", "team_breakdown", "Filters"),
     # View actions
-    "action.wide_view": KeyAction(
-        "action.wide_view", "Wide", "toggle_wide_view", "View"
-    ),
+    "action.wide_view": KeyAction("action.wide_view", "Wide", "toggle_wide_view", "View"),
     # Bulk actions
-    "action.bulk": KeyAction(
-        "action.bulk", "Bulk", "bulk_actions", "Bulk"
-    ),
+    "action.bulk": KeyAction("action.bulk", "Bulk", "bulk_actions", "Bulk"),
     # Cache actions
-    "action.refresh": KeyAction(
-        "action.refresh", "Refresh", "refresh_cache", "Cache"
-    ),
+    "action.refresh": KeyAction("action.refresh", "Refresh", "refresh_cache", "Cache"),
     # App actions
-    "action.settings": KeyAction(
-        "action.settings", "Settings", "open_settings", "App"
-    ),
-    "action.keybindings": KeyAction(
-        "action.keybindings", "Keys", "open_keybindings", "App"
-    ),
-    "action.theme": KeyAction(
-        "action.theme", "Theme", "toggle_theme", "App", show_in_footer=False
-    ),
-    "action.quit": KeyAction(
-        "action.quit", "Quit", "quit", "App"
-    ),
+    "action.settings": KeyAction("action.settings", "Settings", "open_settings", "App"),
+    "action.keybindings": KeyAction("action.keybindings", "Keys", "open_keybindings", "App"),
+    "action.theme": KeyAction("action.theme", "Theme", "toggle_theme", "App", show_in_footer=False),
+    "action.quit": KeyAction("action.quit", "Quit", "quit", "App"),
 }
 
 # Vim-style keybindings (default)
@@ -304,11 +270,42 @@ def validate_key(key: str) -> bool:
 
     valid_modifiers = {"ctrl", "alt", "meta", "shift"}
     valid_special_keys = {
-        "space", "tab", "enter", "escape", "backspace", "delete",
-        "up", "down", "left", "right", "home", "end", "pageup", "pagedown",
-        "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12",
-        "slash", "backslash", "comma", "period", "semicolon", "quote",
-        "bracketleft", "bracketright", "minus", "equal",
+        "space",
+        "tab",
+        "enter",
+        "escape",
+        "backspace",
+        "delete",
+        "up",
+        "down",
+        "left",
+        "right",
+        "home",
+        "end",
+        "pageup",
+        "pagedown",
+        "f1",
+        "f2",
+        "f3",
+        "f4",
+        "f5",
+        "f6",
+        "f7",
+        "f8",
+        "f9",
+        "f10",
+        "f11",
+        "f12",
+        "slash",
+        "backslash",
+        "comma",
+        "period",
+        "semicolon",
+        "quote",
+        "bracketleft",
+        "bracketright",
+        "minus",
+        "equal",
     }
 
     modifiers = []

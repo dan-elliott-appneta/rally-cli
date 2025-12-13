@@ -1,7 +1,5 @@
 """Tests for the AttachmentsScreen."""
 
-import pytest
-
 from rally_tui.app import RallyTUI
 from rally_tui.models import Attachment, Ticket
 from rally_tui.screens import AttachmentsResult, AttachmentsScreen
@@ -24,7 +22,7 @@ class TestAttachmentsScreenBasic:
         client = MockRallyClient()
 
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             await app.push_screen(AttachmentsScreen(ticket, client))
 
             title = app.screen.query_one("#attachments-title")
@@ -43,7 +41,7 @@ class TestAttachmentsScreenBasic:
         client = MockRallyClient(attachments={})
 
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             await app.push_screen(AttachmentsScreen(ticket, client))
 
             no_attachments = app.screen.query_one("#no-attachments")
@@ -78,7 +76,7 @@ class TestAttachmentsScreenBasic:
         client = MockRallyClient(attachments=attachments)
 
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             await app.push_screen(AttachmentsScreen(ticket, client))
 
             items = app.screen.query(AttachmentItem)
@@ -448,8 +446,8 @@ class TestAttachmentsScreenFromApp:
 
             title = app.screen.query_one("#attachments-title")
             rendered = str(title.render())
-            # First ticket in sorted list (by state)
-            assert "US1235" in rendered
+            # First ticket in sorted list (by most recent/highest ID)
+            assert "US1237" in rendered
 
 
 class TestAttachmentsResult:

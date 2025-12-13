@@ -9,7 +9,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Keyboard-driven interface with vim-style navigation
 - Color-coded ticket types (User Stories, Defects, Tasks, Test Cases)
 - **State indicators**: Visual workflow state with symbols (`.` not started, `+` in progress, `-` done, `✓` accepted)
-- **Sorted by workflow**: Tickets sorted by state progression (Ideas at top, Accepted at bottom)
+- **Sorting options**: Sort by most recent (default), state flow, owner, or parent (press `o` to cycle)
 - **Splash screen**: ASCII art "RALLY TUI" greeting on startup
 - **Theme support**: Full Textual theme support (catppuccin, nord, dracula, etc.) via command palette, persisted between sessions
 - **Copy URL**: Press `y` to copy Rally ticket URL to clipboard
@@ -32,10 +32,20 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Local caching**: Tickets cached to `~/.cache/rally-tui/` for performance and offline access
 - **Cache refresh**: Press `r` to manually refresh the ticket cache
 - **Loading indicator**: Visual feedback in status bar when fetching tickets from API
+- **Async API client**: High-performance httpx-based async Rally client with concurrent operations
+- **Project scoping**: All queries are automatically scoped to your project to prevent cross-project data leakage
+- **CI pipeline**: GitHub Actions workflow with tests, linting, type checking, and coverage reports
 
 ## Status
 
-**Iteration 14 Complete** - Local Caching.
+**Iteration 14 Complete** - Local Caching + Async API Integration.
+
+### Recent Bug Fixes
+- **Fixed**: FlowState/State handling for Rally reference objects (prevents "unhashable type: dict" errors)
+- **Fixed**: Async client pagination - now fetches all results instead of first 200
+- **Fixed**: Package data for .tcss files in pipx installations
+- **Fixed**: Cache loader handles dict states from stale cache files
+- **Added**: Exclude "Jira Migration" owned items from all queries
 
 - **NEW**: Vim motions (j/k/g/G) work on all screens (discussions, attachments, iteration picker, state picker, bulk actions)
 - **NEW**: Press `F3` to open keybindings configuration screen
@@ -60,7 +70,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Filter to Backlog (unscheduled items) from iteration picker
 - Status bar shows active filters (Sprint: X, My Items)
 - State indicators show workflow progress with colored symbols
-- Tickets sorted by workflow state (earlier states at top)
+- Sort by most recent (default), state flow, owner, or parent
 - Theme preference persisted to user config file
 - Copy ticket URL to clipboard with `y` key
 - Set story points with `p` key
@@ -83,7 +93,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Default filter to current iteration and current user when connected
 - Toggle between description and notes with `n` key
 - File-based logging with configurable log level
-- 782 tests passing
+- 871 tests passing (including 74 async tests)
 
 Next: Iteration 15 (Custom fields support).
 
@@ -115,7 +125,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 0.7.8
+# Output: rally-tui 0.7.9
 ```
 
 ### Running with Rally API
@@ -171,7 +181,7 @@ rally-tui
 | a | list/detail | View/download/upload attachments |
 | i | list/detail | Filter by iteration/sprint |
 | u | list/detail | Toggle My Items filter |
-| o | list | Cycle sort mode (State/Recent/Owner) |
+| o | list | Cycle sort mode (Recent/State/Owner/Parent) |
 | b | list | Team breakdown (requires sprint filter) |
 | v | list | Toggle wide view mode |
 | r | list/detail | Refresh ticket cache |
@@ -264,10 +274,14 @@ rally-cli/
 │   │   └── keybindings.py   # Keybinding profiles and utilities
 │   └── services/            # Rally API client layer
 │       ├── protocol.py      # RallyClientProtocol interface
-│       ├── rally_client.py  # Real Rally API client
+│       ├── rally_client.py  # Real Rally API client (sync, pyral)
+│       ├── async_rally_client.py  # Async Rally API client (httpx)
+│       ├── rally_api.py     # Rally WSAPI constants and helpers
 │       ├── mock_client.py   # MockRallyClient for testing
+│       ├── async_mock_client.py   # AsyncMockRallyClient for testing
 │       ├── cache_manager.py # Local file caching for tickets
-│       └── caching_client.py # CachingRallyClient wrapper
+│       ├── caching_client.py      # CachingRallyClient wrapper (sync)
+│       └── async_caching_client.py # AsyncCachingRallyClient wrapper
 ├── tests/
 │   ├── conftest.py               # Pytest fixtures
 │   ├── test_ticket_model.py      # Model unit tests
@@ -301,6 +315,9 @@ rally-cli/
 │   ├── test_keybindings_screen.py # KeybindingsScreen tests
 │   ├── test_cache_manager.py     # CacheManager tests
 │   ├── test_caching_client.py    # CachingRallyClient tests
+│   ├── test_rally_api.py         # Rally API helpers tests
+│   ├── test_async_mock_client.py # AsyncMockRallyClient tests
+│   ├── test_app_async_integration.py # App async integration tests
 │   └── test_snapshots.py         # Visual regression tests
 └── docs/
     ├── API.md               # Rally WSAPI reference
@@ -320,6 +337,16 @@ pytest --cov=rally_tui
 # Update snapshot baselines
 pytest --snapshot-update
 ```
+
+### Continuous Integration
+
+The project uses GitHub Actions for CI. On every PR:
+- **Tests**: Run across Python 3.11, 3.12, 3.13
+- **Lint**: Ruff check and format verification
+- **Type Check**: Mypy static type analysis
+- **Coverage**: Reports uploaded to Codecov
+
+All checks must pass before merging.
 
 See [TESTING.md](TESTING.md) for detailed testing documentation.
 
@@ -344,7 +371,9 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 ## Technology Stack
 
 - **[Textual](https://textual.textualize.io/)** - Modern Python TUI framework
-- **[pyral](https://pyral.readthedocs.io/)** - Rally REST API toolkit
+- **[pyral](https://pyral.readthedocs.io/)** - Rally REST API toolkit (sync)
+- **[httpx](https://www.python-httpx.org/)** - Async HTTP client for Rally API
+- **[tenacity](https://tenacity.readthedocs.io/)** - Retry logic for API calls
 - **[pytest-textual-snapshot](https://github.com/Textualize/pytest-textual-snapshot)** - Visual regression testing
 
 ## Versioning

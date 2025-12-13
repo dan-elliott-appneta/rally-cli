@@ -1,7 +1,5 @@
 """Tests for QuickTicketScreen."""
 
-import pytest
-
 from rally_tui.app import RallyTUI
 from rally_tui.screens import QuickTicketData, QuickTicketScreen
 from rally_tui.services import MockRallyClient

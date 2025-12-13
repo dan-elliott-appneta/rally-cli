@@ -2,14 +2,13 @@
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Static
 
 from rally_tui.models import Ticket
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils.keybindings import VIM_KEYBINDINGS
-
 
 # Common workflow states for User Stories and Defects
 # Note: Rally uses hyphenated "In-Progress" (not "In Progress")

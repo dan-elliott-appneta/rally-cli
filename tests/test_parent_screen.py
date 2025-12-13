@@ -44,8 +44,7 @@ class TestParentOption:
     def test_truncated_name_long(self) -> None:
         """Long names should be truncated with ellipsis."""
         option = ParentOption(
-            "F100",
-            "This is a very long feature name that exceeds the maximum length"
+            "F100", "This is a very long feature name that exceeds the maximum length"
         )
         truncated = option.truncated_name
         assert len(truncated) <= 35
@@ -63,9 +62,7 @@ class TestParentOption:
 class TestParentScreenCompose:
     """Tests for ParentScreen composition."""
 
-    async def test_screen_renders(
-        self, ticket: Ticket, parent_options: list[ParentOption]
-    ) -> None:
+    async def test_screen_renders(self, ticket: Ticket, parent_options: list[ParentOption]) -> None:
         """Screen should render without error."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
@@ -180,9 +177,7 @@ class TestParentScreenSelection:
 
         assert result == "F59628"
 
-    async def test_escape_cancels(
-        self, ticket: Ticket, parent_options: list[ParentOption]
-    ) -> None:
+    async def test_escape_cancels(self, ticket: Ticket, parent_options: list[ParentOption]) -> None:
         """Pressing Escape should cancel and return None."""
         app = RallyTUI(show_splash=False)
         result = "not_set"  # Use sentinel value
@@ -266,9 +261,7 @@ class TestParentScreenCustomInput:
 class TestParentScreenProperties:
     """Tests for ParentScreen properties."""
 
-    def test_ticket_property(
-        self, ticket: Ticket, parent_options: list[ParentOption]
-    ) -> None:
+    def test_ticket_property(self, ticket: Ticket, parent_options: list[ParentOption]) -> None:
         """Screen should expose ticket property."""
         screen = ParentScreen(ticket, parent_options)
         assert screen.ticket == ticket

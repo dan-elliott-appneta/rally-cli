@@ -1,11 +1,8 @@
 """Tests for the CacheManager."""
 
 import json
-import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-
-import pytest
 
 from rally_tui.models import Ticket
 from rally_tui.services.cache_manager import (
@@ -33,7 +30,7 @@ class TestCacheMetadata:
 
     def test_tickets_updated_dt_valid(self) -> None:
         """tickets_updated_dt should parse valid ISO timestamp."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         meta = CacheMetadata(tickets_updated=now.isoformat())
         assert meta.tickets_updated_dt is not None
         # Allow small time difference due to parsing
@@ -121,7 +118,7 @@ class TestCacheManagerSaveAndLoad:
     def test_save_updates_metadata(self, tmp_path: Path) -> None:
         """Saving should update metadata."""
         manager = CacheManager(cache_dir=tmp_path)
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
 
         manager.save_tickets([], workspace="TestWS", project="TestProj")
 
@@ -188,7 +185,7 @@ class TestCacheManagerValidity:
         """Stale cache should be invalid."""
         manager = CacheManager(cache_dir=tmp_path)
         # Create metadata with old timestamp
-        old_time = datetime.now(timezone.utc) - timedelta(minutes=20)
+        old_time = datetime.now(UTC) - timedelta(minutes=20)
         metadata = {
             "version": CACHE_VERSION,
             "workspace": "Test",
@@ -216,7 +213,7 @@ class TestCacheManagerValidity:
     def test_cache_age_old(self, tmp_path: Path) -> None:
         """Old cache should report correct age."""
         manager = CacheManager(cache_dir=tmp_path)
-        old_time = datetime.now(timezone.utc) - timedelta(minutes=10)
+        old_time = datetime.now(UTC) - timedelta(minutes=10)
         metadata = {
             "version": CACHE_VERSION,
             "workspace": "Test",
@@ -241,14 +238,16 @@ class TestCacheManagerClear:
     def test_clear_cache(self, tmp_path: Path) -> None:
         """Clearing cache should remove all files."""
         manager = CacheManager(cache_dir=tmp_path)
-        manager.save_tickets([
-            Ticket(
-                formatted_id="US1",
-                name="Test",
-                ticket_type="UserStory",
-                state="Defined",
-            )
-        ])
+        manager.save_tickets(
+            [
+                Ticket(
+                    formatted_id="US1",
+                    name="Test",
+                    ticket_type="UserStory",
+                    state="Defined",
+                )
+            ]
+        )
 
         # Verify files exist
         assert (tmp_path / "meta.json").exists()
@@ -316,14 +315,16 @@ class TestCacheManagerAtomicWrite:
     def test_atomic_write_creates_file(self, tmp_path: Path) -> None:
         """Atomic write should create the file."""
         manager = CacheManager(cache_dir=tmp_path)
-        manager.save_tickets([
-            Ticket(
-                formatted_id="US1",
-                name="Test",
-                ticket_type="UserStory",
-                state="Defined",
-            )
-        ])
+        manager.save_tickets(
+            [
+                Ticket(
+                    formatted_id="US1",
+                    name="Test",
+                    ticket_type="UserStory",
+                    state="Defined",
+                )
+            ]
+        )
 
         assert (tmp_path / "tickets.json").exists()
         content = json.loads((tmp_path / "tickets.json").read_text())

@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 
 from textual.app import ComposeResult
 from textual.binding import Binding
+from textual.containers import Horizontal
 from textual.message import Message
 from textual.widgets import Label, ListItem, ListView
-from textual.containers import Horizontal
 
 from rally_tui.models import Ticket
 
@@ -18,11 +18,15 @@ if TYPE_CHECKING:
 
 
 class SortMode(Enum):
-    """Available sort modes for the ticket list."""
+    """Available sort modes for the ticket list.
 
-    STATE = "state"  # By state flow (Defined → In-Progress → Completed)
-    CREATED = "created"  # By most recently created (newest first)
+    Order determines cycling sequence (o key): CREATED → STATE → OWNER → PARENT → CREATED
+    """
+
+    CREATED = "created"  # Most recently created (newest first) - DEFAULT
+    STATE = "state"  # By workflow state (Idea → Accepted)
     OWNER = "owner"  # By owner name (unassigned first, then alphabetical)
+    PARENT = "parent"  # By parent ID (orphans first, then alphabetical)
 
 
 class ViewMode(Enum):
@@ -142,6 +146,7 @@ def sort_tickets_by_created(tickets: list[Ticket]) -> list[Ticket]:
     Uses FormattedID as a proxy for creation order since higher IDs
     are assigned to newer tickets.
     """
+
     def get_id_number(ticket: Ticket) -> int:
         """Extract numeric part of FormattedID for sorting."""
         # Extract digits from FormattedID (e.g., "US1234" -> 1234)
@@ -153,6 +158,7 @@ def sort_tickets_by_created(tickets: list[Ticket]) -> list[Ticket]:
 
 def sort_tickets_by_owner(tickets: list[Ticket]) -> list[Ticket]:
     """Sort tickets by owner name (unassigned first, then alphabetical)."""
+
     def get_owner_key(ticket: Ticket) -> tuple[int, str]:
         """Return sort key: (0, "") for None, (1, name) for assigned."""
         if ticket.owner is None:
@@ -160,6 +166,18 @@ def sort_tickets_by_owner(tickets: list[Ticket]) -> list[Ticket]:
         return (1, ticket.owner.lower())
 
     return sorted(tickets, key=get_owner_key)
+
+
+def sort_tickets_by_parent(tickets: list[Ticket]) -> list[Ticket]:
+    """Sort tickets by parent ID (orphans first, then alphabetical by parent)."""
+
+    def get_parent_key(ticket: Ticket) -> tuple[int, str]:
+        """Return sort key: (0, "") for None (orphans), (1, parent_id) for assigned."""
+        if ticket.parent_id is None:
+            return (0, "")
+        return (1, ticket.parent_id.lower())
+
+    return sorted(tickets, key=get_parent_key)
 
 
 def sort_tickets(tickets: list[Ticket], mode: SortMode) -> list[Ticket]:
@@ -172,14 +190,16 @@ def sort_tickets(tickets: list[Ticket], mode: SortMode) -> list[Ticket]:
     Returns:
         Sorted list of tickets.
     """
-    if mode == SortMode.STATE:
-        return sort_tickets_by_state(tickets)
-    elif mode == SortMode.CREATED:
+    if mode == SortMode.CREATED:
         return sort_tickets_by_created(tickets)
+    elif mode == SortMode.STATE:
+        return sort_tickets_by_state(tickets)
     elif mode == SortMode.OWNER:
         return sort_tickets_by_owner(tickets)
+    elif mode == SortMode.PARENT:
+        return sort_tickets_by_parent(tickets)
     else:
-        return sort_tickets_by_state(tickets)
+        return sort_tickets_by_created(tickets)  # Default to most recent
 
 
 class TicketListItem(ListItem):
@@ -360,7 +380,7 @@ class TicketList(ListView):
         *,
         id: str | None = None,
         classes: str | None = None,
-        sort_mode: SortMode = SortMode.STATE,
+        sort_mode: SortMode = SortMode.CREATED,
         view_mode: ViewMode = ViewMode.NORMAL,
         user_settings: UserSettings | None = None,
     ) -> None:
@@ -471,7 +491,9 @@ class TicketList(ListView):
             # Select all
             self._selected_ids = {t.formatted_id for t in self._tickets}
             self._update_all_selection_display()
-            self.post_message(self.SelectionChanged(len(self._selected_ids), set(self._selected_ids)))
+            self.post_message(
+                self.SelectionChanged(len(self._selected_ids), set(self._selected_ids))
+            )
 
     def clear_selection(self) -> None:
         """Clear all selections."""
@@ -589,9 +611,7 @@ class TicketList(ListView):
         # Re-apply any active filter with new sort order
         if self._filter_query:
             query_lower = self._filter_query.lower()
-            self._tickets = [
-                t for t in self._all_tickets if self._matches_query(t, query_lower)
-            ]
+            self._tickets = [t for t in self._all_tickets if self._matches_query(t, query_lower)]
         else:
             self._tickets = list(self._all_tickets)
 
@@ -601,9 +621,11 @@ class TicketList(ListView):
             is_selected = ticket.formatted_id in self._selected_ids
             self.append(self._create_list_item(ticket, selected=is_selected))
 
-        # Select first item if list is not empty
+        # Select first item if list is not empty and notify listeners
         if self._tickets:
             self.index = 0
+            # Post message to update detail panel since index change may not trigger it
+            self.post_message(self.TicketHighlighted(self._tickets[0]))
 
     def filter_tickets(self, query: str) -> None:
         """Filter the ticket list by query.
@@ -618,9 +640,7 @@ class TicketList(ListView):
             filtered = list(self._all_tickets)
         else:
             query_lower = query.lower()
-            filtered = [
-                t for t in self._all_tickets if self._matches_query(t, query_lower)
-            ]
+            filtered = [t for t in self._all_tickets if self._matches_query(t, query_lower)]
 
         self._tickets = filtered
         # Use remove_children/mount for synchronous update to avoid race conditions
@@ -698,8 +718,8 @@ class TicketList(ListView):
                 self._all_tickets[i] = updates[t.formatted_id]
 
         if resort:
-            # Re-sort all tickets by state
-            self._all_tickets = sort_tickets_by_state(self._all_tickets)
+            # Re-sort all tickets by current sort mode
+            self._all_tickets = sort_tickets(self._all_tickets, self._sort_mode)
 
             # If no filter is active, rebuild displayed tickets
             if not self._filter_query:
@@ -732,8 +752,8 @@ class TicketList(ListView):
         # Add to all_tickets
         self._all_tickets.append(ticket)
 
-        # Re-sort all tickets by state
-        self._all_tickets = sort_tickets_by_state(self._all_tickets)
+        # Re-sort all tickets by current sort mode
+        self._all_tickets = sort_tickets(self._all_tickets, self._sort_mode)
 
         # If no filter is active, add to displayed tickets
         if not self._filter_query:

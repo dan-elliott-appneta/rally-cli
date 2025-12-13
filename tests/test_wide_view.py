@@ -1,12 +1,9 @@
 """Tests for the wide view mode feature."""
 
-import pytest
-
 from rally_tui.app import RallyTUI
 from rally_tui.models import Ticket
 from rally_tui.widgets import TicketList, ViewMode
 from rally_tui.widgets.ticket_list import (
-    TicketListItem,
     WideTicketListItem,
 )
 
@@ -96,22 +93,31 @@ class TestTicketListViewMode:
         ticket_list = TicketList(view_mode=ViewMode.WIDE)
         assert ticket_list.view_mode == ViewMode.WIDE
 
-    def test_toggle_view_mode(self) -> None:
+    async def test_toggle_view_mode(self) -> None:
         """toggle_view_mode should switch between NORMAL and WIDE."""
-        ticket_list = TicketList()
-        assert ticket_list.view_mode == ViewMode.NORMAL
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+            assert ticket_list.view_mode == ViewMode.NORMAL
 
-        ticket_list.toggle_view_mode()
-        assert ticket_list.view_mode == ViewMode.WIDE
+            ticket_list.toggle_view_mode()
+            await pilot.pause()
+            assert ticket_list.view_mode == ViewMode.WIDE
 
-        ticket_list.toggle_view_mode()
-        assert ticket_list.view_mode == ViewMode.NORMAL
+            ticket_list.toggle_view_mode()
+            await pilot.pause()
+            assert ticket_list.view_mode == ViewMode.NORMAL
 
-    def test_set_view_mode(self) -> None:
+    async def test_set_view_mode(self) -> None:
         """set_view_mode should change the view mode."""
-        ticket_list = TicketList()
-        ticket_list.set_view_mode(ViewMode.WIDE)
-        assert ticket_list.view_mode == ViewMode.WIDE
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            await pilot.pause()
+            ticket_list = app.query_one(TicketList)
+            ticket_list.set_view_mode(ViewMode.WIDE)
+            await pilot.pause()
+            assert ticket_list.view_mode == ViewMode.WIDE
 
     def test_set_view_mode_same_no_change(self) -> None:
         """set_view_mode should not rebuild if mode is the same."""
@@ -167,7 +173,7 @@ class TestWideViewIntegration:
             assert len(wide_items) > 0
 
     async def test_wide_view_container_class(self) -> None:
-        """Wide view should add 'wide' class to list container."""
+        """Wide view should add 'wide' or 'wide-full' class to list container."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             await pilot.pause()
@@ -176,13 +182,19 @@ class TestWideViewIntegration:
 
             # Should not have wide class initially
             assert "wide" not in list_container.classes
+            assert "wide-full" not in list_container.classes
 
             # Toggle to wide view
             await pilot.press("v")
             await pilot.pause()
 
-            # Should have wide class
-            assert "wide" in list_container.classes
+            # Should have wide or wide-full class (wide-full if terminal too narrow)
+            has_wide_class = (
+                "wide" in list_container.classes or "wide-full" in list_container.classes
+            )
+            assert has_wide_class, (
+                f"Expected 'wide' or 'wide-full' class, got: {list_container.classes}"
+            )
 
             # Toggle back
             await pilot.press("v")
@@ -294,9 +306,7 @@ class TestViewModeChangedMessage:
             def compose(self) -> ComposeResult:
                 yield TicketList(id="ticket-list")
 
-            def on_ticket_list_view_mode_changed(
-                self, event: TicketList.ViewModeChanged
-            ) -> None:
+            def on_ticket_list_view_mode_changed(self, event: TicketList.ViewModeChanged) -> None:
                 messages_received.append(event.mode)
 
         app = TestApp()
@@ -401,6 +411,7 @@ class TestWideViewWithOperations:
     async def test_sort_mode_change_preserves_view_mode(self) -> None:
         """Changing sort mode should preserve wide view item type."""
         from textual.app import App, ComposeResult
+
         from rally_tui.widgets import SortMode
 
         tickets = [
@@ -475,7 +486,7 @@ class TestWideViewItemDisplay:
             state="Defined",
             points=5.0,
         )
-        item = WideTicketListItem(ticket)
+        WideTicketListItem(ticket)
         # Whole numbers display without decimal
         assert ticket.points == 5.0
         assert ticket.points == int(ticket.points)
@@ -489,7 +500,7 @@ class TestWideViewItemDisplay:
             state="Defined",
             points=2.5,
         )
-        item = WideTicketListItem(ticket)
+        WideTicketListItem(ticket)
         # Decimal points should show the decimal
         assert ticket.points == 2.5
         assert ticket.points != int(ticket.points)
@@ -503,7 +514,7 @@ class TestWideViewItemDisplay:
             state="Defined",
             owner=None,
         )
-        item = WideTicketListItem(ticket)
+        WideTicketListItem(ticket)
         assert ticket.owner is None
 
     def test_missing_points_displayed_as_dash(self) -> None:
@@ -515,7 +526,7 @@ class TestWideViewItemDisplay:
             state="Defined",
             points=None,
         )
-        item = WideTicketListItem(ticket)
+        WideTicketListItem(ticket)
         assert ticket.points is None
 
     def test_missing_parent_displayed_as_dash(self) -> None:
@@ -527,7 +538,7 @@ class TestWideViewItemDisplay:
             state="Defined",
             parent_id=None,
         )
-        item = WideTicketListItem(ticket)
+        WideTicketListItem(ticket)
         assert ticket.parent_id is None
 
     def test_long_owner_truncated(self) -> None:

@@ -7,7 +7,6 @@ import pytest
 from rally_tui.app import RallyTUI
 from rally_tui.models import Iteration
 from rally_tui.screens import FILTER_ALL, FILTER_BACKLOG, IterationScreen
-from rally_tui.services import MockRallyClient
 
 
 @pytest.fixture
@@ -52,15 +51,11 @@ class TestIterationScreenCompose:
             title = app.screen.query_one("#iteration-title")
             assert "Filter by Iteration" in str(title.render())
 
-    async def test_screen_shows_current_filter(
-        self, sample_iterations: list[Iteration]
-    ) -> None:
+    async def test_screen_shows_current_filter(self, sample_iterations: list[Iteration]) -> None:
         """Screen should show the current filter."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            app.push_screen(
-                IterationScreen(sample_iterations, current_filter="Sprint 25")
-            )
+            app.push_screen(IterationScreen(sample_iterations, current_filter="Sprint 25"))
             await pilot.pause()
 
             current = app.screen.query_one("#iteration-current")
@@ -78,23 +73,17 @@ class TestIterationScreenCompose:
             current = app.screen.query_one("#iteration-current")
             assert "All Iterations" in str(current.render())
 
-    async def test_screen_shows_backlog_filter(
-        self, sample_iterations: list[Iteration]
-    ) -> None:
+    async def test_screen_shows_backlog_filter(self, sample_iterations: list[Iteration]) -> None:
         """Screen should show 'Backlog' when backlog filter is set."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            app.push_screen(
-                IterationScreen(sample_iterations, current_filter=FILTER_BACKLOG)
-            )
+            app.push_screen(IterationScreen(sample_iterations, current_filter=FILTER_BACKLOG))
             await pilot.pause()
 
             current = app.screen.query_one("#iteration-current")
             assert "Backlog" in str(current.render())
 
-    async def test_screen_has_iteration_buttons(
-        self, sample_iterations: list[Iteration]
-    ) -> None:
+    async def test_screen_has_iteration_buttons(self, sample_iterations: list[Iteration]) -> None:
         """Screen should have iteration selection buttons."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
@@ -108,9 +97,7 @@ class TestIterationScreenCompose:
             assert btn2 is not None
             assert btn3 is not None
 
-    async def test_screen_has_special_buttons(
-        self, sample_iterations: list[Iteration]
-    ) -> None:
+    async def test_screen_has_special_buttons(self, sample_iterations: list[Iteration]) -> None:
         """Screen should have All and Backlog buttons."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
@@ -126,9 +113,7 @@ class TestIterationScreenCompose:
 class TestIterationScreenHighlighting:
     """Tests for button highlighting."""
 
-    async def test_current_iteration_highlighted(
-        self, sample_iterations: list[Iteration]
-    ) -> None:
+    async def test_current_iteration_highlighted(self, sample_iterations: list[Iteration]) -> None:
         """Current iteration button should have -current class."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
@@ -139,23 +124,17 @@ class TestIterationScreenHighlighting:
             btn2 = app.screen.query_one("#btn-iter-2")
             assert "-current" in btn2.classes
 
-    async def test_selected_filter_highlighted(
-        self, sample_iterations: list[Iteration]
-    ) -> None:
+    async def test_selected_filter_highlighted(self, sample_iterations: list[Iteration]) -> None:
         """Selected filter button should have -selected class."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            app.push_screen(
-                IterationScreen(sample_iterations, current_filter="Sprint 25")
-            )
+            app.push_screen(IterationScreen(sample_iterations, current_filter="Sprint 25"))
             await pilot.pause()
 
             btn3 = app.screen.query_one("#btn-iter-3")
             assert "-selected" in btn3.classes
 
-    async def test_all_selected_when_no_filter(
-        self, sample_iterations: list[Iteration]
-    ) -> None:
+    async def test_all_selected_when_no_filter(self, sample_iterations: list[Iteration]) -> None:
         """All button should be selected when no filter."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
@@ -171,9 +150,7 @@ class TestIterationScreenHighlighting:
         """Backlog button should be selected when backlog filter."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            app.push_screen(
-                IterationScreen(sample_iterations, current_filter=FILTER_BACKLOG)
-            )
+            app.push_screen(IterationScreen(sample_iterations, current_filter=FILTER_BACKLOG))
             await pilot.pause()
 
             backlog_btn = app.screen.query_one("#btn-iter-backlog")
@@ -183,9 +160,7 @@ class TestIterationScreenHighlighting:
 class TestIterationScreenSelection:
     """Tests for iteration selection."""
 
-    async def test_click_button_selects_iteration(
-        self, sample_iterations: list[Iteration]
-    ) -> None:
+    async def test_click_button_selects_iteration(self, sample_iterations: list[Iteration]) -> None:
         """Clicking an iteration button should select that iteration."""
         result = None
 
@@ -204,9 +179,7 @@ class TestIterationScreenSelection:
 
             assert result == "Sprint 26"
 
-    async def test_number_key_selects_iteration(
-        self, sample_iterations: list[Iteration]
-    ) -> None:
+    async def test_number_key_selects_iteration(self, sample_iterations: list[Iteration]) -> None:
         """Pressing number key should select corresponding iteration."""
         result = None
 
@@ -279,9 +252,7 @@ class TestIterationScreenSelection:
 
             assert result == FILTER_ALL
 
-    async def test_click_backlog_button(
-        self, sample_iterations: list[Iteration]
-    ) -> None:
+    async def test_click_backlog_button(self, sample_iterations: list[Iteration]) -> None:
         """Clicking Backlog button should select Backlog."""
         result = None
 

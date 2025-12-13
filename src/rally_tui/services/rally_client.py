@@ -1,6 +1,6 @@
 """Rally API client implementation."""
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from pyral import Rally
@@ -83,10 +83,10 @@ class RallyClient:
         Returns:
             The current iteration name, or None if not found.
         """
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         try:
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            today = datetime.now(UTC).strftime("%Y-%m-%d")
             # Rally WSAPI requires nested parentheses for AND queries
             response = self._rally.get(
                 "Iteration",
@@ -122,13 +122,20 @@ class RallyClient:
         return self._current_iteration
 
     def _build_default_query(self) -> str | None:
-        """Build the default query for current user and iteration.
+        """Build the default query for current user, iteration, and project.
 
         Returns:
-            A Rally query string filtering by current user and iteration,
-            or None if neither is available.
+            A Rally query string filtering by project, current user, and iteration,
+            or None if no conditions are available.
         """
         conditions = []
+
+        # Always scope to current project to prevent cross-project leakage
+        if self._project:
+            conditions.append(f'(Project.Name = "{self._project}")')
+
+        # Exclude Jira Migration items
+        conditions.append('(Owner.DisplayName != "Jira Migration")')
 
         if self._current_iteration:
             conditions.append(f'(Iteration.Name = "{self._current_iteration}")')
@@ -142,8 +149,11 @@ class RallyClient:
         if len(conditions) == 1:
             return conditions[0]
 
-        # Rally WSAPI requires format: ((condition1) AND (condition2))
-        return f"({conditions[0]} AND {conditions[1]})"
+        # Rally WSAPI requires nested ANDs: ((cond1) AND (cond2))
+        result = conditions[0]
+        for condition in conditions[1:]:
+            result = f"({result} AND {condition})"
+        return result
 
     def get_tickets(self, query: str | None = None) -> list[Ticket]:
         """Fetch tickets from Rally.
@@ -170,7 +180,7 @@ class RallyClient:
             try:
                 response = self._rally.get(
                     entity_type,
-                    fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
+                    fetch="FormattedID,Name,FlowState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
                     query=effective_query,
                     pagesize=200,
                 )
@@ -203,7 +213,7 @@ class RallyClient:
         try:
             response = self._rally.get(
                 entity_type,
-                fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
+                fetch="FormattedID,Name,FlowState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
                 query=f'FormattedID = "{formatted_id}"',
             )
 
@@ -239,9 +249,7 @@ class RallyClient:
         # Extract owner name (Owner is a nested object)
         owner = None
         if hasattr(item, "Owner") and item.Owner:
-            owner = getattr(item.Owner, "Name", None) or getattr(
-                item.Owner, "_refObjectName", None
-            )
+            owner = getattr(item.Owner, "Name", None) or getattr(item.Owner, "_refObjectName", None)
 
         # Extract iteration name
         iteration = None
@@ -260,10 +268,33 @@ class RallyClient:
             except (ValueError, TypeError):
                 points = None
 
-        # Get state - use ScheduleState for stories/tasks, State for defects
-        state = getattr(item, "ScheduleState", None) or getattr(
-            item, "State", "Unknown"
-        )
+        # Get state - FlowState/State can be a string, dict, or pyral reference object
+        state: str = "Unknown"
+        flow_state = getattr(item, "FlowState", None)
+        if flow_state:
+            if isinstance(flow_state, str):
+                state = flow_state
+            elif isinstance(flow_state, dict):
+                state = flow_state.get("_refObjectName") or flow_state.get("Name") or "Unknown"
+            elif hasattr(flow_state, "Name"):
+                # pyral reference object
+                state = str(flow_state.Name) if flow_state.Name else "Unknown"
+            else:
+                state = str(flow_state)
+        else:
+            defect_state = getattr(item, "State", None)
+            if defect_state:
+                if isinstance(defect_state, str):
+                    state = defect_state
+                elif isinstance(defect_state, dict):
+                    state = (
+                        defect_state.get("_refObjectName") or defect_state.get("Name") or "Unknown"
+                    )
+                elif hasattr(defect_state, "Name"):
+                    # pyral reference object
+                    state = str(defect_state.Name) if defect_state.Name else "Unknown"
+                else:
+                    state = str(defect_state)
 
         # Get description, handle None
         description = getattr(item, "Description", "") or ""
@@ -380,9 +411,7 @@ class RallyClient:
                 # Rally returns ISO format: 2024-01-15T10:30:00.000Z
                 date_str = post.CreationDate
                 if isinstance(date_str, str):
-                    created_at = datetime.fromisoformat(
-                        date_str.replace("Z", "+00:00")
-                    )
+                    created_at = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
             except (ValueError, TypeError):
                 pass
 
@@ -551,7 +580,7 @@ class RallyClient:
     def update_state(self, ticket: Ticket, state: str) -> Ticket | None:
         """Update a ticket's workflow state.
 
-        Updates ScheduleState for User Stories/Tasks or State for Defects.
+        Updates FlowState for User Stories/Tasks or State for Defects.
 
         Args:
             ticket: The ticket to update.
@@ -569,8 +598,8 @@ class RallyClient:
         try:
             entity_type = self._get_entity_type(ticket.formatted_id)
 
-            # Defects use "State", others use "ScheduleState"
-            state_field = "State" if entity_type == "Defect" else "ScheduleState"
+            # Defects use "State", others use "FlowState"
+            state_field = "State" if entity_type == "Defect" else "FlowState"
 
             update_data = {
                 "ObjectID": ticket.object_id,
@@ -610,14 +639,14 @@ class RallyClient:
         Returns:
             List of Iteration objects with current sprint first.
         """
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         _log.debug(f"Fetching {count} recent iterations")
         iterations: list[Iteration] = []
         current_iteration: Iteration | None = None
 
         try:
-            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            today = datetime.now(UTC).strftime("%Y-%m-%d")
 
             # First, find the current iteration (today between start and end)
             current_response = self._rally.get(
@@ -797,9 +826,7 @@ class RallyClient:
             _log.error(f"Error setting parent for {ticket.formatted_id}: {e}")
             return None
 
-    def bulk_set_parent(
-        self, tickets: list[Ticket], parent_id: str
-    ) -> BulkResult:
+    def bulk_set_parent(self, tickets: list[Ticket], parent_id: str) -> BulkResult:
         """Set parent Feature on multiple tickets.
 
         Only sets parent on tickets that don't already have one.
@@ -833,12 +860,12 @@ class RallyClient:
                 result.errors.append(f"{ticket.formatted_id}: {str(e)}")
                 _log.error(f"Error setting parent for {ticket.formatted_id}: {e}")
 
-        _log.info(f"Bulk parent complete: {result.success_count} success, {result.failed_count} failed")
+        _log.info(
+            f"Bulk parent complete: {result.success_count} success, {result.failed_count} failed"
+        )
         return result
 
-    def bulk_update_state(
-        self, tickets: list[Ticket], state: str
-    ) -> BulkResult:
+    def bulk_update_state(self, tickets: list[Ticket], state: str) -> BulkResult:
         """Update state on multiple tickets.
 
         Args:
@@ -865,12 +892,13 @@ class RallyClient:
                 result.errors.append(f"{ticket.formatted_id}: {str(e)}")
                 _log.error(f"Error updating state for {ticket.formatted_id}: {e}")
 
-        _log.info(f"Bulk state update complete: {result.success_count} success, {result.failed_count} failed")
+        _log.info(
+            f"Bulk state update complete: {result.success_count} success, "
+            f"{result.failed_count} failed"
+        )
         return result
 
-    def bulk_set_iteration(
-        self, tickets: list[Ticket], iteration_name: str | None
-    ) -> BulkResult:
+    def bulk_set_iteration(self, tickets: list[Ticket], iteration_name: str | None) -> BulkResult:
         """Set iteration on multiple tickets.
 
         Args:
@@ -943,12 +971,12 @@ class RallyClient:
                 result.errors.append(f"{ticket.formatted_id}: {str(e)}")
                 _log.error(f"Error setting iteration for {ticket.formatted_id}: {e}")
 
-        _log.info(f"Bulk iteration complete: {result.success_count} success, {result.failed_count} failed")
+        _log.info(
+            f"Bulk iteration complete: {result.success_count} success, {result.failed_count} failed"
+        )
         return result
 
-    def bulk_update_points(
-        self, tickets: list[Ticket], points: float
-    ) -> BulkResult:
+    def bulk_update_points(self, tickets: list[Ticket], points: float) -> BulkResult:
         """Update story points on multiple tickets.
 
         Args:
@@ -975,7 +1003,10 @@ class RallyClient:
                 result.errors.append(f"{ticket.formatted_id}: {str(e)}")
                 _log.error(f"Error updating points for {ticket.formatted_id}: {e}")
 
-        _log.info(f"Bulk points update complete: {result.success_count} success, {result.failed_count} failed")
+        _log.info(
+            f"Bulk points update complete: {result.success_count} success, "
+            f"{result.failed_count} failed"
+        )
         return result
 
     def get_attachments(self, ticket: Ticket) -> list[Attachment]:
@@ -1028,9 +1059,7 @@ class RallyClient:
 
         return attachments
 
-    def download_attachment(
-        self, ticket: Ticket, attachment: Attachment, dest_path: str
-    ) -> bool:
+    def download_attachment(self, ticket: Ticket, attachment: Attachment, dest_path: str) -> bool:
         """Download attachment content to a local file.
 
         Uses Rally's getAttachment method to fetch content and writes to file.
@@ -1082,9 +1111,7 @@ class RallyClient:
             _log.error(f"Error downloading attachment {attachment.name}: {e}")
             return False
 
-    def upload_attachment(
-        self, ticket: Ticket, file_path: str
-    ) -> Attachment | None:
+    def upload_attachment(self, ticket: Ticket, file_path: str) -> Attachment | None:
         """Upload a local file as an attachment to a ticket.
 
         Uses Rally's addAttachment method to upload the file.

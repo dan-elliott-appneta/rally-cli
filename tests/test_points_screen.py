@@ -1,12 +1,11 @@
 """Tests for the PointsScreen."""
 
-import pytest
+from textual.widgets import Input
 
 from rally_tui.app import RallyTUI
 from rally_tui.models import Ticket
 from rally_tui.screens import PointsScreen
 from rally_tui.services.mock_client import MockRallyClient
-from textual.widgets import Input
 
 
 class TestPointsScreenBasic:
@@ -22,7 +21,7 @@ class TestPointsScreenBasic:
         )
 
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             await app.push_screen(PointsScreen(ticket))
 
             title = app.screen.query_one("#points-title")
@@ -40,7 +39,7 @@ class TestPointsScreenBasic:
         )
 
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             await app.push_screen(PointsScreen(ticket))
 
             current = app.screen.query_one("#points-current")
@@ -57,7 +56,7 @@ class TestPointsScreenBasic:
         )
 
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             await app.push_screen(PointsScreen(ticket))
 
             current = app.screen.query_one("#points-current")
@@ -74,7 +73,7 @@ class TestPointsScreenBasic:
         )
 
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             await app.push_screen(PointsScreen(ticket))
 
             input_widget = app.screen.query_one("#points-input", Input)

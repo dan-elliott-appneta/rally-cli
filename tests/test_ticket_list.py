@@ -9,6 +9,7 @@ from rally_tui.widgets.ticket_list import (
     sort_tickets,
     sort_tickets_by_created,
     sort_tickets_by_owner,
+    sort_tickets_by_parent,
     sort_tickets_by_state,
 )
 
@@ -19,8 +20,8 @@ class TestTicketListWidget:
     async def test_initial_render(self) -> None:
         """List should render all provided tickets."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
-            ticket_list = app.query_one(TicketList)
+        async with app.run_test():
+            app.query_one(TicketList)
             items = list(app.query("TicketListItem"))
             assert len(items) == 8  # SAMPLE_TICKETS has 8 items
 
@@ -173,7 +174,7 @@ class TestTicketListFilter:
 
         client = MockRallyClient(tickets=sample_tickets)
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one(TicketList)
             ticket_list.filter_tickets("US1001")
             assert ticket_list.filtered_count == 1
@@ -185,7 +186,7 @@ class TestTicketListFilter:
 
         client = MockRallyClient(tickets=sample_tickets)
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one(TicketList)
             ticket_list.filter_tickets("login")
             assert ticket_list.filtered_count == 2  # "User login feature" and "Fix login bug"
@@ -196,7 +197,7 @@ class TestTicketListFilter:
 
         client = MockRallyClient(tickets=sample_tickets)
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one(TicketList)
             ticket_list.filter_tickets("john")
             assert ticket_list.filtered_count == 2  # Both John Smith tickets
@@ -207,7 +208,7 @@ class TestTicketListFilter:
 
         client = MockRallyClient(tickets=sample_tickets)
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one(TicketList)
             ticket_list.filter_tickets("progress")
             assert ticket_list.filtered_count == 1
@@ -218,7 +219,7 @@ class TestTicketListFilter:
 
         client = MockRallyClient(tickets=sample_tickets)
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one(TicketList)
 
             ticket_list.filter_tickets("LOGIN")
@@ -236,7 +237,7 @@ class TestTicketListFilter:
 
         client = MockRallyClient(tickets=sample_tickets)
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one(TicketList)
             ticket_list.filter_tickets("login")  # Apply filter first
             assert ticket_list.filtered_count == 2
@@ -250,7 +251,7 @@ class TestTicketListFilter:
 
         client = MockRallyClient(tickets=sample_tickets)
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one(TicketList)
 
             ticket_list.filter_tickets("DE501")
@@ -270,7 +271,7 @@ class TestTicketListFilter:
                 yield TicketList(sample_tickets, id="ticket-list")
 
         app = FilterTestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one(TicketList)
             ticket_list.filter_tickets("xyz123")
             assert ticket_list.filtered_count == 0
@@ -281,7 +282,7 @@ class TestTicketListFilter:
 
         client = MockRallyClient(tickets=sample_tickets)
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one(TicketList)
             assert ticket_list.total_count == 4
             assert ticket_list.filtered_count == 4
@@ -296,7 +297,7 @@ class TestTicketListFilter:
 
         client = MockRallyClient(tickets=sample_tickets)
         app = RallyTUI(client=client, show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one(TicketList)
             assert ticket_list.filter_query == ""
 
@@ -313,7 +314,7 @@ class TestTicketListFilter:
                 yield TicketList(sample_tickets, id="ticket-list")
 
         app = FilterTestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one(TicketList)
             # Should not crash when owner is None
             ticket_list.filter_tickets("none")
@@ -333,6 +334,7 @@ class TestTicketListSorting:
                 ticket_type="HierarchicalRequirement",
                 state="In-Progress",
                 owner="Alice",
+                parent_id="F200",
             ),
             Ticket(
                 formatted_id="US1001",
@@ -340,6 +342,7 @@ class TestTicketListSorting:
                 ticket_type="HierarchicalRequirement",
                 state="Defined",
                 owner="Charlie",
+                parent_id="F100",
             ),
             Ticket(
                 formatted_id="US1003",
@@ -347,6 +350,7 @@ class TestTicketListSorting:
                 ticket_type="HierarchicalRequirement",
                 state="Completed",
                 owner=None,
+                parent_id=None,  # Orphan
             ),
             Ticket(
                 formatted_id="DE502",
@@ -354,6 +358,7 @@ class TestTicketListSorting:
                 ticket_type="Defect",
                 state="Open",
                 owner="Bob",
+                parent_id="F200",
             ),
             Ticket(
                 formatted_id="US1002",
@@ -361,6 +366,7 @@ class TestTicketListSorting:
                 ticket_type="HierarchicalRequirement",
                 state="Defined",
                 owner=None,
+                parent_id=None,  # Orphan
             ),
         ]
 
@@ -385,6 +391,13 @@ class TestTicketListSorting:
         # None first (2 tickets), then alphabetical
         assert owners == [None, None, "Alice", "Bob", "Charlie"]
 
+    def test_sort_by_parent(self, sort_tickets_fixture: list[Ticket]) -> None:
+        """Sorting by parent should put orphans first, then alphabetical by parent ID."""
+        sorted_list = sort_tickets_by_parent(sort_tickets_fixture)
+        parents = [t.parent_id for t in sorted_list]
+        # None first (2 orphans), then alphabetical by parent ID
+        assert parents == [None, None, "F100", "F200", "F200"]
+
     def test_sort_tickets_function_state(self, sort_tickets_fixture: list[Ticket]) -> None:
         """sort_tickets with STATE mode should use state sorting."""
         sorted_list = sort_tickets(sort_tickets_fixture, SortMode.STATE)
@@ -403,10 +416,16 @@ class TestTicketListSorting:
         owners = [t.owner for t in sorted_list]
         assert owners == [None, None, "Alice", "Bob", "Charlie"]
 
-    def test_default_sort_mode_is_state(self) -> None:
-        """TicketList should default to STATE sort mode."""
+    def test_sort_tickets_function_parent(self, sort_tickets_fixture: list[Ticket]) -> None:
+        """sort_tickets with PARENT mode should use parent sorting."""
+        sorted_list = sort_tickets(sort_tickets_fixture, SortMode.PARENT)
+        parents = [t.parent_id for t in sorted_list]
+        assert parents == [None, None, "F100", "F200", "F200"]
+
+    def test_default_sort_mode_is_created(self) -> None:
+        """TicketList should default to CREATED sort mode (most recent)."""
         ticket_list = TicketList([])
-        assert ticket_list.sort_mode == SortMode.STATE
+        assert ticket_list.sort_mode == SortMode.CREATED
 
     def test_custom_sort_mode_on_init(self, sort_tickets_fixture: list[Ticket]) -> None:
         """TicketList should accept custom sort mode on init."""
@@ -414,23 +433,27 @@ class TestTicketListSorting:
         assert ticket_list.sort_mode == SortMode.OWNER
 
     async def test_sort_mode_change_in_app(self) -> None:
-        """Pressing 'o' should cycle through sort modes."""
+        """Pressing 'o' should cycle through sort modes: CREATED → STATE → OWNER → PARENT."""
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
-            assert ticket_list.sort_mode == SortMode.STATE
-
-            # First press: STATE -> CREATED
-            await pilot.press("o")
             assert ticket_list.sort_mode == SortMode.CREATED
 
-            # Second press: CREATED -> OWNER
+            # First press: CREATED -> STATE
+            await pilot.press("o")
+            assert ticket_list.sort_mode == SortMode.STATE
+
+            # Second press: STATE -> OWNER
             await pilot.press("o")
             assert ticket_list.sort_mode == SortMode.OWNER
 
-            # Third press: OWNER -> STATE
+            # Third press: OWNER -> PARENT
             await pilot.press("o")
-            assert ticket_list.sort_mode == SortMode.STATE
+            assert ticket_list.sort_mode == SortMode.PARENT
+
+            # Fourth press: PARENT -> CREATED
+            await pilot.press("o")
+            assert ticket_list.sort_mode == SortMode.CREATED
 
     async def test_sort_mode_persists_with_filter(self) -> None:
         """Sort mode should be preserved when filtering."""
@@ -457,14 +480,14 @@ class TestTicketListSorting:
         async with app.run_test() as pilot:
             ticket_list = app.query_one(TicketList)
 
-            # Change to CREATED sort
+            # Change to STATE sort (default is CREATED, one press goes to STATE)
             await pilot.press("o")
-            assert ticket_list.sort_mode == SortMode.CREATED
+            assert ticket_list.sort_mode == SortMode.STATE
 
             # Apply filter
             ticket_list.filter_tickets("Log")
             assert ticket_list.filtered_count == 2
-            assert ticket_list.sort_mode == SortMode.CREATED
+            assert ticket_list.sort_mode == SortMode.STATE
 
     async def test_set_sort_mode_method(self, sort_tickets_fixture: list[Ticket]) -> None:
         """set_sort_mode should change mode and re-sort."""
@@ -475,19 +498,19 @@ class TestTicketListSorting:
                 yield TicketList(sort_tickets_fixture, id="ticket-list")
 
         app = SortTestApp()
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one(TicketList)
-            assert ticket_list.sort_mode == SortMode.STATE
+            assert ticket_list.sort_mode == SortMode.CREATED
 
             ticket_list.set_sort_mode(SortMode.OWNER)
             assert ticket_list.sort_mode == SortMode.OWNER
 
     def test_set_sort_mode_same_mode_no_op(self) -> None:
         """set_sort_mode with same mode on unmounted widget should be a no-op."""
-        ticket_list = TicketList([], sort_mode=SortMode.STATE)
+        ticket_list = TicketList([], sort_mode=SortMode.CREATED)
         # This should not raise - same mode returns early before calling clear()
-        ticket_list.set_sort_mode(SortMode.STATE)
-        assert ticket_list.sort_mode == SortMode.STATE
+        ticket_list.set_sort_mode(SortMode.CREATED)
+        assert ticket_list.sort_mode == SortMode.CREATED
 
 
 class TestTicketListSelection:
@@ -496,7 +519,7 @@ class TestTicketListSelection:
     async def test_initial_selection_empty(self) -> None:
         """Selection should be empty initially."""
         app = RallyTUI(show_splash=False)
-        async with app.run_test() as pilot:
+        async with app.run_test():
             ticket_list = app.query_one(TicketList)
             assert ticket_list.selection_count == 0
             assert len(ticket_list.selected_tickets) == 0
@@ -636,13 +659,13 @@ class TestTicketListSelection:
             await pilot.pause()
             ticket_list = app.query_one(TicketList)
 
-            # Select first ticket
+            # Select first ticket (US2 - sorted by most recent/highest ID)
             await pilot.press("space")
             await pilot.pause()
 
             selected = ticket_list.selected_tickets
             assert len(selected) == 1
-            assert selected[0].formatted_id == "US1"
+            assert selected[0].formatted_id == "US2"
 
     async def test_selection_message_posted(self) -> None:
         """SelectionChanged message should be posted when selection changes."""
@@ -711,7 +734,6 @@ class TestTicketListBulkUpdate:
     async def test_update_tickets_preserves_selection(self) -> None:
         """update_tickets should preserve selection state."""
         from rally_tui.services import MockRallyClient
-        from rally_tui.widgets.ticket_list import TicketListItem
 
         tickets = [
             Ticket("US1", "Story 1", "UserStory", "Defined"),
@@ -723,7 +745,7 @@ class TestTicketListBulkUpdate:
             await pilot.pause()
             ticket_list = app.query_one(TicketList)
 
-            # Select first ticket
+            # Select first ticket (US2 - sorted by most recent/highest ID)
             await pilot.press("space")
             await pilot.pause()
             assert ticket_list.selection_count == 1
@@ -737,7 +759,7 @@ class TestTicketListBulkUpdate:
             await pilot.pause()
 
             # Selection should be preserved
-            assert "US1" in ticket_list._selected_ids
+            assert "US2" in ticket_list._selected_ids
 
     async def test_update_tickets_empty_list(self) -> None:
         """update_tickets with empty list should do nothing."""

@@ -252,9 +252,10 @@ class StatusBar(Static):
         from rally_tui.widgets.ticket_list import SortMode
 
         mode_names = {
-            SortMode.STATE: "State",
             SortMode.CREATED: "Recent",
+            SortMode.STATE: "State",
             SortMode.OWNER: "Owner",
+            SortMode.PARENT: "Parent",
         }
         self._sort_mode = mode_names.get(mode)
         self._update_display()
@@ -278,9 +279,7 @@ class StatusBar(Static):
         """Get the current selection count."""
         return self._selection_count
 
-    def set_cache_status(
-        self, status: CacheStatusDisplay, age_minutes: int | None = None
-    ) -> None:
+    def set_cache_status(self, status: CacheStatusDisplay, age_minutes: int | None = None) -> None:
         """Set the cache status display.
 
         Args:
@@ -317,6 +316,6 @@ class StatusBar(Static):
         self._update_display()
 
     @property
-    def loading(self) -> bool:
+    def is_loading(self) -> bool:
         """Get the current loading state."""
         return self._loading

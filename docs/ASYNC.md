@@ -411,9 +411,10 @@ https://{server}/slm/webservice/v2.0/{entity}
 - [x] Phase 4: Create `AsyncCachingRallyClient`
 - [x] Phase 5: Create `AsyncMockRallyClient`
 - [x] Phase 7: Add tests for rally_api and async_mock_client (56 tests)
+- [x] Phase 6: App integration (switch app.py to use async client)
+- [x] Phase 7: Add tests for app async integration (18 tests)
 
 ### Pending
-- [ ] Phase 6: App integration (switch app.py to use async client)
 - [ ] Full integration testing with real Rally API
 
 ## Timeline Estimate

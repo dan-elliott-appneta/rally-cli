@@ -1,11 +1,10 @@
 """Mock Rally client for testing."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from rally_tui.models import Attachment, Discussion, Iteration, Ticket
 from rally_tui.models.sample_data import SAMPLE_DISCUSSIONS, SAMPLE_TICKETS
 from rally_tui.services.protocol import BulkResult
-
 
 # Sample attachments for mock data (keyed by ticket formatted_id)
 SAMPLE_ATTACHMENTS: dict[str, list[Attachment]] = {
@@ -125,8 +124,11 @@ class MockRallyClient:
             current_iteration: Current iteration name.
         """
         self._tickets = tickets if tickets is not None else list(SAMPLE_TICKETS)
+        # Deep copy discussions to avoid test isolation issues (shallow copy shares inner lists)
         self._discussions: dict[str, list[Discussion]] = (
-            discussions if discussions is not None else dict(SAMPLE_DISCUSSIONS)
+            discussions
+            if discussions is not None
+            else {k: list(v) for k, v in SAMPLE_DISCUSSIONS.items()}
         )
         self._iterations = iterations if iterations is not None else _generate_sample_iterations()
         self._features = features if features is not None else dict(DEFAULT_FEATURES)
@@ -222,7 +224,7 @@ class MockRallyClient:
             object_id=str(self._next_discussion_id),
             text=text,
             user=user,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
             artifact_id=ticket.formatted_id,
         )
         self._next_discussion_id += 1
@@ -349,9 +351,7 @@ class MockRallyClient:
             List of iterations, sorted by start date (most recent first).
         """
         # Sort by start date descending (most recent first)
-        sorted_iters = sorted(
-            self._iterations, key=lambda i: i.start_date, reverse=True
-        )
+        sorted_iters = sorted(self._iterations, key=lambda i: i.start_date, reverse=True)
         return sorted_iters[:count]
 
     def get_feature(self, formatted_id: str) -> tuple[str, str] | None:
@@ -397,9 +397,7 @@ class MockRallyClient:
                 return updated
         return None
 
-    def bulk_set_parent(
-        self, tickets: list[Ticket], parent_id: str
-    ) -> BulkResult:
+    def bulk_set_parent(self, tickets: list[Ticket], parent_id: str) -> BulkResult:
         """Set parent Feature on multiple tickets.
 
         Only sets parent on tickets that don't already have one.
@@ -432,9 +430,7 @@ class MockRallyClient:
 
         return result
 
-    def bulk_update_state(
-        self, tickets: list[Ticket], state: str
-    ) -> BulkResult:
+    def bulk_update_state(self, tickets: list[Ticket], state: str) -> BulkResult:
         """Update state on multiple tickets.
 
         Args:
@@ -461,9 +457,7 @@ class MockRallyClient:
 
         return result
 
-    def bulk_set_iteration(
-        self, tickets: list[Ticket], iteration_name: str | None
-    ) -> BulkResult:
+    def bulk_set_iteration(self, tickets: list[Ticket], iteration_name: str | None) -> BulkResult:
         """Set iteration on multiple tickets.
 
         Args:
@@ -506,9 +500,7 @@ class MockRallyClient:
 
         return result
 
-    def bulk_update_points(
-        self, tickets: list[Ticket], points: float
-    ) -> BulkResult:
+    def bulk_update_points(self, tickets: list[Ticket], points: float) -> BulkResult:
         """Update story points on multiple tickets.
 
         Args:
@@ -546,9 +538,7 @@ class MockRallyClient:
         """
         return self._attachments.get(ticket.formatted_id, [])
 
-    def download_attachment(
-        self, ticket: Ticket, attachment: Attachment, dest_path: str
-    ) -> bool:
+    def download_attachment(self, ticket: Ticket, attachment: Attachment, dest_path: str) -> bool:
         """Download attachment content to a local file.
 
         In the mock client, this simulates a successful download without
@@ -569,9 +559,7 @@ class MockRallyClient:
                 return True
         return False
 
-    def upload_attachment(
-        self, ticket: Ticket, file_path: str
-    ) -> Attachment | None:
+    def upload_attachment(self, ticket: Ticket, file_path: str) -> Attachment | None:
         """Upload a local file as an attachment to a ticket.
 
         In the mock client, this creates an Attachment record without
@@ -626,17 +614,77 @@ class MockRallyClient:
         try:
             # Create a simple placeholder image (1x1 transparent PNG)
             # This is a minimal valid PNG file
-            placeholder = bytes([
-                0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,  # PNG signature
-                0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,  # IHDR chunk
-                0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,  # 1x1 image
-                0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
-                0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,  # IDAT chunk
-                0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
-                0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
-                0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,  # IEND chunk
-                0x42, 0x60, 0x82,
-            ])
+            placeholder = bytes(
+                [
+                    0x89,
+                    0x50,
+                    0x4E,
+                    0x47,
+                    0x0D,
+                    0x0A,
+                    0x1A,
+                    0x0A,  # PNG signature
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x0D,
+                    0x49,
+                    0x48,
+                    0x44,
+                    0x52,  # IHDR chunk
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x01,
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x01,  # 1x1 image
+                    0x08,
+                    0x06,
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x1F,
+                    0x15,
+                    0xC4,
+                    0x89,
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x0A,
+                    0x49,
+                    0x44,
+                    0x41,  # IDAT chunk
+                    0x54,
+                    0x78,
+                    0x9C,
+                    0x63,
+                    0x00,
+                    0x01,
+                    0x00,
+                    0x00,
+                    0x05,
+                    0x00,
+                    0x01,
+                    0x0D,
+                    0x0A,
+                    0x2D,
+                    0xB4,
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x49,
+                    0x45,
+                    0x4E,
+                    0x44,
+                    0xAE,  # IEND chunk
+                    0x42,
+                    0x60,
+                    0x82,
+                ]
+            )
             with open(dest_path, "wb") as f:
                 f.write(placeholder)
             return True

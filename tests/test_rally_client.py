@@ -76,7 +76,7 @@ class TestRallyClientTicketMapping:
         entity = MockRallyEntity(
             FormattedID="US1234",
             Name="User story name",
-            ScheduleState="In-Progress",
+            FlowState="In-Progress",
             Owner=MockRallyEntity(Name="John Doe"),
             Description="Story description",
             Iteration=MockRallyEntity(Name="Sprint 5"),
@@ -119,7 +119,7 @@ class TestRallyClientTicketMapping:
         entity = MockRallyEntity(
             FormattedID="TA789",
             Name="Task name",
-            ScheduleState="Completed",
+            FlowState="Completed",
             Owner=MockRallyEntity(_refObjectName="Jane Smith"),
             Description="Task details",
             Iteration=MockRallyEntity(_refObjectName="Sprint 3"),
@@ -140,7 +140,7 @@ class TestRallyClientTicketMapping:
         entity = MockRallyEntity(
             FormattedID="US100",
             Name="Unassigned story",
-            ScheduleState="Defined",
+            FlowState="Defined",
             Owner=None,
             Description="",
             Iteration=None,
@@ -156,7 +156,7 @@ class TestRallyClientTicketMapping:
         entity = MockRallyEntity(
             FormattedID="US100",
             Name="Unscheduled story",
-            ScheduleState="Defined",
+            FlowState="Defined",
             Owner=None,
             Description="",
             Iteration=None,
@@ -172,7 +172,7 @@ class TestRallyClientTicketMapping:
         entity = MockRallyEntity(
             FormattedID="US100",
             Name="Story without description",
-            ScheduleState="Defined",
+            FlowState="Defined",
             Owner=None,
             Description=None,
             Iteration=None,
@@ -188,7 +188,7 @@ class TestRallyClientTicketMapping:
         entity = MockRallyEntity(
             FormattedID="US100",
             Name="Story with points",
-            ScheduleState="Defined",
+            FlowState="Defined",
             Owner=None,
             Description="",
             Iteration=None,
@@ -199,12 +199,12 @@ class TestRallyClientTicketMapping:
 
         assert ticket.points == 3.5
 
-    def test_map_uses_schedule_state_for_stories(self, client: RallyClient) -> None:
-        """Stories use ScheduleState for state."""
+    def test_map_uses_flow_state_for_stories(self, client: RallyClient) -> None:
+        """Stories use FlowState for state."""
         entity = MockRallyEntity(
             FormattedID="US100",
             Name="Story",
-            ScheduleState="Accepted",
+            FlowState="Accepted",
             State="SomeOtherState",
             Owner=None,
             Description="",
@@ -217,7 +217,7 @@ class TestRallyClientTicketMapping:
         assert ticket.state == "Accepted"
 
     def test_map_falls_back_to_state(self, client: RallyClient) -> None:
-        """Falls back to State when ScheduleState is not set."""
+        """Falls back to State when FlowState is not set."""
         entity = MockRallyEntity(
             FormattedID="DE100",
             Name="Defect",
@@ -227,9 +227,9 @@ class TestRallyClientTicketMapping:
             Iteration=None,
             PlanEstimate=None,
         )
-        # Remove ScheduleState attribute
-        if hasattr(entity, "ScheduleState"):
-            delattr(entity, "ScheduleState")
+        # Remove FlowState attribute
+        if hasattr(entity, "FlowState"):
+            delattr(entity, "FlowState")
 
         ticket = client._to_ticket(entity, "Defect")
 
@@ -376,7 +376,7 @@ class TestRallyClientDefaultQuery:
     """Tests for default query building."""
 
     def test_build_default_query_both_user_and_iteration(self) -> None:
-        """Query includes both user and iteration when available."""
+        """Query includes project, user, and iteration when available."""
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
@@ -393,6 +393,7 @@ class TestRallyClientDefaultQuery:
 
             query = client._build_default_query()
             assert query is not None
+            assert 'Project.Name = "Project"' in query
             assert 'Iteration.Name = "Sprint 5"' in query
             assert 'Owner.DisplayName = "John Doe"' in query
             assert "AND" in query
@@ -401,7 +402,7 @@ class TestRallyClientDefaultQuery:
             assert ") AND (" in query
 
     def test_build_default_query_only_iteration(self) -> None:
-        """Query includes only iteration when user not available."""
+        """Query includes project and iteration when user not available."""
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
@@ -418,12 +419,16 @@ class TestRallyClientDefaultQuery:
 
             query = client._build_default_query()
             assert query is not None
+            assert 'Project.Name = "Project"' in query
             assert 'Iteration.Name = "Sprint 5"' in query
-            assert "Owner" not in query
-            assert "AND" not in query
+            assert 'Owner.DisplayName != "Jira Migration"' in query
+            # Current user's Owner should not be in query (only Jira Migration exclusion)
+            assert "Owner.DisplayName =" not in query
+            # Has AND because project + exclusion + iteration
+            assert "AND" in query
 
     def test_build_default_query_only_user(self) -> None:
-        """Query includes only user when iteration not available."""
+        """Query includes project and user when iteration not available."""
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
@@ -440,12 +445,14 @@ class TestRallyClientDefaultQuery:
 
             query = client._build_default_query()
             assert query is not None
+            assert 'Project.Name = "Project"' in query
             assert 'Owner.DisplayName = "John Doe"' in query
             assert "Iteration" not in query
-            assert "AND" not in query
+            # Has AND because project + user
+            assert "AND" in query
 
-    def test_build_default_query_none_when_neither_available(self) -> None:
-        """Query is None when neither user nor iteration available."""
+    def test_build_default_query_project_only_when_neither_available(self) -> None:
+        """Query returns project-only scope when neither user nor iteration available."""
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
@@ -457,7 +464,10 @@ class TestRallyClientDefaultQuery:
             client = RallyClient(config)
 
             query = client._build_default_query()
-            assert query is None
+            assert query is not None
+            assert 'Project.Name = "Project"' in query
+            assert 'Owner.DisplayName != "Jira Migration"' in query
+            assert "AND" in query
 
 
 class TestRallyClientAttachments:
@@ -478,8 +488,12 @@ class TestRallyClientAttachments:
                 iter([MockRallyEntity(ObjectID="12345", Name="Test")]),  # Artifact query
             ]
             mock_instance.getAttachments.return_value = [
-                MockRallyEntity(Name="doc.pdf", Size=1024, ContentType="application/pdf", ObjectID="att1"),
-                MockRallyEntity(Name="img.png", Size=2048, ContentType="image/png", ObjectID="att2"),
+                MockRallyEntity(
+                    Name="doc.pdf", Size=1024, ContentType="application/pdf", ObjectID="att1"
+                ),
+                MockRallyEntity(
+                    Name="img.png", Size=2048, ContentType="image/png", ObjectID="att2"
+                ),
             ]
             mock_rally.return_value = mock_instance
 

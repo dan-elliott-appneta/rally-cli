@@ -1,15 +1,13 @@
 """Tests for the ConfigScreen."""
 
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
-
 from textual.widgets import Button, Input, Select
 
 from rally_tui.app import RallyTUI
 from rally_tui.screens import ConfigScreen
-from rally_tui.screens.config_screen import AVAILABLE_THEMES, ConfigData, LOG_LEVELS
+from rally_tui.screens.config_screen import AVAILABLE_THEMES, LOG_LEVELS, ConfigData
 from rally_tui.user_settings import UserSettings
 
 
@@ -38,9 +36,7 @@ class TestConfigScreenBasic:
             title = app.screen.query_one("#config-title")
             assert "Settings" in str(title.render())
 
-    async def test_config_screen_displays_config_path(
-        self, mock_settings: UserSettings
-    ) -> None:
+    async def test_config_screen_displays_config_path(self, mock_settings: UserSettings) -> None:
         """ConfigScreen should display the config file path."""
         app = RallyTUI(show_splash=False, user_settings=mock_settings)
         async with app.run_test() as pilot:
@@ -50,9 +46,7 @@ class TestConfigScreenBasic:
             path_label = app.screen.query_one("#config-path")
             assert "config.json" in str(path_label.render())
 
-    async def test_config_screen_has_theme_selector(
-        self, mock_settings: UserSettings
-    ) -> None:
+    async def test_config_screen_has_theme_selector(self, mock_settings: UserSettings) -> None:
         """ConfigScreen should have a theme selector."""
         app = RallyTUI(show_splash=False, user_settings=mock_settings)
         async with app.run_test() as pilot:
@@ -63,9 +57,7 @@ class TestConfigScreenBasic:
             assert theme_select is not None
             assert theme_select.value == "textual-dark"
 
-    async def test_config_screen_has_log_level_selector(
-        self, mock_settings: UserSettings
-    ) -> None:
+    async def test_config_screen_has_log_level_selector(self, mock_settings: UserSettings) -> None:
         """ConfigScreen should have a log level selector."""
         app = RallyTUI(show_splash=False, user_settings=mock_settings)
         async with app.run_test() as pilot:
@@ -76,9 +68,7 @@ class TestConfigScreenBasic:
             assert log_select is not None
             assert log_select.value == "INFO"
 
-    async def test_config_screen_has_parent_inputs(
-        self, mock_settings: UserSettings
-    ) -> None:
+    async def test_config_screen_has_parent_inputs(self, mock_settings: UserSettings) -> None:
         """ConfigScreen should have 3 parent option input fields."""
         app = RallyTUI(show_splash=False, user_settings=mock_settings)
         async with app.run_test() as pilot:
@@ -93,9 +83,7 @@ class TestConfigScreenBasic:
             assert parent2.value == "F222"
             assert parent3.value == "F333"
 
-    async def test_config_screen_has_save_button(
-        self, mock_settings: UserSettings
-    ) -> None:
+    async def test_config_screen_has_save_button(self, mock_settings: UserSettings) -> None:
         """ConfigScreen should have a Save button."""
         app = RallyTUI(show_splash=False, user_settings=mock_settings)
         async with app.run_test() as pilot:
@@ -105,9 +93,7 @@ class TestConfigScreenBasic:
             save_btn = app.screen.query_one("#btn-save", Button)
             assert save_btn is not None
 
-    async def test_config_screen_has_cancel_button(
-        self, mock_settings: UserSettings
-    ) -> None:
+    async def test_config_screen_has_cancel_button(self, mock_settings: UserSettings) -> None:
         """ConfigScreen should have a Cancel button."""
         app = RallyTUI(show_splash=False, user_settings=mock_settings)
         async with app.run_test() as pilot:
@@ -121,9 +107,7 @@ class TestConfigScreenBasic:
 class TestConfigScreenNavigation:
     """Tests for ConfigScreen navigation."""
 
-    async def test_escape_cancels_without_saving(
-        self, mock_settings: UserSettings
-    ) -> None:
+    async def test_escape_cancels_without_saving(self, mock_settings: UserSettings) -> None:
         """Pressing Escape should close without saving."""
         app = RallyTUI(show_splash=False, user_settings=mock_settings)
         async with app.run_test() as pilot:
@@ -155,9 +139,7 @@ class TestConfigScreenNavigation:
 class TestConfigScreenSaving:
     """Tests for ConfigScreen save functionality."""
 
-    async def test_save_button_saves_settings(
-        self, mock_settings: UserSettings
-    ) -> None:
+    async def test_save_button_saves_settings(self, mock_settings: UserSettings) -> None:
         """Clicking Save button should save settings."""
         app = RallyTUI(show_splash=False, user_settings=mock_settings)
         async with app.run_test() as pilot:
@@ -186,9 +168,7 @@ class TestConfigScreenSaving:
             # Should be back to main screen
             assert app.screen.__class__.__name__ != "ConfigScreen"
 
-    async def test_save_persists_theme_change(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    async def test_save_persists_theme_change(self, tmp_path: Path, monkeypatch) -> None:
         """Saving should persist theme changes."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -211,9 +191,7 @@ class TestConfigScreenSaving:
             # Verify theme was saved
             assert settings.theme_name == "nord"
 
-    async def test_save_persists_log_level_change(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    async def test_save_persists_log_level_change(self, tmp_path: Path, monkeypatch) -> None:
         """Saving should persist log level changes."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -236,9 +214,7 @@ class TestConfigScreenSaving:
             # Verify log level was saved
             assert settings.log_level == "DEBUG"
 
-    async def test_save_persists_parent_options(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    async def test_save_persists_parent_options(self, tmp_path: Path, monkeypatch) -> None:
         """Saving should persist parent options changes."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -266,9 +242,7 @@ class TestConfigScreenSaving:
             # Verify parent options were saved
             assert settings.parent_options == ["F99999", "F88888", "F77777"]
 
-    async def test_empty_parent_options_filtered(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    async def test_empty_parent_options_filtered(self, tmp_path: Path, monkeypatch) -> None:
         """Empty parent option fields should be filtered out."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -294,9 +268,7 @@ class TestConfigScreenSaving:
             # Only non-empty values should be saved
             assert settings.parent_options == ["F111"]
 
-    async def test_parent_options_uppercased(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    async def test_parent_options_uppercased(self, tmp_path: Path, monkeypatch) -> None:
         """Parent options should be uppercased on save."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -362,16 +334,14 @@ class TestConfigScreenConstants:
 
     def test_log_levels_has_info(self) -> None:
         """LOG_LEVELS should include INFO."""
-        level_values = [l[0] for l in LOG_LEVELS]
+        level_values = [level[0] for level in LOG_LEVELS]
         assert "INFO" in level_values
 
 
 class TestConfigScreenEmptyParentOptions:
     """Tests for ConfigScreen with empty parent options."""
 
-    async def test_handles_empty_parent_options(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    async def test_handles_empty_parent_options(self, tmp_path: Path, monkeypatch) -> None:
         """ConfigScreen should handle settings with empty parent_options."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
@@ -392,9 +362,7 @@ class TestConfigScreenEmptyParentOptions:
             assert parent2.value == ""
             assert parent3.value == ""
 
-    async def test_handles_partial_parent_options(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    async def test_handles_partial_parent_options(self, tmp_path: Path, monkeypatch) -> None:
         """ConfigScreen should handle settings with fewer than 3 parent_options."""
         monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
         monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")

@@ -177,9 +177,7 @@ class RallyClientProtocol(Protocol):
         """
         ...
 
-    def bulk_set_parent(
-        self, tickets: list[Ticket], parent_id: str
-    ) -> BulkResult:
+    def bulk_set_parent(self, tickets: list[Ticket], parent_id: str) -> BulkResult:
         """Set parent Feature on multiple tickets.
 
         Only sets parent on tickets that don't already have one.
@@ -193,9 +191,7 @@ class RallyClientProtocol(Protocol):
         """
         ...
 
-    def bulk_update_state(
-        self, tickets: list[Ticket], state: str
-    ) -> BulkResult:
+    def bulk_update_state(self, tickets: list[Ticket], state: str) -> BulkResult:
         """Update state on multiple tickets.
 
         Note: Does NOT enforce parent requirement for "In-Progress" state.
@@ -210,9 +206,7 @@ class RallyClientProtocol(Protocol):
         """
         ...
 
-    def bulk_set_iteration(
-        self, tickets: list[Ticket], iteration_name: str | None
-    ) -> BulkResult:
+    def bulk_set_iteration(self, tickets: list[Ticket], iteration_name: str | None) -> BulkResult:
         """Set iteration on multiple tickets.
 
         Args:
@@ -224,9 +218,7 @@ class RallyClientProtocol(Protocol):
         """
         ...
 
-    def bulk_update_points(
-        self, tickets: list[Ticket], points: float
-    ) -> BulkResult:
+    def bulk_update_points(self, tickets: list[Ticket], points: float) -> BulkResult:
         """Update story points on multiple tickets.
 
         Args:
@@ -249,9 +241,7 @@ class RallyClientProtocol(Protocol):
         """
         ...
 
-    def download_attachment(
-        self, ticket: Ticket, attachment: Attachment, dest_path: str
-    ) -> bool:
+    def download_attachment(self, ticket: Ticket, attachment: Attachment, dest_path: str) -> bool:
         """Download attachment content to a local file.
 
         Args:
@@ -264,9 +254,7 @@ class RallyClientProtocol(Protocol):
         """
         ...
 
-    def upload_attachment(
-        self, ticket: Ticket, file_path: str
-    ) -> Attachment | None:
+    def upload_attachment(self, ticket: Ticket, file_path: str) -> Attachment | None:
         """Upload a local file as an attachment to a ticket.
 
         Args:

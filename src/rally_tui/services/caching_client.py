@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 from rally_tui.models import Attachment, Discussion, Iteration, Ticket
 from rally_tui.services.cache_manager import CacheManager
@@ -115,9 +116,7 @@ class CachingRallyClient:
         """
         self._on_status_change = callback
 
-    def set_on_tickets_updated(
-        self, callback: Callable[[list[Ticket]], None] | None
-    ) -> None:
+    def set_on_tickets_updated(self, callback: Callable[[list[Ticket]], None] | None) -> None:
         """Set callback for when tickets are refreshed from API.
 
         Args:
@@ -297,9 +296,7 @@ class CachingRallyClient:
             return None
         return self._client.set_parent(ticket, parent_id)
 
-    def bulk_set_parent(
-        self, tickets: list[Ticket], parent_id: str
-    ) -> BulkResult:
+    def bulk_set_parent(self, tickets: list[Ticket], parent_id: str) -> BulkResult:
         """Set parent Feature on multiple tickets."""
         if self._is_offline:
             return BulkResult(
@@ -308,9 +305,7 @@ class CachingRallyClient:
             )
         return self._client.bulk_set_parent(tickets, parent_id)
 
-    def bulk_update_state(
-        self, tickets: list[Ticket], state: str
-    ) -> BulkResult:
+    def bulk_update_state(self, tickets: list[Ticket], state: str) -> BulkResult:
         """Update state on multiple tickets."""
         if self._is_offline:
             return BulkResult(
@@ -319,9 +314,7 @@ class CachingRallyClient:
             )
         return self._client.bulk_update_state(tickets, state)
 
-    def bulk_set_iteration(
-        self, tickets: list[Ticket], iteration_name: str | None
-    ) -> BulkResult:
+    def bulk_set_iteration(self, tickets: list[Ticket], iteration_name: str | None) -> BulkResult:
         """Set iteration on multiple tickets."""
         if self._is_offline:
             return BulkResult(
@@ -330,9 +323,7 @@ class CachingRallyClient:
             )
         return self._client.bulk_set_iteration(tickets, iteration_name)
 
-    def bulk_update_points(
-        self, tickets: list[Ticket], points: float
-    ) -> BulkResult:
+    def bulk_update_points(self, tickets: list[Ticket], points: float) -> BulkResult:
         """Update story points on multiple tickets."""
         if self._is_offline:
             return BulkResult(
@@ -345,15 +336,11 @@ class CachingRallyClient:
         """Get all attachments for a ticket (not cached)."""
         return self._client.get_attachments(ticket)
 
-    def download_attachment(
-        self, ticket: Ticket, attachment: Attachment, dest_path: str
-    ) -> bool:
+    def download_attachment(self, ticket: Ticket, attachment: Attachment, dest_path: str) -> bool:
         """Download attachment content to a local file."""
         return self._client.download_attachment(ticket, attachment, dest_path)
 
-    def upload_attachment(
-        self, ticket: Ticket, file_path: str
-    ) -> Attachment | None:
+    def upload_attachment(self, ticket: Ticket, file_path: str) -> Attachment | None:
         """Upload a local file as an attachment to a ticket."""
         if self._is_offline:
             return None

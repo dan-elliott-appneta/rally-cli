@@ -166,15 +166,11 @@ class AsyncMockRallyClient:
     # Async Bulk Operations
     # -------------------------------------------------------------------------
 
-    async def bulk_set_parent(
-        self, tickets: list[Ticket], parent_id: str
-    ) -> BulkResult:
+    async def bulk_set_parent(self, tickets: list[Ticket], parent_id: str) -> BulkResult:
         """Set parent Feature on multiple tickets."""
         return self._sync_client.bulk_set_parent(tickets, parent_id)
 
-    async def bulk_update_state(
-        self, tickets: list[Ticket], state: str
-    ) -> BulkResult:
+    async def bulk_update_state(self, tickets: list[Ticket], state: str) -> BulkResult:
         """Update state on multiple tickets."""
         return self._sync_client.bulk_update_state(tickets, state)
 
@@ -184,9 +180,7 @@ class AsyncMockRallyClient:
         """Set iteration on multiple tickets."""
         return self._sync_client.bulk_set_iteration(tickets, iteration_name)
 
-    async def bulk_update_points(
-        self, tickets: list[Ticket], points: float
-    ) -> BulkResult:
+    async def bulk_update_points(self, tickets: list[Ticket], points: float) -> BulkResult:
         """Update story points on multiple tickets."""
         return self._sync_client.bulk_update_points(tickets, points)
 
@@ -204,9 +198,7 @@ class AsyncMockRallyClient:
         """Download attachment content to a local file."""
         return self._sync_client.download_attachment(ticket, attachment, dest_path)
 
-    async def upload_attachment(
-        self, ticket: Ticket, file_path: str
-    ) -> Attachment | None:
+    async def upload_attachment(self, ticket: Ticket, file_path: str) -> Attachment | None:
         """Upload a local file as an attachment."""
         return self._sync_client.upload_attachment(ticket, file_path)
 
