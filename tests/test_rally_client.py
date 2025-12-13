@@ -76,7 +76,7 @@ class TestRallyClientTicketMapping:
         entity = MockRallyEntity(
             FormattedID="US1234",
             Name="User story name",
-            ScheduleState="In-Progress",
+            FlowState="In-Progress",
             Owner=MockRallyEntity(Name="John Doe"),
             Description="Story description",
             Iteration=MockRallyEntity(Name="Sprint 5"),
@@ -119,7 +119,7 @@ class TestRallyClientTicketMapping:
         entity = MockRallyEntity(
             FormattedID="TA789",
             Name="Task name",
-            ScheduleState="Completed",
+            FlowState="Completed",
             Owner=MockRallyEntity(_refObjectName="Jane Smith"),
             Description="Task details",
             Iteration=MockRallyEntity(_refObjectName="Sprint 3"),
@@ -140,7 +140,7 @@ class TestRallyClientTicketMapping:
         entity = MockRallyEntity(
             FormattedID="US100",
             Name="Unassigned story",
-            ScheduleState="Defined",
+            FlowState="Defined",
             Owner=None,
             Description="",
             Iteration=None,
@@ -156,7 +156,7 @@ class TestRallyClientTicketMapping:
         entity = MockRallyEntity(
             FormattedID="US100",
             Name="Unscheduled story",
-            ScheduleState="Defined",
+            FlowState="Defined",
             Owner=None,
             Description="",
             Iteration=None,
@@ -172,7 +172,7 @@ class TestRallyClientTicketMapping:
         entity = MockRallyEntity(
             FormattedID="US100",
             Name="Story without description",
-            ScheduleState="Defined",
+            FlowState="Defined",
             Owner=None,
             Description=None,
             Iteration=None,
@@ -188,7 +188,7 @@ class TestRallyClientTicketMapping:
         entity = MockRallyEntity(
             FormattedID="US100",
             Name="Story with points",
-            ScheduleState="Defined",
+            FlowState="Defined",
             Owner=None,
             Description="",
             Iteration=None,
@@ -199,12 +199,12 @@ class TestRallyClientTicketMapping:
 
         assert ticket.points == 3.5
 
-    def test_map_uses_schedule_state_for_stories(self, client: RallyClient) -> None:
-        """Stories use ScheduleState for state."""
+    def test_map_uses_flow_state_for_stories(self, client: RallyClient) -> None:
+        """Stories use FlowState for state."""
         entity = MockRallyEntity(
             FormattedID="US100",
             Name="Story",
-            ScheduleState="Accepted",
+            FlowState="Accepted",
             State="SomeOtherState",
             Owner=None,
             Description="",
@@ -217,7 +217,7 @@ class TestRallyClientTicketMapping:
         assert ticket.state == "Accepted"
 
     def test_map_falls_back_to_state(self, client: RallyClient) -> None:
-        """Falls back to State when ScheduleState is not set."""
+        """Falls back to State when FlowState is not set."""
         entity = MockRallyEntity(
             FormattedID="DE100",
             Name="Defect",
@@ -227,9 +227,9 @@ class TestRallyClientTicketMapping:
             Iteration=None,
             PlanEstimate=None,
         )
-        # Remove ScheduleState attribute
-        if hasattr(entity, "ScheduleState"):
-            delattr(entity, "ScheduleState")
+        # Remove FlowState attribute
+        if hasattr(entity, "FlowState"):
+            delattr(entity, "FlowState")
 
         ticket = client._to_ticket(entity, "Defect")
 

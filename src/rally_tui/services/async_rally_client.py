@@ -432,7 +432,7 @@ class AsyncRallyClient:
                 pass
 
         # Get state
-        state = item.get("ScheduleState") or item.get("State") or "Unknown"
+        state = item.get("FlowState") or item.get("State") or "Unknown"
 
         # Extract parent ID
         parent_id = None
@@ -622,8 +622,8 @@ class AsyncRallyClient:
             entity_type = get_entity_type_from_prefix(ticket.formatted_id)
             path = f"/{get_url_path(entity_type)}/{ticket.object_id}"
 
-            # Defects use "State", others use "ScheduleState"
-            state_field = "State" if entity_type == "Defect" else "ScheduleState"
+            # Defects use "State", others use "FlowState"
+            state_field = "State" if entity_type == "Defect" else "FlowState"
 
             response = await self._post(
                 path,

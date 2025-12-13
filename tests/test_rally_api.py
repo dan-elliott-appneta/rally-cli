@@ -61,7 +61,7 @@ class TestBuildFetchString:
         result = build_fetch_string("HierarchicalRequirement")
         assert "FormattedID" in result
         assert "Name" in result
-        assert "ScheduleState" in result
+        assert "FlowState" in result
 
     def test_defect(self) -> None:
         result = build_fetch_string("Defect")

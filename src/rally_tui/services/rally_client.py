@@ -177,7 +177,7 @@ class RallyClient:
             try:
                 response = self._rally.get(
                     entity_type,
-                    fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
+                    fetch="FormattedID,Name,FlowState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
                     query=effective_query,
                     pagesize=200,
                 )
@@ -210,7 +210,7 @@ class RallyClient:
         try:
             response = self._rally.get(
                 entity_type,
-                fetch="FormattedID,Name,ScheduleState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
+                fetch="FormattedID,Name,FlowState,State,Owner,Description,Notes,Iteration,PlanEstimate,ObjectID,PortfolioItem",
                 query=f'FormattedID = "{formatted_id}"',
             )
 
@@ -265,10 +265,8 @@ class RallyClient:
             except (ValueError, TypeError):
                 points = None
 
-        # Get state - use ScheduleState for stories/tasks, State for defects
-        state: str = (
-            getattr(item, "ScheduleState", None) or getattr(item, "State", None) or "Unknown"
-        )
+        # Get state - use FlowState for stories/tasks, State for defects
+        state: str = getattr(item, "FlowState", None) or getattr(item, "State", None) or "Unknown"
 
         # Get description, handle None
         description = getattr(item, "Description", "") or ""
@@ -554,7 +552,7 @@ class RallyClient:
     def update_state(self, ticket: Ticket, state: str) -> Ticket | None:
         """Update a ticket's workflow state.
 
-        Updates ScheduleState for User Stories/Tasks or State for Defects.
+        Updates FlowState for User Stories/Tasks or State for Defects.
 
         Args:
             ticket: The ticket to update.
@@ -572,8 +570,8 @@ class RallyClient:
         try:
             entity_type = self._get_entity_type(ticket.formatted_id)
 
-            # Defects use "State", others use "ScheduleState"
-            state_field = "State" if entity_type == "Defect" else "ScheduleState"
+            # Defects use "State", others use "FlowState"
+            state_field = "State" if entity_type == "Defect" else "FlowState"
 
             update_data = {
                 "ObjectID": ticket.object_id,

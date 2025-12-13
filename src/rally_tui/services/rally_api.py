@@ -47,7 +47,7 @@ DEFAULT_FETCH_FIELDS = {
     "HierarchicalRequirement": [
         "FormattedID",
         "Name",
-        "ScheduleState",
+        "FlowState",
         "Owner",
         "Description",
         "Notes",
