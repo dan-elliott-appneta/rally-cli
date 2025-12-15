@@ -646,9 +646,12 @@ class AsyncRallyClient:
     async def update_state(self, ticket: Ticket, state: str) -> Ticket | None:
         """Update a ticket's workflow state.
 
+        Looks up the FlowState reference by name since Rally requires
+        a reference object, not a string.
+
         Args:
             ticket: The ticket to update.
-            state: The new state value.
+            state: The new state value (e.g., "In-Progress", "Completed").
 
         Returns:
             The updated Ticket, or None on failure.
@@ -660,12 +663,30 @@ class AsyncRallyClient:
         _log.info(f"Updating state for {ticket.formatted_id} to {state}")
 
         try:
+            # Look up the FlowState reference by name
+            flow_state_response = await self._get(
+                "/flowstate",
+                params={
+                    "query": f'(Name = "{state}")',
+                    "fetch": "Name,ObjectID",
+                    "pagesize": "1",
+                },
+            )
+            flow_states, _ = parse_query_result(flow_state_response)
+
+            if not flow_states:
+                _log.error(f"FlowState not found: {state}")
+                return None
+
+            flow_state_ref = f"/flowstate/{flow_states[0].get('ObjectID')}"
+            _log.debug(f"Found FlowState ref: {flow_state_ref} for state: {state}")
+
             entity_type = get_entity_type_from_prefix(ticket.formatted_id)
             path = f"/{get_url_path(entity_type)}/{ticket.object_id}"
 
             response = await self._post(
                 path,
-                data={entity_type: {"FlowState": state}},
+                data={entity_type: {"FlowState": flow_state_ref}},
             )
             results, _ = parse_query_result(response)
 

@@ -570,11 +570,12 @@ class RallyClient:
     def update_state(self, ticket: Ticket, state: str) -> Ticket | None:
         """Update a ticket's workflow state.
 
-        Updates FlowState for all entity types.
+        Updates FlowState for all entity types. Looks up the FlowState reference
+        by name since Rally requires a reference object, not a string.
 
         Args:
             ticket: The ticket to update.
-            state: The new state value (e.g., "In Progress", "Completed").
+            state: The new state value (e.g., "In-Progress", "Completed").
 
         Returns:
             The updated Ticket with new state, or None on failure.
@@ -588,9 +589,26 @@ class RallyClient:
         try:
             entity_type = self._get_entity_type(ticket.formatted_id)
 
+            # Look up the FlowState reference by name
+            flow_state_ref: str | None = None
+            response = self._rally.get(
+                "FlowState",
+                fetch="Name,ObjectID",
+                query=f'(Name = "{state}")',
+                pagesize=1,
+            )
+            for flow_state in response:
+                flow_state_ref = f"/flowstate/{flow_state.ObjectID}"
+                _log.debug(f"Found FlowState ref: {flow_state_ref} for state: {state}")
+                break
+
+            if not flow_state_ref:
+                _log.error(f"FlowState not found: {state}")
+                return None
+
             update_data = {
                 "ObjectID": ticket.object_id,
-                "FlowState": state,
+                "FlowState": flow_state_ref,
             }
 
             self._rally.update(entity_type, update_data)
