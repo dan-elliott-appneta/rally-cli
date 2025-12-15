@@ -258,8 +258,12 @@ class TestRallyClientConnection:
             assert client.workspace == "Config Workspace"
             assert client.project == "Config Project"
 
-    def test_workspace_from_api_when_not_in_config(self) -> None:
+    def test_workspace_from_api_when_not_in_config(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Workspace from API is used when not in config."""
+        # Clear environment variables to test default behavior
+        monkeypatch.delenv("RALLY_WORKSPACE", raising=False)
+        monkeypatch.delenv("RALLY_PROJECT", raising=False)
+
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="API Workspace")
@@ -374,8 +378,13 @@ class TestRallyClientCurrentUserAndIteration:
 class TestRallyClientDefaultQuery:
     """Tests for default query building."""
 
-    def test_build_default_query_both_user_and_iteration(self) -> None:
+    def test_build_default_query_both_user_and_iteration(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Query includes project, user, and iteration when available."""
+        # Clear environment variables to test with mocked project
+        monkeypatch.delenv("RALLY_PROJECT", raising=False)
+
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
@@ -400,8 +409,11 @@ class TestRallyClientDefaultQuery:
             assert query.startswith("((")
             assert ") AND (" in query
 
-    def test_build_default_query_only_iteration(self) -> None:
+    def test_build_default_query_only_iteration(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Query includes project and iteration when user not available."""
+        # Clear environment variables to test with mocked project
+        monkeypatch.delenv("RALLY_PROJECT", raising=False)
+
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
@@ -426,8 +438,11 @@ class TestRallyClientDefaultQuery:
             # Has AND because project + exclusion + iteration
             assert "AND" in query
 
-    def test_build_default_query_only_user(self) -> None:
+    def test_build_default_query_only_user(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Query includes project and user when iteration not available."""
+        # Clear environment variables to test with mocked project
+        monkeypatch.delenv("RALLY_PROJECT", raising=False)
+
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")
@@ -450,8 +465,13 @@ class TestRallyClientDefaultQuery:
             # Has AND because project + user
             assert "AND" in query
 
-    def test_build_default_query_project_only_when_neither_available(self) -> None:
+    def test_build_default_query_project_only_when_neither_available(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Query returns project-only scope when neither user nor iteration available."""
+        # Clear environment variables to test with mocked project
+        monkeypatch.delenv("RALLY_PROJECT", raising=False)
+
         with patch("rally_tui.services.rally_client.Rally") as mock_rally:
             mock_instance = MagicMock()
             mock_instance.getWorkspace.return_value = MockRallyEntity(Name="Workspace")

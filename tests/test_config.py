@@ -8,28 +8,38 @@ from rally_tui.config import RallyConfig
 class TestRallyConfig:
     """Tests for RallyConfig."""
 
-    def test_default_server(self) -> None:
+    def test_default_server(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Default server is rally1.rallydev.com."""
+        # Clear environment variables to test defaults
+        monkeypatch.delenv("RALLY_SERVER", raising=False)
         config = RallyConfig()
         assert config.server == "rally1.rallydev.com"
 
-    def test_default_apikey_empty(self) -> None:
+    def test_default_apikey_empty(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Default API key is empty."""
+        # Clear environment variables to test defaults
+        monkeypatch.delenv("RALLY_APIKEY", raising=False)
         config = RallyConfig()
         assert config.apikey == ""
 
-    def test_default_workspace_empty(self) -> None:
+    def test_default_workspace_empty(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Default workspace is empty."""
+        # Clear environment variables to test defaults
+        monkeypatch.delenv("RALLY_WORKSPACE", raising=False)
         config = RallyConfig()
         assert config.workspace == ""
 
-    def test_default_project_empty(self) -> None:
+    def test_default_project_empty(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Default project is empty."""
+        # Clear environment variables to test defaults
+        monkeypatch.delenv("RALLY_PROJECT", raising=False)
         config = RallyConfig()
         assert config.project == ""
 
-    def test_is_configured_false_by_default(self) -> None:
+    def test_is_configured_false_by_default(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Config is not configured without API key."""
+        # Clear environment variables to test defaults
+        monkeypatch.delenv("RALLY_APIKEY", raising=False)
         config = RallyConfig()
         assert not config.is_configured
 
