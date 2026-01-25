@@ -39,11 +39,13 @@ class TestBulkActionsScreenCompose:
             btn_state = app.screen.query_one("#btn-state")
             btn_iteration = app.screen.query_one("#btn-iteration")
             btn_points = app.screen.query_one("#btn-points")
+            btn_owner = app.screen.query_one("#btn-owner")
             btn_yank = app.screen.query_one("#btn-yank")
             assert btn_parent is not None
             assert btn_state is not None
             assert btn_iteration is not None
             assert btn_points is not None
+            assert btn_owner is not None
             assert btn_yank is not None
 
 
@@ -118,8 +120,8 @@ class TestBulkActionsScreenKeys:
 
         assert result == BulkAction.SET_POINTS
 
-    async def test_number_5_selects_yank(self) -> None:
-        """Pressing 5 should select YANK action."""
+    async def test_number_5_selects_owner(self) -> None:
+        """Pressing 5 should select SET_OWNER action."""
         result: BulkAction | None = None
 
         def capture_result(action: BulkAction | None) -> None:
@@ -131,6 +133,23 @@ class TestBulkActionsScreenKeys:
             app.push_screen(BulkActionsScreen(3), callback=capture_result)
             await pilot.pause()
             await pilot.press("5")
+            await pilot.pause()
+
+        assert result == BulkAction.SET_OWNER
+
+    async def test_number_6_selects_yank(self) -> None:
+        """Pressing 6 should select YANK action."""
+        result: BulkAction | None = None
+
+        def capture_result(action: BulkAction | None) -> None:
+            nonlocal result
+            result = action
+
+        app = RallyTUI(show_splash=False)
+        async with app.run_test() as pilot:
+            app.push_screen(BulkActionsScreen(3), callback=capture_result)
+            await pilot.pause()
+            await pilot.press("6")
             await pilot.pause()
 
         assert result == BulkAction.YANK
@@ -172,6 +191,10 @@ class TestBulkActionEnum:
         """SET_POINTS should have value 'points'."""
         assert BulkAction.SET_POINTS.value == "points"
 
+    def test_owner_value(self) -> None:
+        """SET_OWNER should have value 'owner'."""
+        assert BulkAction.SET_OWNER.value == "owner"
+
     def test_yank_value(self) -> None:
         """YANK should have value 'yank'."""
         assert BulkAction.YANK.value == "yank"
@@ -181,9 +204,9 @@ class TestBulkActionEnum:
         values = [action.value for action in BulkAction]
         assert len(values) == len(set(values))
 
-    def test_has_five_actions(self) -> None:
-        """BulkAction should have exactly 5 actions."""
-        assert len(BulkAction) == 5
+    def test_has_six_actions(self) -> None:
+        """BulkAction should have exactly 6 actions."""
+        assert len(BulkAction) == 6
 
 
 class TestBulkYankIntegration:
@@ -205,8 +228,8 @@ class TestBulkYankIntegration:
             await pilot.press("m")
             await pilot.pause()
 
-            # Press 5 for yank
-            await pilot.press("5")
+            # Press 6 for yank
+            await pilot.press("6")
             await pilot.pause()
 
             # Verify selection was cleared after yank

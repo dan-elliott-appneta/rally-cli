@@ -241,6 +241,7 @@ class TestCachingRallyClientOffline:
         assert caching.set_parent(ticket, "F123") is None
         assert caching.create_ticket("Title", "HierarchicalRequirement") is None
         assert caching.upload_attachment(ticket, "/path/file.txt") is None
+        assert caching.set_owner(ticket, "Alice Smith") is None
 
     def test_offline_blocks_bulk_operations(self, tmp_path: Path) -> None:
         """Bulk operations should fail when offline."""
@@ -269,6 +270,10 @@ class TestCachingRallyClientOffline:
 
         result = caching.bulk_update_points(tickets, 5)
         assert result.failed_count == 1
+
+        result = caching.bulk_set_owner(tickets, "Alice Smith")
+        assert result.failed_count == 1
+        assert "offline" in result.errors[0].lower()
 
 
 class TestCachingRallyClientPassthrough:
@@ -321,6 +326,33 @@ class TestCachingRallyClientPassthrough:
         )
         attachments = caching.get_attachments(ticket)
         assert isinstance(attachments, list)
+
+    def test_set_owner_passthrough(self, tmp_path: Path) -> None:
+        """set_owner should call underlying client."""
+        client = MockRallyClient()
+        cache = CacheManager(cache_dir=tmp_path)
+        caching = CachingRallyClient(client, cache)
+
+        # Get actual ticket from mock client
+        tickets = client.get_tickets()
+        ticket = tickets[0]
+
+        result = caching.set_owner(ticket, "Alice Smith")
+        assert result is not None
+        assert result.owner == "Alice Smith"
+
+    def test_bulk_set_owner_passthrough(self, tmp_path: Path) -> None:
+        """bulk_set_owner should call underlying client."""
+        client = MockRallyClient()
+        cache = CacheManager(cache_dir=tmp_path)
+        caching = CachingRallyClient(client, cache)
+
+        # Get actual tickets from mock client
+        tickets = client.get_tickets()[:2]
+
+        result = caching.bulk_set_owner(tickets, "Bob Johnson")
+        assert result.success_count == 2
+        assert result.failed_count == 0
 
 
 class TestCachingRallyClientCallbacks:

@@ -25,6 +25,8 @@ from rally_tui.screens import (
     DiscussionScreen,
     IterationScreen,
     KeybindingsScreen,
+    OwnerOption,
+    OwnerScreen,
     ParentOption,
     ParentScreen,
     PointsScreen,
@@ -146,6 +148,9 @@ class RallyTUI(App[None]):
         self._iteration_filter: str | None = None  # Iteration name or FILTER_BACKLOG
         self._user_filter_active: bool = False
         self._all_tickets: list = []  # Store all tickets for filtering
+
+        # Track users with work items in current view (for bulk assign)
+        self._tracked_users: set[str] = set()
 
         # State for parent selection flow
         self._pending_state: str | None = None  # State to set after parent selected
@@ -514,6 +519,11 @@ class RallyTUI(App[None]):
     def _on_filtered_tickets_loaded(self, tickets: list) -> None:
         """Called when filtered tickets are loaded from server."""
         _log.debug(f"_on_filtered_tickets_loaded called with {len(tickets)} tickets")
+
+        # Track all unique owners from loaded tickets (before user filter)
+        self._tracked_users = {t.owner for t in tickets if t.owner}
+        _log.debug(f"Tracked {len(self._tracked_users)} unique owners")
+
         # Apply user filter if active
         if self._user_filter_active and self._client.current_user:
             tickets = [t for t in tickets if t.owner == self._client.current_user]
@@ -1289,6 +1299,8 @@ class RallyTUI(App[None]):
             self._bulk_set_iteration(selected)
         elif action == BulkAction.SET_POINTS:
             self._bulk_set_points(selected)
+        elif action == BulkAction.SET_OWNER:
+            self._bulk_set_owner(selected)
         elif action == BulkAction.YANK:
             self._bulk_yank(selected)
 
@@ -1409,6 +1421,27 @@ class RallyTUI(App[None]):
 
         result = self._client.bulk_update_points(tickets, points)
         self._handle_bulk_result(result, "points")
+
+    def _bulk_set_owner(self, tickets: list[Ticket]) -> None:
+        """Set owner on multiple tickets."""
+        # Build owner options from tracked users
+        owner_options = [OwnerOption(display_name=name) for name in sorted(self._tracked_users)]
+
+        self.push_screen(
+            OwnerScreen(owner_options, ticket_count=len(tickets)),
+            callback=lambda owner: self._execute_bulk_owner(tickets, owner),
+        )
+
+    def _execute_bulk_owner(self, tickets: list[Ticket], owner_name: str | None) -> None:
+        """Execute bulk owner assignment."""
+        if owner_name is None:
+            _log.debug("Bulk owner cancelled")
+            return
+
+        self.notify(f"Assigning {owner_name} to {len(tickets)} tickets...", timeout=4)
+
+        result = self._client.bulk_set_owner(tickets, owner_name)
+        self._handle_bulk_result(result, "owner")
 
     def _handle_bulk_result(self, result: BulkResult, operation: str) -> None:
         """Handle the result of a bulk operation."""

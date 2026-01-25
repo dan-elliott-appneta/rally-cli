@@ -19,6 +19,7 @@ class BulkAction(Enum):
     SET_STATE = "state"
     SET_ITERATION = "iteration"
     SET_POINTS = "points"
+    SET_OWNER = "owner"
     YANK = "yank"
 
 
@@ -39,7 +40,8 @@ class BulkActionsScreen(Screen[BulkAction | None]):
         Binding("2", "select_state", "2", show=False),
         Binding("3", "select_iteration", "3", show=False),
         Binding("4", "select_points", "4", show=False),
-        Binding("5", "select_yank", "5", show=False),
+        Binding("5", "select_owner", "5", show=False),
+        Binding("6", "select_yank", "6", show=False),
     ]
 
     DEFAULT_CSS = """
@@ -116,9 +118,10 @@ class BulkActionsScreen(Screen[BulkAction | None]):
             yield Button("2. Set State", id="btn-state", variant="primary")
             yield Button("3. Set Iteration", id="btn-iteration", variant="primary")
             yield Button("4. Set Points", id="btn-points", variant="primary")
-            yield Button("5. Yank (Copy URLs)", id="btn-yank", variant="primary")
+            yield Button("5. Assign Owner", id="btn-owner", variant="primary")
+            yield Button("6. Yank (Copy URLs)", id="btn-yank", variant="primary")
         yield Static(
-            "Press 1-5 or click a button, ESC to cancel",
+            "Press 1-6 or click a button, ESC to cancel",
             id="bulk-hint",
         )
         yield Footer()
@@ -164,6 +167,8 @@ class BulkActionsScreen(Screen[BulkAction | None]):
             self.dismiss(BulkAction.SET_ITERATION)
         elif button_id == "btn-points":
             self.dismiss(BulkAction.SET_POINTS)
+        elif button_id == "btn-owner":
+            self.dismiss(BulkAction.SET_OWNER)
         elif button_id == "btn-yank":
             self.dismiss(BulkAction.YANK)
 
@@ -186,6 +191,10 @@ class BulkActionsScreen(Screen[BulkAction | None]):
     def action_select_points(self) -> None:
         """Select Set Points action."""
         self.dismiss(BulkAction.SET_POINTS)
+
+    def action_select_owner(self) -> None:
+        """Select Assign Owner action."""
+        self.dismiss(BulkAction.SET_OWNER)
 
     def action_select_yank(self) -> None:
         """Select Yank action."""

@@ -690,3 +690,59 @@ class MockRallyClient:
             return True
         except Exception:
             return False
+
+    def set_owner(self, ticket: Ticket, owner_name: str) -> Ticket | None:
+        """Set a ticket's owner by display name.
+
+        Args:
+            ticket: The ticket to update.
+            owner_name: The owner's display name.
+
+        Returns:
+            The updated Ticket with new owner, or None on failure.
+        """
+        for i, t in enumerate(self._tickets):
+            if t.formatted_id == ticket.formatted_id:
+                updated = Ticket(
+                    formatted_id=t.formatted_id,
+                    name=t.name,
+                    ticket_type=t.ticket_type,
+                    state=t.state,
+                    owner=owner_name,
+                    description=t.description,
+                    notes=t.notes,
+                    iteration=t.iteration,
+                    points=t.points,
+                    object_id=t.object_id,
+                    parent_id=t.parent_id,
+                )
+                self._tickets[i] = updated
+                return updated
+        return None
+
+    def bulk_set_owner(self, tickets: list[Ticket], owner_name: str) -> BulkResult:
+        """Set owner on multiple tickets.
+
+        Args:
+            tickets: List of tickets to update.
+            owner_name: The owner's display name.
+
+        Returns:
+            BulkResult with success/failure counts and updated tickets.
+        """
+        result = BulkResult()
+
+        for ticket in tickets:
+            try:
+                updated = self.set_owner(ticket, owner_name)
+                if updated:
+                    result.success_count += 1
+                    result.updated_tickets.append(updated)
+                else:
+                    result.failed_count += 1
+                    result.errors.append(f"{ticket.formatted_id}: Ticket not found")
+            except Exception as e:
+                result.failed_count += 1
+                result.errors.append(f"{ticket.formatted_id}: {str(e)}")
+
+        return result

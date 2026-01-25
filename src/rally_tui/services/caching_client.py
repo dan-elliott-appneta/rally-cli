@@ -349,3 +349,18 @@ class CachingRallyClient:
     def download_embedded_image(self, url: str, dest_path: str) -> bool:
         """Download an embedded image from a URL."""
         return self._client.download_embedded_image(url, dest_path)
+
+    def set_owner(self, ticket: Ticket, owner_name: str) -> Ticket | None:
+        """Set a ticket's owner by display name."""
+        if self._is_offline:
+            return None
+        return self._client.set_owner(ticket, owner_name)
+
+    def bulk_set_owner(self, tickets: list[Ticket], owner_name: str) -> BulkResult:
+        """Set owner on multiple tickets."""
+        if self._is_offline:
+            return BulkResult(
+                failed_count=len(tickets),
+                errors=["Cannot update tickets while offline"],
+            )
+        return self._client.bulk_set_owner(tickets, owner_name)
