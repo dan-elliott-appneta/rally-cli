@@ -1224,3 +1224,97 @@ class RallyClient:
         except Exception as e:
             _log.error(f"Error saving embedded image: {e}")
             return False
+
+    def set_owner(self, ticket: Ticket, owner_name: str) -> Ticket | None:
+        """Set a ticket's owner by display name.
+
+        Args:
+            ticket: The ticket to update.
+            owner_name: The owner's display name.
+
+        Returns:
+            The updated Ticket with new owner, or None on failure.
+        """
+        if not ticket.object_id:
+            _log.warning(f"Cannot set owner: no object_id for {ticket.formatted_id}")
+            return None
+
+        _log.info(f"Setting owner of {ticket.formatted_id} to {owner_name}")
+
+        try:
+            entity_type = self._get_entity_type(ticket.formatted_id)
+
+            # Look up the user by display name
+            user_ref: str | None = None
+            response = self._rally.get(
+                "User",
+                fetch="DisplayName,ObjectID",
+                query=f'(DisplayName = "{owner_name}")',
+                pagesize=1,
+            )
+            for user in response:
+                user_ref = f"/user/{user.ObjectID}"
+                _log.debug(f"Found user ref: {user_ref} for owner: {owner_name}")
+                break
+
+            if not user_ref:
+                _log.error(f"User not found: {owner_name}")
+                return None
+
+            update_data = {
+                "ObjectID": ticket.object_id,
+                "Owner": user_ref,
+            }
+
+            self._rally.update(entity_type, update_data)
+            _log.info(f"Owner set successfully for {ticket.formatted_id}")
+
+            return Ticket(
+                formatted_id=ticket.formatted_id,
+                name=ticket.name,
+                ticket_type=ticket.ticket_type,
+                state=ticket.state,
+                owner=owner_name,
+                description=ticket.description,
+                notes=ticket.notes,
+                iteration=ticket.iteration,
+                points=ticket.points,
+                object_id=ticket.object_id,
+                parent_id=ticket.parent_id,
+            )
+        except Exception as e:
+            _log.error(f"Error setting owner for {ticket.formatted_id}: {e}")
+
+        return None
+
+    def bulk_set_owner(self, tickets: list[Ticket], owner_name: str) -> BulkResult:
+        """Set owner on multiple tickets.
+
+        Args:
+            tickets: List of tickets to update.
+            owner_name: The owner's display name.
+
+        Returns:
+            BulkResult with success/failure counts and updated tickets.
+        """
+        _log.info(f"Bulk setting owner to {owner_name} on {len(tickets)} tickets")
+        result = BulkResult()
+
+        for ticket in tickets:
+            try:
+                updated = self.set_owner(ticket, owner_name)
+                if updated:
+                    result.success_count += 1
+                    result.updated_tickets.append(updated)
+                else:
+                    result.failed_count += 1
+                    result.errors.append(f"{ticket.formatted_id}: Failed to set owner")
+            except Exception as e:
+                result.failed_count += 1
+                result.errors.append(f"{ticket.formatted_id}: {str(e)}")
+                _log.error(f"Error setting owner for {ticket.formatted_id}: {e}")
+
+        _log.info(
+            f"Bulk owner complete: {result.success_count} success, {result.failed_count} failed"
+        )
+        return result

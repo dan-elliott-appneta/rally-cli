@@ -734,3 +734,109 @@ class TestMockRallyClientAttachments:
         client = MockRallyClient()
         assert hasattr(client, "upload_attachment")
         assert callable(client.upload_attachment)
+
+
+class TestMockRallyClientOwnerOperations:
+    """Tests for MockRallyClient set_owner and bulk_set_owner methods."""
+
+    def test_set_owner_updates_ticket(self) -> None:
+        """set_owner should return updated ticket with new owner."""
+        ticket = Ticket("US1234", "Test Story", "UserStory", "Defined", owner="Old Owner")
+        client = MockRallyClient(tickets=[ticket])
+
+        result = client.set_owner(ticket, "New Owner")
+
+        assert result is not None
+        assert result.owner == "New Owner"
+        assert result.formatted_id == "US1234"
+
+    def test_set_owner_not_found(self) -> None:
+        """set_owner should return None if ticket not in list."""
+        ticket = Ticket("US9999", "Unknown Story", "UserStory", "Defined")
+        client = MockRallyClient(tickets=[])
+
+        result = client.set_owner(ticket, "New Owner")
+
+        assert result is None
+
+    def test_set_owner_preserves_fields(self) -> None:
+        """set_owner should preserve all other ticket fields."""
+        ticket = Ticket(
+            "US1234",
+            "Test Story",
+            "UserStory",
+            "In Progress",
+            owner="Old Owner",
+            description="Test description",
+            notes="Test notes",
+            iteration="Sprint 1",
+            points=5,
+            object_id="12345",
+            parent_id="F59625",
+        )
+        client = MockRallyClient(tickets=[ticket])
+
+        result = client.set_owner(ticket, "New Owner")
+
+        assert result is not None
+        assert result.owner == "New Owner"
+        assert result.description == "Test description"
+        assert result.notes == "Test notes"
+        assert result.iteration == "Sprint 1"
+        assert result.points == 5
+        assert result.parent_id == "F59625"
+
+    def test_bulk_set_owner_updates_tickets(self) -> None:
+        """bulk_set_owner should update multiple tickets."""
+        tickets = [
+            Ticket("US1", "Story 1", "UserStory", "Defined", owner="Alice"),
+            Ticket("US2", "Story 2", "UserStory", "Defined", owner="Bob"),
+            Ticket("US3", "Story 3", "UserStory", "Defined", owner="Charlie"),
+        ]
+        client = MockRallyClient(tickets=tickets)
+
+        result = client.bulk_set_owner(tickets, "New Owner")
+
+        assert result.success_count == 3
+        assert result.failed_count == 0
+        assert len(result.updated_tickets) == 3
+        assert all(t.owner == "New Owner" for t in result.updated_tickets)
+
+    def test_bulk_set_owner_handles_not_found(self) -> None:
+        """bulk_set_owner should handle missing tickets gracefully."""
+        ticket = Ticket("US999", "Not in list", "UserStory", "Defined")
+        client = MockRallyClient(tickets=[])  # Empty list
+
+        result = client.bulk_set_owner([ticket], "New Owner")
+
+        assert result.success_count == 0
+        assert result.failed_count == 1
+        assert len(result.errors) == 1
+
+    def test_bulk_set_owner_preserves_other_fields(self) -> None:
+        """bulk_set_owner should preserve other ticket fields."""
+        ticket = Ticket(
+            "US1", "Story 1", "UserStory", "Defined",
+            owner="Old Owner", points=5, iteration="Sprint 1", parent_id="F123"
+        )
+        client = MockRallyClient(tickets=[ticket])
+
+        result = client.bulk_set_owner([ticket], "New Owner")
+
+        updated = result.updated_tickets[0]
+        assert updated.owner == "New Owner"
+        assert updated.points == 5
+        assert updated.iteration == "Sprint 1"
+        assert updated.parent_id == "F123"
+
+    def test_has_set_owner_method(self) -> None:
+        """MockRallyClient should have set_owner method."""
+        client = MockRallyClient()
+        assert hasattr(client, "set_owner")
+        assert callable(client.set_owner)
+
+    def test_has_bulk_set_owner_method(self) -> None:
+        """MockRallyClient should have bulk_set_owner method."""
+        client = MockRallyClient()
+        assert hasattr(client, "bulk_set_owner")
+        assert callable(client.bulk_set_owner)
