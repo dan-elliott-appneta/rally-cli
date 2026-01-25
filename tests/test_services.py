@@ -816,8 +816,14 @@ class TestMockRallyClientOwnerOperations:
     def test_bulk_set_owner_preserves_other_fields(self) -> None:
         """bulk_set_owner should preserve other ticket fields."""
         ticket = Ticket(
-            "US1", "Story 1", "UserStory", "Defined",
-            owner="Old Owner", points=5, iteration="Sprint 1", parent_id="F123"
+            "US1",
+            "Story 1",
+            "UserStory",
+            "Defined",
+            owner="Old Owner",
+            points=5,
+            iteration="Sprint 1",
+            parent_id="F123",
         )
         client = MockRallyClient(tickets=[ticket])
 
