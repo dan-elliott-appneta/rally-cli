@@ -1,6 +1,5 @@
 """Tests for owner cache functionality."""
 
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -16,9 +15,18 @@ class TestExtractOwnersFromTickets:
     def test_extracts_unique_owners(self):
         """Should extract unique owners from tickets."""
         tickets = [
-            Ticket(formatted_id="US1", name="T1", ticket_type="UserStory", state="Defined", owner="Alice"),
-            Ticket(formatted_id="US2", name="T2", ticket_type="UserStory", state="Defined", owner="Bob"),
-            Ticket(formatted_id="US3", name="T3", ticket_type="UserStory", state="Defined", owner="Alice"),
+            Ticket(
+                formatted_id="US1", name="T1", ticket_type="UserStory",
+                state="Defined", owner="Alice",
+            ),
+            Ticket(
+                formatted_id="US2", name="T2", ticket_type="UserStory",
+                state="Defined", owner="Bob",
+            ),
+            Ticket(
+                formatted_id="US3", name="T3", ticket_type="UserStory",
+                state="Defined", owner="Alice",
+            ),
         ]
         owners = extract_owners_from_tickets(tickets)
         assert len(owners) == 2
@@ -28,8 +36,14 @@ class TestExtractOwnersFromTickets:
     def test_skips_tickets_without_owner(self):
         """Should skip tickets with no owner."""
         tickets = [
-            Ticket(formatted_id="US1", name="T1", ticket_type="UserStory", state="Defined", owner="Alice"),
-            Ticket(formatted_id="US2", name="T2", ticket_type="UserStory", state="Defined", owner=None),
+            Ticket(
+                formatted_id="US1", name="T1", ticket_type="UserStory",
+                state="Defined", owner="Alice",
+            ),
+            Ticket(
+                formatted_id="US2", name="T2", ticket_type="UserStory",
+                state="Defined", owner=None,
+            ),
         ]
         owners = extract_owners_from_tickets(tickets)
         assert len(owners) == 1
