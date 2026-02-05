@@ -75,7 +75,9 @@ class TestOwnerSelectionScreenInteraction:
 
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            app.push_screen(OwnerSelectionScreen(owners=sample_owners, title="Test"), callback=capture_result)
+            app.push_screen(
+                OwnerSelectionScreen(owners=sample_owners, title="Test"), callback=capture_result
+            )
             await pilot.pause()
             await pilot.press("escape")
             await pilot.pause()
@@ -92,7 +94,9 @@ class TestOwnerSelectionScreenInteraction:
 
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            app.push_screen(OwnerSelectionScreen(owners=sample_owners, title="Test"), callback=capture_result)
+            app.push_screen(
+                OwnerSelectionScreen(owners=sample_owners, title="Test"), callback=capture_result
+            )
             await pilot.pause()
             # First item should be selected by default
             await pilot.press("enter")
@@ -111,7 +115,9 @@ class TestOwnerSelectionScreenInteraction:
 
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            app.push_screen(OwnerSelectionScreen(owners=sample_owners, title="Test"), callback=capture_result)
+            app.push_screen(
+                OwnerSelectionScreen(owners=sample_owners, title="Test"), callback=capture_result
+            )
             await pilot.pause()
             await pilot.press("j")  # Move down to Bob
             await pilot.pause()
@@ -131,7 +137,9 @@ class TestOwnerSelectionScreenInteraction:
 
         app = RallyTUI(show_splash=False)
         async with app.run_test() as pilot:
-            app.push_screen(OwnerSelectionScreen(owners=sample_owners, title="Test"), callback=capture_result)
+            app.push_screen(
+                OwnerSelectionScreen(owners=sample_owners, title="Test"), callback=capture_result
+            )
             await pilot.pause()
             await pilot.press("j")  # Move down to Bob
             await pilot.pause()
