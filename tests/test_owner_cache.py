@@ -16,16 +16,25 @@ class TestExtractOwnersFromTickets:
         """Should extract unique owners from tickets."""
         tickets = [
             Ticket(
-                formatted_id="US1", name="T1", ticket_type="UserStory",
-                state="Defined", owner="Alice",
+                formatted_id="US1",
+                name="T1",
+                ticket_type="UserStory",
+                state="Defined",
+                owner="Alice",
             ),
             Ticket(
-                formatted_id="US2", name="T2", ticket_type="UserStory",
-                state="Defined", owner="Bob",
+                formatted_id="US2",
+                name="T2",
+                ticket_type="UserStory",
+                state="Defined",
+                owner="Bob",
             ),
             Ticket(
-                formatted_id="US3", name="T3", ticket_type="UserStory",
-                state="Defined", owner="Alice",
+                formatted_id="US3",
+                name="T3",
+                ticket_type="UserStory",
+                state="Defined",
+                owner="Alice",
             ),
         ]
         owners = extract_owners_from_tickets(tickets)
@@ -37,12 +46,18 @@ class TestExtractOwnersFromTickets:
         """Should skip tickets with no owner."""
         tickets = [
             Ticket(
-                formatted_id="US1", name="T1", ticket_type="UserStory",
-                state="Defined", owner="Alice",
+                formatted_id="US1",
+                name="T1",
+                ticket_type="UserStory",
+                state="Defined",
+                owner="Alice",
             ),
             Ticket(
-                formatted_id="US2", name="T2", ticket_type="UserStory",
-                state="Defined", owner=None,
+                formatted_id="US2",
+                name="T2",
+                ticket_type="UserStory",
+                state="Defined",
+                owner=None,
             ),
         ]
         owners = extract_owners_from_tickets(tickets)
