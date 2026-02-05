@@ -1,9 +1,16 @@
-# Rally TUI
+# Rally TUI & CLI
 
-A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work items.
+A terminal user interface (TUI) and command-line interface (CLI) for browsing and managing Rally (Broadcom) work items.
 
 ## Features
 
+### CLI Features (NEW)
+- **Query tickets**: `rally-cli tickets --current-iteration --my-tickets`
+- **Post comments**: `rally-cli comment S459344 "message"`
+- **Multiple output formats**: text, JSON, CSV for scripting
+- **Supports all ticket types**: Stories (S/US), Defects (DE), Tasks (TA), Test Cases (TC)
+
+### TUI Features
 - Browse Rally tickets in a navigable list
 - View ticket details in a split-pane layout
 - Keyboard-driven interface with vim-style navigation
@@ -39,7 +46,12 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 ## Status
 
-**Iteration 14 Complete** - Local Caching + Async API Integration.
+**Iteration 15 In Progress** - CLI Interface Added.
+
+### Recent Additions
+- **CLI Interface**: Non-interactive command-line for scripting (`rally-cli tickets`, `rally-cli comment`)
+- **S Prefix Support**: Rally stories with S prefix (e.g., S459344) now fully supported
+- **JSON/CSV Export**: Export tickets to JSON or CSV for automation and reporting
 
 ### Recent Bug Fixes
 - **Fixed**: FlowState/State handling for Rally reference objects (prevents "unhashable type: dict" errors)
@@ -147,6 +159,28 @@ rally-tui
 # Without RALLY_APIKEY, the app runs with sample data
 rally-tui
 ```
+
+### CLI (Command-Line Interface)
+
+In addition to the TUI, rally-cli provides a non-interactive CLI for scripting and automation:
+
+```bash
+# Query tickets in current iteration
+rally-cli tickets --current-iteration --my-tickets
+
+# Post a comment to a ticket
+rally-cli comment S459344 "Deployed to staging"
+
+# Export to JSON for scripting
+rally-cli --format json tickets --current-iteration | jq '.data[].formatted_id'
+
+# Export to CSV for spreadsheets
+rally-cli --format csv tickets --current-iteration > sprint.csv
+```
+
+**Supported ticket prefixes:** `S`, `US` (stories), `DE` (defects), `TA` (tasks), `TC` (test cases)
+
+See [docs/CLI.md](docs/CLI.md) for full CLI documentation.
 
 ### Environment Variables
 
