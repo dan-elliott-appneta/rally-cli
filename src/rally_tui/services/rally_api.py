@@ -36,6 +36,7 @@ ENTITY_TYPES = {
 # Formatted ID prefix to entity type mapping
 PREFIX_TO_ENTITY = {
     "US": "HierarchicalRequirement",
+    "S": "HierarchicalRequirement",  # Rally also uses S for stories
     "DE": "Defect",
     "TA": "Task",
     "TC": "TestCase",
