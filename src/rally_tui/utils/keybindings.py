@@ -92,7 +92,7 @@ VIM_KEYBINDINGS: dict[str, str] = {
     "action.points": "p",
     "action.notes": "n",
     "action.discuss": "d",
-    "action.attachments": "t",
+    "action.attachments": "shift+a",
     "action.assign_owner": "a",
     "action.copy_url": "y",
     # Filters
