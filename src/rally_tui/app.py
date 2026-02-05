@@ -45,6 +45,7 @@ from rally_tui.services.async_caching_client import (
 from rally_tui.services.async_rally_client import AsyncRallyClient
 from rally_tui.services.cache_manager import CacheManager
 from rally_tui.services.caching_client import CacheStatus, CachingRallyClient
+from rally_tui.services.owner_utils import extract_owners_from_tickets
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils import get_logger, setup_logging
 from rally_tui.widgets import (
@@ -1384,11 +1385,11 @@ class RallyTUI(App[None]):
         """Set owner on multiple tickets."""
         # Get cached owners from iteration
         iteration = self._iteration_filter or "BACKLOG"
-        cached_owners = self._cache_manager.get_iteration_owners(iteration)
+        cached_owners: set[Owner] = set()
+        if self._cache_manager:
+            cached_owners = self._cache_manager.get_iteration_owners(iteration)
 
         # Add owners from tickets themselves
-        from rally_tui.services.owner_utils import extract_owners_from_tickets
-
         ticket_owners = extract_owners_from_tickets(tickets)
         all_owners = cached_owners | ticket_owners
 
@@ -1411,11 +1412,15 @@ class RallyTUI(App[None]):
         if owner.object_id.startswith("TEMP:"):
             owner_name = owner.display_name
             self.notify(f"Resolving owner '{owner_name}'...", timeout=2)
-            resolved = self._client.find_user_by_name(owner_name)
-            if resolved:
-                owner = resolved
-            else:
-                self.notify(f"Could not find user '{owner_name}'", severity="error", timeout=5)
+            try:
+                users = self._client.get_users(display_names=[owner_name])
+                if users:
+                    owner = users[0]
+                else:
+                    self.notify(f"Could not find user '{owner_name}'", severity="error", timeout=5)
+                    return
+            except Exception as e:
+                self.notify(f"Failed to resolve owner: {e}", severity="error", timeout=5)
                 return
 
         self.notify(f"Assigning {len(tickets)} tickets to {owner.display_name}...", timeout=4)
@@ -1424,10 +1429,11 @@ class RallyTUI(App[None]):
         self._handle_bulk_result(result, "owner")
 
         # Update owner cache
-        iteration = self._iteration_filter or "BACKLOG"
-        cached = self._cache_manager.get_iteration_owners(iteration)
-        cached.add(owner)
-        self._cache_manager.set_iteration_owners(iteration, cached)
+        if self._cache_manager:
+            iteration = self._iteration_filter or "BACKLOG"
+            cached = self._cache_manager.get_iteration_owners(iteration)
+            cached.add(owner)
+            self._cache_manager.set_iteration_owners(iteration, cached)
 
     def _bulk_set_parent(self, tickets: list[Ticket]) -> None:
         """Set parent on multiple tickets."""
