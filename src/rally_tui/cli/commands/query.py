@@ -25,7 +25,7 @@ def _sanitize_query_value(value: str) -> str:
     Returns:
         Sanitized value safe for use in WSAPI query.
     """
-    return value.replace('\\', '\\\\').replace('"', '\\"')
+    return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
 @click.command("tickets")

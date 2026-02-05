@@ -94,9 +94,7 @@ class TextFormatter(BaseFormatter):
         lines = []
 
         # Header
-        header_line = "  ".join(
-            headers[i].ljust(widths[i]) for i in range(len(headers))
-        )
+        header_line = "  ".join(headers[i].ljust(widths[i]) for i in range(len(headers)))
         lines.append(header_line)
 
         # Separator
@@ -106,8 +104,7 @@ class TextFormatter(BaseFormatter):
         # Data rows
         for row in rows:
             row_line = "  ".join(
-                self._truncate(row[i], widths[i]).ljust(widths[i])
-                for i in range(len(row))
+                self._truncate(row[i], widths[i]).ljust(widths[i]) for i in range(len(row))
             )
             lines.append(row_line)
 
