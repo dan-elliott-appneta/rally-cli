@@ -305,9 +305,7 @@ class RallyClientProtocol(Protocol):
         """
         ...
 
-    def bulk_assign_owner(
-        self, tickets: list[Ticket], owner: Owner
-    ) -> BulkResult:
+    def bulk_assign_owner(self, tickets: list[Ticket], owner: Owner) -> BulkResult:
         """Assign owner to multiple tickets.
 
         Args:

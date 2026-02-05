@@ -2,7 +2,7 @@
 
 from datetime import UTC, date, datetime, timedelta
 
-from rally_tui.models import Attachment, Discussion, Iteration, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
 from rally_tui.models.sample_data import SAMPLE_DISCUSSIONS, SAMPLE_TICKETS
 from rally_tui.services.protocol import BulkResult
 
@@ -690,3 +690,15 @@ class MockRallyClient:
             return True
         except Exception:
             return False
+
+    def get_users(self, display_names: list[str] | None = None) -> list[Owner]:
+        """Fetch Rally users. Not yet implemented."""
+        raise NotImplementedError("get_users will be implemented in Phase 2")
+
+    def assign_owner(self, ticket: Ticket, owner: Owner) -> Ticket | None:
+        """Assign ticket owner. Not yet implemented."""
+        raise NotImplementedError("assign_owner will be implemented in Phase 2")
+
+    def bulk_assign_owner(self, tickets: list[Ticket], owner: Owner) -> BulkResult:
+        """Bulk assign owner. Not yet implemented."""
+        raise NotImplementedError("bulk_assign_owner will be implemented in Phase 2")
