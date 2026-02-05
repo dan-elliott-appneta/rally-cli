@@ -12,7 +12,7 @@ from textual.worker import Worker, WorkerState
 
 from rally_tui import __version__
 from rally_tui.config import RallyConfig
-from rally_tui.models import Ticket
+from rally_tui.models import Owner, Ticket
 from rally_tui.screens import (
     FILTER_ALL,
     FILTER_BACKLOG,
@@ -25,6 +25,7 @@ from rally_tui.screens import (
     DiscussionScreen,
     IterationScreen,
     KeybindingsScreen,
+    OwnerSelectionScreen,
     ParentOption,
     ParentScreen,
     PointsScreen,
@@ -183,6 +184,7 @@ class RallyTUI(App[None]):
             "action.notes": ("toggle_notes", "Notes", True),
             "action.discuss": ("open_discussions", "Discuss", True),
             "action.attachments": ("open_attachments", "Attachments", True),
+            "action.assign_owner": ("assign_owner", "Assign", True),
             "action.copy_url": ("copy_ticket_url", "Copy URL", False),
             "action.search": ("start_search", "Search", True),
             "action.sprint": ("iteration_filter", "Sprint", True),
@@ -966,6 +968,75 @@ class RallyTUI(App[None]):
         except Exception as e:
             _log.exception(f"Error updating state for {ticket_id}: {e}")
             self.notify("Failed to update state", severity="error", timeout=5)
+
+    def action_assign_owner(self) -> None:
+        """Open owner selection screen to assign current ticket."""
+        ticket_list = self.query_one("#ticket-list", TicketList)
+        selected = ticket_list.selected_ticket
+        if not selected:
+            self.notify("No ticket selected", severity="warning")
+            return
+
+        # Get cached owners for current iteration
+        owners: set[Owner] = set()
+        if self._cache_manager:
+            iteration = self._iteration_filter or "BACKLOG"
+            owners = self._cache_manager.get_iteration_owners(iteration)
+
+        # Push owner selection screen
+        def on_owner_selected(owner: Owner | None) -> None:
+            if owner:
+                self._perform_assignment(selected, owner)
+
+        self.push_screen(
+            OwnerSelectionScreen(
+                owners=owners,
+                title=f"Assign Owner - {selected.formatted_id}",
+                user_settings=self._user_settings,
+            ),
+            callback=on_owner_selected,
+        )
+
+    def _perform_assignment(self, ticket: Ticket, owner: Owner) -> None:
+        """Perform the actual ticket assignment."""
+        # Check if owner needs API resolution (TEMP: prefix)
+        if owner.object_id.startswith("TEMP:"):
+            # Need to resolve owner via API first
+            self._resolve_and_assign(ticket, owner.display_name)
+        else:
+            self._assign_ticket(ticket, owner)
+
+    def _resolve_and_assign(self, ticket: Ticket, owner_name: str) -> None:
+        """Resolve owner name to Owner object and assign."""
+        try:
+            users = self._client.get_users(display_names=[owner_name])
+            if users:
+                self._assign_ticket(ticket, users[0])
+            else:
+                self.notify(f"Owner '{owner_name}' not found in Rally", severity="error")
+        except Exception as e:
+            self.notify(f"Failed to find owner: {e}", severity="error")
+
+    def _assign_ticket(self, ticket: Ticket, owner: Owner) -> None:
+        """Assign ticket to owner and update UI."""
+        try:
+            updated = self._client.assign_owner(ticket, owner)
+            if updated:
+                # Update ticket in list
+                ticket_list = self.query_one("#ticket-list", TicketList)
+                ticket_list.update_ticket(updated)
+                self.notify(f"{ticket.formatted_id} assigned to {owner.display_name}")
+
+                # Update owner cache if new owner
+                if self._cache_manager:
+                    iteration = self._iteration_filter or "BACKLOG"
+                    current_owners = self._cache_manager.get_iteration_owners(iteration)
+                    current_owners.add(owner)
+                    self._cache_manager.set_iteration_owners(iteration, current_owners)
+            else:
+                self.notify(f"Failed to assign {ticket.formatted_id}", severity="error")
+        except Exception as e:
+            self.notify(f"Assignment failed: {e}", severity="error")
 
     def action_quick_ticket(self) -> None:
         """Open the quick ticket creation screen."""
