@@ -4,6 +4,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 ## Features
 
+- **NEW: CLI interface** for scripting and automation (`rally-cli tickets`, `rally-cli comment`)
 - Browse Rally tickets in a navigable list
 - View ticket details in a split-pane layout
 - Keyboard-driven interface with vim-style navigation
@@ -147,6 +148,28 @@ rally-tui
 # Without RALLY_APIKEY, the app runs with sample data
 rally-tui
 ```
+
+### CLI (Command-Line Interface)
+
+In addition to the TUI, rally-cli provides a non-interactive CLI for scripting and automation:
+
+```bash
+# Query tickets in current iteration
+rally-cli tickets --current-iteration --my-tickets
+
+# Post a comment to a ticket
+rally-cli comment S459344 "Deployed to staging"
+
+# Export to JSON for scripting
+rally-cli --format json tickets --current-iteration | jq '.data[].formatted_id'
+
+# Export to CSV for spreadsheets
+rally-cli --format csv tickets --current-iteration > sprint.csv
+```
+
+**Supported ticket prefixes:** `S`, `US` (stories), `DE` (defects), `TA` (tasks), `TC` (test cases)
+
+See [docs/CLI.md](docs/CLI.md) for full CLI documentation.
 
 ### Environment Variables
 
