@@ -20,7 +20,7 @@ from tenacity import (
 )
 
 from rally_tui.config import RallyConfig
-from rally_tui.models import Attachment, Discussion, Iteration, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
 from rally_tui.services.protocol import BulkResult
 from rally_tui.services.rally_api import (
     DEFAULT_TIMEOUT,
@@ -1372,3 +1372,15 @@ class AsyncRallyClient:
         except Exception as e:
             _log.error(f"Error downloading embedded image: {e}")
             return False
+
+    async def get_users(self, display_names: list[str] | None = None) -> list[Owner]:
+        """Fetch Rally users. Not yet implemented."""
+        raise NotImplementedError("get_users will be implemented in Phase 2")
+
+    async def assign_owner(self, ticket: Ticket, owner: Owner) -> Ticket | None:
+        """Assign ticket owner. Not yet implemented."""
+        raise NotImplementedError("assign_owner will be implemented in Phase 2")
+
+    async def bulk_assign_owner(self, tickets: list[Ticket], owner: Owner) -> BulkResult:
+        """Bulk assign owner. Not yet implemented."""
+        raise NotImplementedError("bulk_assign_owner will be implemented in Phase 2")

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from rally_tui.models import Attachment, Discussion, Iteration, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
 from rally_tui.services.mock_client import MockRallyClient
 from rally_tui.services.protocol import BulkResult
 
@@ -205,3 +205,15 @@ class AsyncMockRallyClient:
     async def download_embedded_image(self, url: str, dest_path: str) -> bool:
         """Download an embedded image from a URL."""
         return self._sync_client.download_embedded_image(url, dest_path)
+
+    async def get_users(self, display_names: list[str] | None = None) -> list[Owner]:
+        """Fetch Rally users. Not yet implemented."""
+        raise NotImplementedError("get_users will be implemented in Phase 2")
+
+    async def assign_owner(self, ticket: Ticket, owner: Owner) -> Ticket | None:
+        """Assign ticket owner. Not yet implemented."""
+        raise NotImplementedError("assign_owner will be implemented in Phase 2")
+
+    async def bulk_assign_owner(self, tickets: list[Ticket], owner: Owner) -> BulkResult:
+        """Bulk assign owner. Not yet implemented."""
+        raise NotImplementedError("bulk_assign_owner will be implemented in Phase 2")
