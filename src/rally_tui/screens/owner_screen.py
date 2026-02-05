@@ -10,9 +10,6 @@ from rally_tui.models import Owner
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils.keybindings import VIM_KEYBINDINGS
 
-# Special marker for custom owner option
-CUSTOM_OWNER_MARKER = "__CUSTOM_OWNER__"
-
 
 class OwnerSelectionScreen(Screen[Owner | None]):
     """Screen for selecting an owner for ticket assignment.
@@ -111,7 +108,6 @@ class OwnerSelectionScreen(Screen[Owner | None]):
         self._owners = sorted(list(owners), key=lambda o: o.display_name.lower())
         self._title = title
         self._user_settings = user_settings
-        self._show_custom_input = False
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -121,7 +117,9 @@ class OwnerSelectionScreen(Screen[Owner | None]):
         with Vertical(id="owner-list-container"):
             list_items = []
             for owner in self._owners:
-                list_items.append(ListItem(Static(owner.display_name), id=f"owner-{owner.object_id}"))
+                list_items.append(
+                    ListItem(Static(owner.display_name), id=f"owner-{owner.object_id}")
+                )
             # Add "Custom Owner..." option
             list_items.append(ListItem(Static("[Custom Owner...]"), id="owner-custom"))
 
@@ -130,7 +128,7 @@ class OwnerSelectionScreen(Screen[Owner | None]):
 
             yield ListView(*list_items, id="owner-list")
 
-        yield Static("j/k: Navigate  Enter: Select  ESC: Cancel", id="owner-hint")
+        yield Static("j/k/↑/↓: Navigate  Enter: Select  ESC: Cancel", id="owner-hint")
 
         with Vertical(id="custom-owner-container"):
             yield Static("Enter owner name:")
