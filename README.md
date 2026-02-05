@@ -25,6 +25,7 @@ A terminal user interface (TUI) and command-line interface (CLI) for browsing an
 - **Parent Requirement**: Must select a parent Feature before moving to "In Progress" state
 - **Quick Create**: Press `w` to create a new workitem (User Story or Defect)
 - **Toggle Notes**: Press `n` to toggle between description and notes view
+- **Assign Owner**: Press `a` to assign a ticket to a team member (individual or bulk)
 - **Sprint Filter**: Press `i` to filter tickets by iteration/sprint
 - **My Items Filter**: Press `u` to toggle showing only your tickets
 - **Team Breakdown**: Press `b` to view ticket count and points breakdown by owner for a sprint
@@ -36,7 +37,7 @@ A terminal user interface (TUI) and command-line interface (CLI) for browsing an
 - **Log redaction**: Sensitive data (API keys, emails, user names) automatically redacted from logs
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
 - **Discussions**: View ticket discussions and add comments
-- **Attachments**: Press `a` to view, download, or upload ticket attachments (includes embedded images from description/notes)
+- **Attachments**: Press `A` (Shift+a) to view, download, or upload ticket attachments (includes embedded images from description/notes)
 - **Local caching**: Tickets cached to `~/.cache/rally-tui/` for performance and offline access
 - **Cache refresh**: Press `r` to manually refresh the ticket cache
 - **Loading indicator**: Visual feedback in status bar when fetching tickets from API
@@ -71,7 +72,7 @@ A terminal user interface (TUI) and command-line interface (CLI) for browsing an
 - Multi-select tickets with `Space` key (toggle selection)
 - Select all tickets with `Ctrl+A` (toggle select all/deselect all)
 - Press `m` to open bulk actions menu on selected tickets
-- Bulk operations: Set Parent, Set State, Set Iteration, Set Points, Yank (copy URLs)
+- Bulk operations: Set Parent, Set State, Set Iteration, Set Points, Assign Owner, Yank (copy URLs)
 - Press `F2` to open ConfigScreen for editing settings
 - Configure theme, log level, and parent options from the TUI
 - Settings saved immediately with Ctrl+S or Save button
@@ -213,7 +214,8 @@ See [docs/CLI.md](docs/CLI.md) for full CLI documentation.
 | p | list/detail | Set story points |
 | n | list/detail | Toggle description/notes |
 | d | list/detail | Open discussions |
-| a | list/detail | View/download/upload attachments |
+| a | list/detail | Assign owner to ticket |
+| A (Shift+a) | list/detail | View/download/upload attachments |
 | i | list/detail | Filter by iteration/sprint |
 | u | list/detail | Toggle My Items filter |
 | o | list | Cycle sort mode (Recent/State/Owner/Parent) |

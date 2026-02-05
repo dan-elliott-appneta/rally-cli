@@ -116,10 +116,10 @@ class OwnerSelectionScreen(Screen[Owner | None]):
 
         with Vertical(id="owner-list-container"):
             list_items = []
-            for owner in self._owners:
-                list_items.append(
-                    ListItem(Static(owner.display_name), id=f"owner-{owner.object_id}")
-                )
+            for idx, owner in enumerate(self._owners):
+                # Sanitize object_id for DOM (replace invalid chars with underscore)
+                safe_id = f"owner-{idx}"
+                list_items.append(ListItem(Static(owner.display_name), id=safe_id))
             # Add "Custom Owner..." option
             list_items.append(ListItem(Static("[Custom Owner...]"), id="owner-custom"))
 
@@ -179,10 +179,12 @@ class OwnerSelectionScreen(Screen[Owner | None]):
             if item_id == "owner-custom":
                 self._show_custom_input_dialog()
             elif item_id and item_id.startswith("owner-"):
-                object_id = item_id[6:]  # Remove "owner-" prefix
-                owner = next((o for o in self._owners if o.object_id == object_id), None)
-                if owner:
-                    self.dismiss(owner)
+                try:
+                    idx = int(item_id[6:])  # Remove "owner-" prefix, get index
+                    if 0 <= idx < len(self._owners):
+                        self.dismiss(self._owners[idx])
+                except ValueError:
+                    pass
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         """Handle list item selection (double-click or enter on ListView)."""
@@ -190,10 +192,12 @@ class OwnerSelectionScreen(Screen[Owner | None]):
         if item_id == "owner-custom":
             self._show_custom_input_dialog()
         elif item_id and item_id.startswith("owner-"):
-            object_id = item_id[6:]
-            owner = next((o for o in self._owners if o.object_id == object_id), None)
-            if owner:
-                self.dismiss(owner)
+            try:
+                idx = int(item_id[6:])  # Remove "owner-" prefix, get index
+                if 0 <= idx < len(self._owners):
+                    self.dismiss(self._owners[idx])
+            except ValueError:
+                pass
 
     def _show_custom_input_dialog(self) -> None:
         """Show the custom owner input area."""
