@@ -69,7 +69,7 @@ def comment(
             success=False,
             data=None,
             error=f"Invalid ticket ID format: {ticket_id}. "
-            "Ticket ID must start with US, DE, TA, or TC.",
+            "Ticket ID must start with S, US, DE, TA, or TC.",
         )
         click.echo(ctx.formatter.format_error(result), err=True)
         sys.exit(2)
@@ -118,7 +118,7 @@ def _is_valid_ticket_id(ticket_id: str) -> bool:
     Returns:
         True if valid, False otherwise.
     """
-    prefixes = ("US", "DE", "TA", "TC")
+    prefixes = ("US", "DE", "TA", "TC", "S")
     ticket_upper = ticket_id.upper()
     for prefix in prefixes:
         if ticket_upper.startswith(prefix):
@@ -173,8 +173,17 @@ async def _add_comment(ctx: CLIContext, ticket_id: str, text: str) -> CLIResult:
 
     try:
         async with AsyncRallyClient(config) as client:
-            # First, fetch the ticket to get object_id
+            # First, try to fetch the ticket directly
             ticket = await client.get_ticket(ticket_id)
+
+            # Fallback: search in all tickets if direct lookup fails
+            # (handles "S" prefix which Rally API doesn't support in queries)
+            if not ticket:
+                all_tickets = await client.get_tickets()
+                ticket = next(
+                    (t for t in all_tickets if t.formatted_id == ticket_id),
+                    None,
+                )
 
             if not ticket:
                 return CLIResult(
