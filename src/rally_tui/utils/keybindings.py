@@ -51,6 +51,7 @@ ACTION_REGISTRY: dict[str, KeyAction] = {
     "action.attachments": KeyAction(
         "action.attachments", "Attachments", "open_attachments", "Actions"
     ),
+    "action.assign_owner": KeyAction("action.assign_owner", "Assign", "assign_owner", "Actions"),
     "action.copy_url": KeyAction(
         "action.copy_url", "Copy URL", "copy_ticket_url", "Actions", show_in_footer=False
     ),
@@ -91,7 +92,8 @@ VIM_KEYBINDINGS: dict[str, str] = {
     "action.points": "p",
     "action.notes": "n",
     "action.discuss": "d",
-    "action.attachments": "a",
+    "action.attachments": "shift+a",
+    "action.assign_owner": "a",
     "action.copy_url": "y",
     # Filters
     "action.search": "slash",
@@ -130,7 +132,8 @@ EMACS_KEYBINDINGS: dict[str, str] = {
     "action.points": "ctrl+shift+p",
     "action.notes": "ctrl+shift+o",
     "action.discuss": "ctrl+d",
-    "action.attachments": "ctrl+shift+a",
+    "action.attachments": "ctrl+shift+t",
+    "action.assign_owner": "ctrl+shift+a",
     "action.copy_url": "alt+w",
     # Filters
     "action.search": "ctrl+s",
