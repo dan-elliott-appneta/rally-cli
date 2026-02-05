@@ -207,13 +207,36 @@ class AsyncMockRallyClient:
         return self._sync_client.download_embedded_image(url, dest_path)
 
     async def get_users(self, display_names: list[str] | None = None) -> list[Owner]:
-        """Fetch Rally users. Not yet implemented."""
-        raise NotImplementedError("get_users will be implemented in Phase 2")
+        """Fetch Rally users, optionally filtered by display names.
+
+        Args:
+            display_names: Optional list of display names to filter by.
+
+        Returns:
+            List of Owner objects representing Rally users.
+        """
+        return self._sync_client.get_users(display_names)
 
     async def assign_owner(self, ticket: Ticket, owner: Owner) -> Ticket | None:
-        """Assign ticket owner. Not yet implemented."""
-        raise NotImplementedError("assign_owner will be implemented in Phase 2")
+        """Assign a ticket to a new owner.
+
+        Args:
+            ticket: The ticket to update.
+            owner: The owner to assign (Owner object with object_id).
+
+        Returns:
+            The updated Ticket with new owner, or None on failure.
+        """
+        return self._sync_client.assign_owner(ticket, owner)
 
     async def bulk_assign_owner(self, tickets: list[Ticket], owner: Owner) -> BulkResult:
-        """Bulk assign owner. Not yet implemented."""
-        raise NotImplementedError("bulk_assign_owner will be implemented in Phase 2")
+        """Assign owner to multiple tickets.
+
+        Args:
+            tickets: List of tickets to update.
+            owner: The owner to assign to all tickets.
+
+        Returns:
+            BulkResult with success/failure counts and updated tickets.
+        """
+        return self._sync_client.bulk_assign_owner(tickets, owner)
