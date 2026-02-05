@@ -1374,13 +1374,128 @@ class AsyncRallyClient:
             return False
 
     async def get_users(self, display_names: list[str] | None = None) -> list[Owner]:
-        """Fetch Rally users. Not yet implemented."""
-        raise NotImplementedError("get_users will be implemented in Phase 2")
+        """Fetch Rally users by display names.
+
+        Args:
+            display_names: Optional list of user display names to filter by.
+
+        Returns:
+            List of Owner objects matching the display names.
+        """
+        params = {
+            "fetch": "ObjectID,DisplayName,UserName,EmailAddress",
+            "pagesize": 200,
+        }
+
+        if display_names:
+            # Build OR query for display names
+            conditions = [f'(DisplayName = "{name}")' for name in display_names]
+            if len(conditions) == 1:
+                params["query"] = conditions[0]
+            else:
+                query = conditions[0]
+                for cond in conditions[1:]:
+                    query = f"({query} OR {cond})"
+                params["query"] = query
+
+        try:
+            response = await self._get("/user", params)
+            results, _ = parse_query_result(response)
+            return [self._to_owner(item) for item in results]
+        except Exception as e:
+            _log.error(f"Error fetching users: {e}")
+            return []
+
+    def _to_owner(self, item: dict[str, Any]) -> Owner:
+        """Convert Rally API response to Owner model.
+
+        Args:
+            item: The Rally API response dict for a user.
+
+        Returns:
+            An Owner instance.
+        """
+        return Owner(
+            object_id=str(item.get("ObjectID", "")),
+            display_name=item.get("DisplayName", ""),
+            user_name=item.get("UserName"),
+        )
 
     async def assign_owner(self, ticket: Ticket, owner: Owner) -> Ticket | None:
-        """Assign ticket owner. Not yet implemented."""
-        raise NotImplementedError("assign_owner will be implemented in Phase 2")
+        """Assign a ticket to a new owner.
+
+        Args:
+            ticket: The ticket to update.
+            owner: The owner to assign.
+
+        Returns:
+            The updated Ticket, or None on failure.
+        """
+        if not ticket.object_id:
+            _log.warning(f"Cannot assign owner: no object_id for {ticket.formatted_id}")
+            return None
+
+        _log.info(f"Assigning {ticket.formatted_id} to {owner.display_name}")
+
+        try:
+            entity_type = get_entity_type_from_prefix(ticket.formatted_id)
+            path = f"/{get_url_path(entity_type)}/{ticket.object_id}"
+
+            response = await self._post(
+                path,
+                data={entity_type: {"Owner": f"/user/{owner.object_id}"}},
+            )
+            results, _ = parse_query_result(response)
+
+            if results:
+                _log.info(f"Owner updated for {ticket.formatted_id}")
+                return Ticket(
+                    formatted_id=ticket.formatted_id,
+                    name=ticket.name,
+                    ticket_type=ticket.ticket_type,
+                    state=ticket.state,
+                    owner=owner.display_name,
+                    description=ticket.description,
+                    notes=ticket.notes,
+                    iteration=ticket.iteration,
+                    points=ticket.points,
+                    object_id=ticket.object_id,
+                    parent_id=ticket.parent_id,
+                )
+        except Exception as e:
+            _log.error(f"Error assigning owner for {ticket.formatted_id}: {e}")
+
+        return None
 
     async def bulk_assign_owner(self, tickets: list[Ticket], owner: Owner) -> BulkResult:
-        """Bulk assign owner. Not yet implemented."""
-        raise NotImplementedError("bulk_assign_owner will be implemented in Phase 2")
+        """Assign owner to multiple tickets concurrently.
+
+        Args:
+            tickets: List of tickets to update.
+            owner: The owner to assign.
+
+        Returns:
+            BulkResult with success/failure counts.
+        """
+        _log.info(f"Bulk assigning {len(tickets)} tickets to {owner.display_name}")
+        result = BulkResult()
+
+        async def update_one(ticket: Ticket) -> Ticket | Exception:
+            try:
+                updated = await self.assign_owner(ticket, owner)
+                return updated if updated else Exception("Update failed")
+            except Exception as e:
+                return e
+
+        results = await asyncio.gather(*[update_one(t) for t in tickets])
+
+        for i, res in enumerate(results):
+            if isinstance(res, Ticket):
+                result.success_count += 1
+                result.updated_tickets.append(res)
+            elif isinstance(res, Exception):
+                result.failed_count += 1
+                result.errors.append(f"{tickets[i].formatted_id}: {str(res)}")
+
+        _log.info(f"Bulk assign: {result.success_count} success, {result.failed_count} failed")
+        return result
