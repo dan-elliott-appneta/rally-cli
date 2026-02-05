@@ -89,6 +89,15 @@ DEFAULT_FEATURES: dict[str, str] = {
     "F59628": "Infrastructure Reliability Improvements",
 }
 
+# Default mock users for owner assignment
+MOCK_USERS = [
+    {"ObjectID": "100001", "DisplayName": "Alice Johnson", "UserName": "alice@example.com"},
+    {"ObjectID": "100002", "DisplayName": "Bob Smith", "UserName": "bob@example.com"},
+    {"ObjectID": "100003", "DisplayName": "Carol Davis", "UserName": "carol@example.com"},
+    {"ObjectID": "100004", "DisplayName": "David Wilson", "UserName": "david@example.com"},
+    {"ObjectID": "100005", "DisplayName": "Emma Brown", "UserName": "emma@example.com"},
+]
+
 
 class MockRallyClient:
     """Mock Rally client for testing and development.
@@ -692,13 +701,80 @@ class MockRallyClient:
             return False
 
     def get_users(self, display_names: list[str] | None = None) -> list[Owner]:
-        """Fetch Rally users. Not yet implemented."""
-        raise NotImplementedError("get_users will be implemented in Phase 2")
+        """Fetch Rally users, optionally filtered by display names.
+
+        Args:
+            display_names: Optional list of display names to filter by.
+
+        Returns:
+            List of Owner objects representing Rally users.
+        """
+        users = MOCK_USERS
+        if display_names:
+            users = [u for u in users if u["DisplayName"] in display_names]
+
+        return [
+            Owner(
+                object_id=u["ObjectID"],
+                display_name=u["DisplayName"],
+                user_name=u.get("UserName"),
+            )
+            for u in users
+        ]
 
     def assign_owner(self, ticket: Ticket, owner: Owner) -> Ticket | None:
-        """Assign ticket owner. Not yet implemented."""
-        raise NotImplementedError("assign_owner will be implemented in Phase 2")
+        """Assign a ticket to a new owner.
+
+        Args:
+            ticket: The ticket to update.
+            owner: The owner to assign (Owner object with object_id).
+
+        Returns:
+            The updated Ticket with new owner, or None on failure.
+        """
+        # Find and update the ticket in our list
+        for i, t in enumerate(self._tickets):
+            if t.formatted_id == ticket.formatted_id:
+                updated = Ticket(
+                    formatted_id=t.formatted_id,
+                    name=t.name,
+                    ticket_type=t.ticket_type,
+                    state=t.state,
+                    owner=owner.display_name,
+                    description=t.description,
+                    notes=t.notes,
+                    iteration=t.iteration,
+                    points=t.points,
+                    object_id=t.object_id,
+                    parent_id=t.parent_id,
+                )
+                self._tickets[i] = updated
+                return updated
+        return None
 
     def bulk_assign_owner(self, tickets: list[Ticket], owner: Owner) -> BulkResult:
-        """Bulk assign owner. Not yet implemented."""
-        raise NotImplementedError("bulk_assign_owner will be implemented in Phase 2")
+        """Assign owner to multiple tickets.
+
+        Args:
+            tickets: List of tickets to update.
+            owner: The owner to assign to all tickets.
+
+        Returns:
+            BulkResult with success/failure counts and updated tickets.
+        """
+        result = BulkResult()
+
+        for ticket in tickets:
+            try:
+                updated = self.assign_owner(ticket, owner)
+                if updated:
+                    result.success_count += 1
+                    result.updated_tickets.append(updated)
+                else:
+                    result.failed_count += 1
+                    result.errors.append(f"{ticket.formatted_id}: Ticket not found")
+            except Exception as e:
+                result.failed_count += 1
+                result.errors.append(f"{ticket.formatted_id}: {str(e)}")
+
+        return result
