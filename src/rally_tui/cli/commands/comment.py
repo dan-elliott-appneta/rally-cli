@@ -13,6 +13,9 @@ from rally_tui.cli.main import CLIContext, pass_context
 from rally_tui.config import RallyConfig
 from rally_tui.services.async_rally_client import AsyncRallyClient
 
+# Rally typically allows 32000 characters for comment text
+MAX_COMMENT_LENGTH = 32000
+
 
 @click.command("comment")
 @click.argument("ticket_id")
@@ -82,6 +85,16 @@ def comment(
         click.echo(ctx.formatter.format_error(result), err=True)
         sys.exit(2)
 
+    # Validate comment length
+    if len(comment_text) > MAX_COMMENT_LENGTH:
+        result = CLIResult(
+            success=False,
+            data=None,
+            error=f"Comment exceeds {MAX_COMMENT_LENGTH} character limit",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(2)
+
     # Run async comment
     result = asyncio.run(_add_comment(ctx, ticket_id, comment_text))
 
@@ -131,12 +144,10 @@ def _get_message_text(message: str | None, message_file: str | None) -> str | No
     if message_file:
         if message_file == "-":
             # Read from stdin
-            import sys
-
             return sys.stdin.read().strip()
         else:
             # Read from file
-            with open(message_file, "r") as f:
+            with open(message_file) as f:
                 return f.read().strip()
 
     return None

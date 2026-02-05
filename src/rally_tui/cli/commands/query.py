@@ -14,6 +14,20 @@ from rally_tui.config import RallyConfig
 from rally_tui.services.async_rally_client import AsyncRallyClient
 
 
+def _sanitize_query_value(value: str) -> str:
+    """Sanitize user input for Rally WSAPI query.
+
+    Escapes quotes and backslashes to prevent query injection.
+
+    Args:
+        value: User-provided value to sanitize.
+
+    Returns:
+        Sanitized value safe for use in WSAPI query.
+    """
+    return value.replace('\\', '\\\\').replace('"', '\\"')
+
+
 @click.command("tickets")
 @click.option(
     "--current-iteration",
@@ -211,10 +225,10 @@ async def _fetch_tickets(
                 sort_by = sort_by[1:]
 
             def sort_key(t):
-                value = getattr(t, sort_by, "")
+                value = getattr(t, sort_by, None)
                 if value is None:
                     return ""
-                return value
+                return str(value) if not isinstance(value, (str, int, float)) else value
 
             tickets.sort(key=sort_key, reverse=reverse)
 
@@ -274,19 +288,24 @@ def _build_query(
 
     # Iteration filter
     if iteration:
-        conditions.append(f'(Iteration.Name = "{iteration}")')
+        sanitized_iteration = _sanitize_query_value(iteration)
+        conditions.append(f'(Iteration.Name = "{sanitized_iteration}")')
     elif current_iteration and client.current_iteration:
-        conditions.append(f'(Iteration.Name = "{client.current_iteration}")')
+        sanitized_iteration = _sanitize_query_value(client.current_iteration)
+        conditions.append(f'(Iteration.Name = "{sanitized_iteration}")')
 
     # Owner filter
     if owner:
-        conditions.append(f'(Owner.DisplayName = "{owner}")')
+        sanitized_owner = _sanitize_query_value(owner)
+        conditions.append(f'(Owner.DisplayName = "{sanitized_owner}")')
     elif my_tickets and client.current_user:
-        conditions.append(f'(Owner.DisplayName = "{client.current_user}")')
+        sanitized_user = _sanitize_query_value(client.current_user)
+        conditions.append(f'(Owner.DisplayName = "{sanitized_user}")')
 
     # State filter
     if state:
-        conditions.append(f'(FlowState.Name = "{state}")')
+        sanitized_state = _sanitize_query_value(state)
+        conditions.append(f'(FlowState.Name = "{sanitized_state}")')
 
     if not conditions:
         return None

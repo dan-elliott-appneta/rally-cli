@@ -3,6 +3,7 @@
 This module provides the main CLI application using Click.
 """
 
+import logging
 import sys
 from typing import Any
 
@@ -10,6 +11,7 @@ import click
 
 from rally_tui.cli.formatters import CSVFormatter, JSONFormatter, OutputFormat, TextFormatter
 from rally_tui.cli.formatters.base import BaseFormatter
+from rally_tui.utils.redacting_filter import RedactingFilter
 
 # Version from package
 try:
@@ -54,6 +56,20 @@ class CLIContext:
 
 
 pass_context = click.make_pass_decorator(CLIContext, ensure=True)
+
+
+def _configure_logging(verbose: bool) -> None:
+    """Configure logging with redacting filter.
+
+    Args:
+        verbose: If True, set DEBUG level; otherwise WARNING level.
+    """
+    logger = logging.getLogger("rally_tui")
+    logger.setLevel(logging.DEBUG if verbose else logging.WARNING)
+
+    handler = logging.StreamHandler()
+    handler.addFilter(RedactingFilter())
+    logger.addHandler(handler)
 
 
 @click.group()
@@ -125,6 +141,9 @@ def cli(
         # Export tickets to JSON
         rally-cli tickets --current-iteration --format json
     """
+    # Configure logging based on verbose flag
+    _configure_logging(verbose)
+
     ctx.obj = CLIContext(
         server=server,
         apikey=apikey,
