@@ -51,9 +51,7 @@ ACTION_REGISTRY: dict[str, KeyAction] = {
     "action.attachments": KeyAction(
         "action.attachments", "Attachments", "open_attachments", "Actions"
     ),
-    "action.assign_owner": KeyAction(
-        "action.assign_owner", "Assign", "assign_owner", "Actions"
-    ),
+    "action.assign_owner": KeyAction("action.assign_owner", "Assign", "assign_owner", "Actions"),
     "action.copy_url": KeyAction(
         "action.copy_url", "Copy URL", "copy_ticket_url", "Actions", show_in_footer=False
     ),

@@ -1360,6 +1360,8 @@ class RallyTUI(App[None]):
             self._bulk_set_iteration(selected)
         elif action == BulkAction.SET_POINTS:
             self._bulk_set_points(selected)
+        elif action == BulkAction.SET_OWNER:
+            self._bulk_set_owner(selected)
         elif action == BulkAction.YANK:
             self._bulk_yank(selected)
 
@@ -1377,6 +1379,55 @@ class RallyTUI(App[None]):
         # Clear selection after yank
         ticket_list = self.query_one(TicketList)
         ticket_list.clear_selection()
+
+    def _bulk_set_owner(self, tickets: list[Ticket]) -> None:
+        """Set owner on multiple tickets."""
+        # Get cached owners from iteration
+        iteration = self._iteration_filter or "BACKLOG"
+        cached_owners = self._cache_manager.get_iteration_owners(iteration)
+
+        # Add owners from tickets themselves
+        from rally_tui.services.owner_utils import extract_owners_from_tickets
+
+        ticket_owners = extract_owners_from_tickets(tickets)
+        all_owners = cached_owners | ticket_owners
+
+        self.push_screen(
+            OwnerSelectionScreen(
+                owners=all_owners,
+                title=f"Assign Owner - {len(tickets)} tickets",
+                user_settings=self._user_settings,
+            ),
+            callback=lambda owner: self._execute_bulk_owner(tickets, owner),
+        )
+
+    def _execute_bulk_owner(self, tickets: list[Ticket], owner: Owner | None) -> None:
+        """Execute bulk owner assignment."""
+        if owner is None:
+            _log.debug("Bulk owner assignment cancelled")
+            return
+
+        # Handle TEMP: prefix - resolve owner name via API
+        if owner.object_id.startswith("TEMP:"):
+            owner_name = owner.display_name
+            self.notify(f"Resolving owner '{owner_name}'...", timeout=2)
+            resolved = self._client.find_user_by_name(owner_name)
+            if resolved:
+                owner = resolved
+            else:
+                self.notify(f"Could not find user '{owner_name}'", severity="error", timeout=5)
+                return
+
+        self.notify(f"Assigning {len(tickets)} tickets to {owner.display_name}...", timeout=4)
+
+        result = self._client.bulk_assign_owner(tickets, owner)
+        self._handle_bulk_result(result, "owner")
+
+        # Update owner cache
+        iteration = self._iteration_filter or "BACKLOG"
+        cached = self._cache_manager.get_iteration_owners(iteration)
+        cached.add(owner)
+        self._cache_manager.set_iteration_owners(iteration, cached)
 
     def _bulk_set_parent(self, tickets: list[Ticket]) -> None:
         """Set parent on multiple tickets."""
