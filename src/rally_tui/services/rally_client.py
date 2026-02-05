@@ -1,5 +1,6 @@
 """Rally API client implementation."""
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from typing import Any
 
@@ -1240,8 +1241,10 @@ class RallyClient:
         }
 
         if display_names:
-            # Build OR query for display names
-            conditions = [f'(DisplayName = "{name}")' for name in display_names]
+            # Build OR query for display names (with sanitization to prevent injection)
+            conditions = [
+                f'(DisplayName = "{self._sanitize_query_value(name)}")' for name in display_names
+            ]
             if len(conditions) == 1:
                 params["query"] = conditions[0]
             else:
@@ -1259,6 +1262,17 @@ class RallyClient:
         except Exception as e:
             _log.error(f"Error fetching users: {e}")
             return []
+
+    def _sanitize_query_value(self, value: str) -> str:
+        """Escape special characters for Rally WSAPI queries.
+
+        Args:
+            value: The value to sanitize.
+
+        Returns:
+            Sanitized value safe for use in queries.
+        """
+        return value.replace("\\", "\\\\").replace('"', '\\"')
 
     def _to_owner(self, item: Any) -> Owner:
         """Convert Rally User response to Owner model.
@@ -1289,6 +1303,10 @@ class RallyClient:
             _log.warning(f"Cannot assign owner: no object_id for {ticket.formatted_id}")
             return None
 
+        if not owner.object_id or not owner.object_id.strip():
+            _log.warning(f"Cannot assign owner: invalid object_id for {owner.display_name}")
+            return None
+
         _log.info(f"Assigning {ticket.formatted_id} to {owner.display_name}")
 
         try:
@@ -1304,19 +1322,7 @@ class RallyClient:
             _log.info(f"Owner assigned successfully for {ticket.formatted_id}")
 
             # Return updated ticket
-            return Ticket(
-                formatted_id=ticket.formatted_id,
-                name=ticket.name,
-                ticket_type=ticket.ticket_type,
-                state=ticket.state,
-                owner=owner.display_name,
-                description=ticket.description,
-                notes=ticket.notes,
-                iteration=ticket.iteration,
-                points=ticket.points,
-                object_id=ticket.object_id,
-                parent_id=ticket.parent_id,
-            )
+            return replace(ticket, owner=owner.display_name)
         except Exception as e:
             _log.error(f"Error assigning owner for {ticket.formatted_id}: {e}")
 

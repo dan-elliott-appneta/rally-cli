@@ -415,14 +415,20 @@ class CachingRallyClient:
         """
         cached_tickets, metadata = self._cache.get_cached_tickets()
         if cached_tickets:
+            found = False
             # Find and replace the ticket in cached list
             for i, cached_ticket in enumerate(cached_tickets):
                 if cached_ticket.formatted_id == updated_ticket.formatted_id:
                     cached_tickets[i] = updated_ticket
+                    found = True
                     break
-            # Save updated cache
-            self._cache.save_tickets(
-                cached_tickets,
-                workspace=self.workspace,
-                project=self.project,
-            )
+
+            # Only save if ticket was found in cache
+            if found:
+                self._cache.save_tickets(
+                    cached_tickets,
+                    workspace=self.workspace,
+                    project=self.project,
+                )
+            else:
+                logger.debug(f"Ticket {updated_ticket.formatted_id} not in cache, skipping save")
