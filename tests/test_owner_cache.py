@@ -22,8 +22,8 @@ class TestExtractOwnersFromTickets:
         ]
         owners = extract_owners_from_tickets(tickets)
         assert len(owners) == 2
-        display_names = {o.display_name for o in owners}
-        assert display_names == {"Alice", "Bob"}
+        object_ids = {o.object_id for o in owners}
+        assert object_ids == {"TEMP:Alice", "TEMP:Bob"}
 
     def test_skips_tickets_without_owner(self):
         """Should skip tickets with no owner."""
@@ -103,3 +103,29 @@ class TestCacheManagerOwners:
         cache_manager.clear_cache()
 
         assert cache_manager.get_iteration_owners("Sprint 1") == set()
+
+    def test_owners_persist_to_disk(self, cache_manager: CacheManager):
+        """Should persist owners to disk and reload correctly."""
+        owners = {Owner(object_id="123", display_name="Alice", user_name=None)}
+        cache_manager.set_iteration_owners("Sprint 1", owners)
+
+        # Create new cache manager instance (simulates app restart)
+        new_manager = CacheManager(cache_dir=cache_manager.cache_dir)
+        retrieved = new_manager.get_iteration_owners("Sprint 1")
+
+        assert len(retrieved) == 1
+        assert next(iter(retrieved)).object_id == "123"
+
+    def test_corrupted_cache_file(self, cache_manager: CacheManager):
+        """Should handle corrupted JSON file gracefully."""
+        cache_manager._ensure_cache_dir()
+        cache_manager._owners_file.write_text("{corrupted json")
+
+        # Should return empty set instead of crashing
+        owners = cache_manager.get_iteration_owners("Sprint 1")
+        assert owners == set()
+
+        # Writing new data should work (overwrites corrupted file)
+        new_owners = {Owner("1", "Alice", None)}
+        cache_manager.set_iteration_owners("Sprint 1", new_owners)
+        assert len(cache_manager.get_iteration_owners("Sprint 1")) == 1

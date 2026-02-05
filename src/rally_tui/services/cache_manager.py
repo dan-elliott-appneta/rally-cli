@@ -276,9 +276,16 @@ class CacheManager:
             iteration: Iteration name (or FILTER_BACKLOG constant)
             owners: Set of Owner objects to cache
         """
+        logger.info(f"Caching {len(owners)} owners for iteration: {iteration}")
+
         # Read existing data or create new structure
         data = self._read_json(self._owners_file)
-        if not data:
+        if data is None:
+            if self._owners_file.exists():
+                logger.warning(f"Owners cache file corrupted, starting fresh: {self._owners_file}")
+            data = {"iterations": {}}
+        elif not isinstance(data.get("iterations"), dict):
+            logger.warning("Owners cache 'iterations' is not a dict, reinitializing")
             data = {"iterations": {}}
 
         # Convert Owner objects to dicts for JSON serialization
@@ -296,7 +303,6 @@ class CacheManager:
 
         # Write atomically
         self._atomic_write(self._owners_file, data)
-        logger.info(f"Cached {len(owners)} owners for iteration: {iteration}")
 
     def clear_iteration_owners(self, iteration: str | None = None) -> None:
         """Clear cached owners.

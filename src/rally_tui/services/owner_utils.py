@@ -4,24 +4,25 @@ from rally_tui.models import Owner, Ticket
 
 
 def extract_owners_from_tickets(tickets: list[Ticket]) -> set[Owner]:
-    """Extract unique owners from a list of tickets.
+    """Extract unique owners from a list of tickets as STUB objects.
+
+    IMPORTANT: Returns Owner objects with display_name used as temporary object_id
+    (prefixed with "TEMP:"). These MUST be enriched via get_users() API call to
+    get real object IDs before caching or using in API operations.
 
     Args:
         tickets: List of tickets to extract owners from
 
     Returns:
-        Set of Owner objects representing unique owners.
+        Set of STUB Owner objects requiring enrichment.
         Tickets with no owner (owner=None) are skipped.
     """
     owners: set[Owner] = set()
     for ticket in tickets:
         if ticket.owner:
-            # Create Owner with display_name from ticket.owner field
-            # Note: We don't have object_id or user_name from ticket data,
-            # so we'll need to use display_name as a temporary identifier
-            # The full Owner object will be populated when get_users() is called
+            # Create stub Owner - MUST be enriched with get_users() before caching
             owner = Owner(
-                object_id=ticket.owner,  # Use display_name as temp ID
+                object_id=f"TEMP:{ticket.owner}",  # Temporary ID, needs enrichment
                 display_name=ticket.owner,
                 user_name=None,
             )
