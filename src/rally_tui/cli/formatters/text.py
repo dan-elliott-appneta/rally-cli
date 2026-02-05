@@ -60,7 +60,15 @@ class TextFormatter(BaseFormatter):
 
         # Default fields if not specified
         if fields is None:
-            fields = ["formatted_id", "ticket_type", "state", "owner", "points", "iteration", "name"]
+            fields = [
+                "formatted_id",
+                "ticket_type",
+                "state",
+                "owner",
+                "points",
+                "iteration",
+                "name",
+            ]
 
         # Build header row
         headers = [self.FIELD_HEADERS.get(f, f.title()) for f in fields]

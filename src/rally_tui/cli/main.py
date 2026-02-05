@@ -4,8 +4,6 @@ This module provides the main CLI application using Click.
 """
 
 import logging
-import sys
-from typing import Any
 
 import click
 
@@ -156,7 +154,7 @@ def cli(
 
 # Import and register commands
 # These are imported here to avoid circular imports
-from rally_tui.cli.commands import comment, query  # noqa: E402
+from rally_tui.cli.commands import comment, query  # noqa: E402, F401
 
 
 def main() -> None:

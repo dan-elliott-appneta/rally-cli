@@ -9,7 +9,7 @@ import sys
 import click
 
 from rally_tui.cli.formatters.base import CLIResult
-from rally_tui.cli.main import CLIContext, pass_context
+from rally_tui.cli.main import CLIContext, cli, pass_context
 from rally_tui.config import RallyConfig
 from rally_tui.services.async_rally_client import AsyncRallyClient
 
@@ -211,6 +211,4 @@ async def _add_comment(ctx: CLIContext, ticket_id: str, text: str) -> CLIResult:
 
 
 # Register command with CLI
-from rally_tui.cli.main import cli
-
 cli.add_command(comment)
