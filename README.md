@@ -1,5 +1,9 @@
 # Rally TUI & CLI
 
+[![CI](https://github.com/dan-elliott-appneta/rally-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/dan-elliott-appneta/rally-cli/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/rally-tui.svg)](https://pypi.org/project/rally-tui/)
+[![Python](https://img.shields.io/pypi/pyversions/rally-tui.svg)](https://pypi.org/project/rally-tui/)
+
 A terminal user interface (TUI) and command-line interface (CLI) for browsing and managing Rally (Broadcom) work items.
 
 ## Features
@@ -120,9 +124,23 @@ See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
 ## Installation
 
+[![PyPI version](https://img.shields.io/pypi/v/rally-tui.svg)](https://pypi.org/project/rally-tui/)
+
+### From PyPI (Recommended)
+
+```bash
+# Using pipx (isolated environment - recommended)
+pipx install rally-tui
+
+# Or using pip
+pip install rally-tui
+```
+
+### From Source (Development)
+
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/dan-elliott-appneta/rally-cli.git
 cd rally-cli
 
 # Create virtual environment
