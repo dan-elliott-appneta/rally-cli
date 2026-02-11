@@ -1,8 +1,12 @@
 # Rally TUI & CLI
 
+<p align="center">
+  <img src="docs/logo.png" alt="Rally CLI Logo" width="200">
+</p>
+
 [![CI](https://github.com/dan-elliott-appneta/rally-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/dan-elliott-appneta/rally-cli/actions/workflows/ci.yml)
-[![PyPI version](https://img.shields.io/pypi/v/rally-tui.svg)](https://pypi.org/project/rally-tui/)
-[![Python](https://img.shields.io/pypi/pyversions/rally-tui.svg)](https://pypi.org/project/rally-tui/)
+[![PyPI version](https://img.shields.io/pypi/v/rally-cli.svg)](https://pypi.org/project/rally-cli/)
+[![Python](https://img.shields.io/pypi/pyversions/rally-cli.svg)](https://pypi.org/project/rally-cli/)
 
 A terminal user interface (TUI) and command-line interface (CLI) for browsing and managing Rally (Broadcom) work items.
 
