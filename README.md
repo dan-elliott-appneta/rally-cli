@@ -161,7 +161,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 0.8.1
+# Output: rally-tui 0.8.2
 ```
 
 ### Running with Rally API
