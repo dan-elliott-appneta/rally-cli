@@ -289,6 +289,15 @@ When required (e.g., before moving to In Progress):
 
 Configure parent options in settings (F2) or `~/.config/rally-tui/config.json`.
 
+### Assign Owner
+
+Press `a` to assign a ticket to a team member:
+1. A list of team members is displayed
+2. Select the new owner
+3. The ticket is reassigned
+
+This also works in bulk: select multiple tickets with `Space`, press `m`, then choose "Assign Owner".
+
 ### Create New Ticket
 
 Press `w` to create a new work item:
@@ -300,6 +309,12 @@ Press `w` to create a new work item:
 New tickets are automatically:
 - Assigned to you
 - Added to the current iteration
+
+You can also create tickets from the CLI:
+```bash
+rally-cli tickets create "My Story" --description "Details" --points 3
+rally-cli tickets create "Backlog idea" --backlog
+```
 
 ---
 
@@ -489,7 +504,8 @@ Logs are written to `~/.config/rally-tui/rally-tui.log`:
 | `p` | Set points |
 | `n` | Toggle description/notes |
 | `d` | Open discussions |
-| `a` | View attachments |
+| `a` | Assign owner |
+| `A` (Shift+a) | View attachments |
 | `w` | Create new ticket |
 
 ### Filtering
@@ -584,8 +600,14 @@ Set log level to DEBUG in settings (F2) for more detail.
 
 ## Version Information
 
-- Current Version: 0.7.6
+- Current Version: 0.8.2
 - Check version: `rally-tui --version`
 - Version shown on splash screen at startup
+
+### Changelog
+
+**0.8.2** - CLI ticket creation (`rally-cli tickets create`), backlog support, project logo
+**0.8.1** - Owner assignment (`a` key), bulk owner assignment, team breakdown (`b` key), wide view (`v` key)
+**0.8.0** - Async Rally client, CLI interface, S prefix support, JSON/CSV export
 
 For the latest updates, see the [README](../README.md) and [PLAN.md](PLAN.md).

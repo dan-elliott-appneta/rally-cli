@@ -147,6 +147,51 @@ S459344,RC creation ticket,UserStory,In-Progress,Daniel Elliot,0.5,FY26-Q1 PI Sp
 
 ---
 
+### `rally-cli tickets create`
+
+Create a new ticket in Rally from the command line.
+
+```bash
+rally-cli tickets create NAME [OPTIONS]
+```
+
+#### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `NAME` | Ticket title (required) |
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--description TEXT` | Ticket description |
+| `--points FLOAT` | Story points to set |
+| `--type [UserStory\|Defect]` | Ticket type (default: UserStory) |
+| `--backlog` | Put in backlog (skip iteration assignment) |
+
+#### Examples
+
+```bash
+# Create a user story in current iteration
+rally-cli tickets create "Implement login page" --description "OAuth2 flow" --points 3
+
+# Create a defect
+rally-cli tickets create "Fix null pointer in auth" --type Defect --points 1
+
+# Create a backlog item (no iteration)
+rally-cli tickets create "Future: dark mode support" --backlog
+
+# JSON output for scripting
+rally-cli --format json tickets create "My Story" --points 2
+```
+
+New tickets are automatically:
+- Assigned to the current user
+- Added to the current iteration (unless `--backlog` is specified)
+
+---
+
 ### `rally-cli comment`
 
 Add a comment to a ticket's discussion.

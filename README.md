@@ -55,69 +55,30 @@ A terminal user interface (TUI) and command-line interface (CLI) for browsing an
 
 ## Status
 
-**Iteration 15 In Progress** - CLI Interface Added.
+**Version 0.8.2** - CLI ticket creation, owner assignment, project logo.
 
-### Recent Additions
-- **CLI Interface**: Non-interactive command-line for scripting (`rally-cli tickets`, `rally-cli comment`)
-- **S Prefix Support**: Rally stories with S prefix (e.g., S459344) now fully supported
-- **JSON/CSV Export**: Export tickets to JSON or CSV for automation and reporting
+### What's New in 0.8.2
+- **CLI Ticket Creation**: `rally-cli tickets create "Title" --type UserStory --points 3`
+- **Backlog Support**: `--backlog` flag to create tickets without iteration assignment
+- **Project Logo**: Added project branding
+- **PyPI Release Workflow**: Automated publishing on version tags
 
-### Recent Bug Fixes
-- **Fixed**: FlowState/State handling for Rally reference objects (prevents "unhashable type: dict" errors)
-- **Fixed**: Async client pagination - now fetches all results instead of first 200
-- **Fixed**: Package data for .tcss files in pipx installations
-- **Fixed**: Cache loader handles dict states from stale cache files
-- **Added**: Exclude "Jira Migration" owned items from all queries
+### What's New in 0.8.1
+- **Owner Assignment**: Press `a` to assign tickets to team members
+- **Bulk Owner Assignment**: Select multiple tickets and assign owner via bulk actions
+- **Team Breakdown**: Press `b` to view ticket count and points by owner for a sprint
+- **Wide View**: Press `v` to toggle expanded list with owner, points, and parent columns
 
-- **NEW**: Vim motions (j/k/g/G) work on all screens (discussions, attachments, iteration picker, state picker, bulk actions)
-- **NEW**: Press `F3` to open keybindings configuration screen
-- **NEW**: Vim and Emacs keybinding profiles
-- **NEW**: Custom keybinding overrides
-- **NEW**: Click rows to edit individual bindings
-- **NEW**: Conflict detection for duplicate key assignments
-- **NEW**: Profile selector (Vim, Emacs, Custom)
-- **NEW**: Reset button to restore defaults
-- Multi-select tickets with `Space` key (toggle selection)
-- Select all tickets with `Ctrl+A` (toggle select all/deselect all)
-- Press `m` to open bulk actions menu on selected tickets
-- Bulk operations: Set Parent, Set State, Set Iteration, Set Points, Assign Owner, Yank (copy URLs)
-- Press `F2` to open ConfigScreen for editing settings
-- Configure theme, log level, and parent options from the TUI
-- Settings saved immediately with Ctrl+S or Save button
-- Ticket must have a parent Feature before moving to "In Progress" state
-- ParentScreen modal for selecting parent (3 configurable options + custom ID entry)
-- Configurable parent options via `~/.config/rally-tui/config.json`
-- Filter by iteration/sprint with `i` key
-- Toggle "My Items" filter with `u` key to show only your tickets
-- Filter to Backlog (unscheduled items) from iteration picker
-- Status bar shows active filters (Sprint: X, My Items)
-- State indicators show workflow progress with colored symbols
-- Sort by most recent (default), state flow, owner, or parent
-- Theme preference persisted to user config file
-- Copy ticket URL to clipboard with `y` key
-- Set story points with `p` key
-- Create tickets with `w` key (User Story or Defect, auto-assigns to you and current iteration)
-- View ticket discussions with `d` key
-- Add comments with `c` key from discussion screen
-- HTML content converted to readable plain text
-- Search/filter tickets with `/` key (vim-style)
-- Real-time filtering as you type
-- Case-insensitive search across ID, name, owner, state
-- Search query and filter count displayed in status bar (Search: query X/Y)
-- Escape clears filter, Enter confirms and returns to list
-- Connect to Rally API using pyral
-- Environment variable configuration (RALLY_APIKEY, RALLY_WORKSPACE, etc.)
-- Automatic fallback to offline mode with sample data
-- Connection status indicator (Connected as {username}/Offline)
-- Two-panel layout with ticket list and detail view
-- Tab to switch between panels
-- Context-sensitive keyboard shortcuts
-- Default filter to current iteration and current user when connected
-- Toggle between description and notes with `n` key
-- File-based logging with configurable log level
-- 904 tests passing (including 74 async tests)
-
-Next: Iteration 15 (Custom fields support).
+### Feature Summary
+- **CLI Interface**: `rally-cli tickets`, `rally-cli comment`, `rally-cli tickets create`
+- **TUI**: Two-panel layout with vim navigation, themes, and keyboard customization
+- **Bulk Operations**: Multi-select with `Space`, bulk actions with `m` (parent, state, iteration, points, owner, yank)
+- **Local Caching**: Stale-while-revalidate for instant startup, press `r` to refresh
+- **Sprint Filtering**: Press `i` for iteration picker, `u` for My Items, `b` for team breakdown
+- **Discussions & Comments**: View (`d`) and add comments (`c`) on tickets
+- **Attachments**: View, download, upload with `A` (Shift+a)
+- **Configurable Keybindings**: Vim/Emacs profiles, press `F3` to customize
+- **904+ tests** passing across Python 3.11, 3.12, 3.13
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -161,7 +122,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 0.8.1
+# Output: rally-tui 0.8.2
 ```
 
 ### Running with Rally API

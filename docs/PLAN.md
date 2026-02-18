@@ -51,6 +51,11 @@ rally-cli/
 │       │   ├── iteration.py    # Iteration dataclass
 │       │   ├── attachment.py   # Attachment dataclass
 │       │   └── sample_data.py  # Sample tickets for offline mode
+│       ├── cli/
+│       │   ├── main.py                # CLI entry point and global options
+│       │   ├── commands/query.py      # tickets group + create subcommand
+│       │   ├── commands/comment.py    # comment command
+│       │   └── formatters/            # Text, JSON, CSV output formatters
 │       ├── screens/
 │       │   ├── __init__.py
 │       │   ├── splash_screen.py       # ASCII art startup screen
@@ -64,7 +69,9 @@ rally-cli/
 │       │   ├── keybindings_screen.py  # Edit keyboard shortcuts
 │       │   ├── bulk_actions_screen.py # Multi-select operations
 │       │   ├── attachments_screen.py  # View/download attachments
-│       │   └── quick_ticket_screen.py # Quick ticket creation
+│       │   ├── quick_ticket_screen.py # Quick ticket creation
+│       │   ├── owner_screen.py        # Owner assignment
+│       │   └── team_breakdown_screen.py # Sprint team breakdown
 │       ├── utils/
 │       │   ├── __init__.py
 │       │   ├── html_to_text.py  # HTML to plain text converter
@@ -77,7 +84,7 @@ rally-cli/
 │           ├── mock_client.py   # Mock client for testing/offline
 │           ├── cache_manager.py # Local file caching for tickets
 │           └── caching_client.py # CachingRallyClient wrapper
-├── tests/                       # 737 tests
+├── tests/                       # 904+ tests
 │   ├── conftest.py             # Fixtures, mock Rally client
 │   ├── test_ticket_model.py
 │   ├── test_discussion_model.py
@@ -1439,9 +1446,45 @@ tests/
 
 ---
 
-### Project Complete
+### Iteration 15: CLI Ticket Creation & Owner Assignment ✅ COMPLETE
 
-With Iteration 14, rally-tui will be a fully-featured, high-performance Rally TUI with:
+**Goal**: Extend CLI with ticket creation and add owner assignment to TUI
+
+**Tasks**:
+- [x] Add `tickets create` subcommand to CLI (`rally-cli tickets create`)
+- [x] Support `--type`, `--description`, `--points`, `--backlog` options
+- [x] Convert `tickets` command from `@click.command` to `@click.group` with `invoke_without_command=True`
+- [x] Add `create_ticket()` with `points` and `backlog` parameters to async client
+- [x] Add owner assignment to TUI (`a` key) - individual and bulk
+- [x] Add `get_users()` and `assign_owner()` to RallyClientProtocol
+- [x] Add `bulk_assign_owner()` for bulk operations
+- [x] Create `OwnerSelectionScreen` with team member picker
+- [x] Add team breakdown view (`b` key) showing ticket/points per owner
+- [x] Add wide view mode (`v` key) with owner, points, parent columns
+- [x] Add project logo
+- [x] Add PyPI release workflow (automated on version tags)
+- [x] Write tests for all new functionality
+
+**Key Files**:
+```
+src/rally_tui/
+├── cli/
+│   └── commands/query.py       # tickets group + create subcommand
+├── screens/
+│   ├── owner_screen.py         # OwnerSelectionScreen
+│   └── team_breakdown_screen.py # TeamBreakdownScreen
+├── services/
+│   ├── protocol.py             # Owner model, get_users, assign_owner, bulk_assign_owner
+│   ├── rally_client.py         # Owner API implementation
+│   └── mock_client.py          # Mock owner support
+└── app.py                      # Owner assignment handlers, wide view, team breakdown
+```
+
+---
+
+### Project Status
+
+rally-tui is a fully-featured, high-performance Rally TUI and CLI with:
 - ✅ Full Rally API integration (Iterations 1-6)
 - ✅ Search and filtering (Iteration 7)
 - ✅ Discussions and comments (Iteration 8)
@@ -1451,6 +1494,9 @@ With Iteration 14, rally-tui will be a fully-featured, high-performance Rally TU
 - ✅ Bulk operations (Iteration 12)
 - ✅ Attachments (Iteration 13)
 - ✅ Local caching and offline mode (Iteration 14)
+- ✅ CLI ticket creation and owner assignment (Iteration 15)
+
+**Current version**: 0.8.2 | **Tests**: 904+ | **Python**: 3.11-3.13
 
 ---
 
