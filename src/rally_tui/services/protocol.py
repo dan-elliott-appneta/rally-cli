@@ -112,6 +112,7 @@ class RallyClientProtocol(Protocol):
         title: str,
         ticket_type: str,
         description: str = "",
+        points: float | None = None,
     ) -> Ticket | None:
         """Create a new ticket in Rally.
 
@@ -122,6 +123,7 @@ class RallyClientProtocol(Protocol):
             title: The ticket title/name.
             ticket_type: The entity type ("HierarchicalRequirement" or "Defect").
             description: Optional ticket description.
+            points: Optional story points (PlanEstimate) to set on create.
 
         Returns:
             The created Ticket, or None on failure.

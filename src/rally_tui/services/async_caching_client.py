@@ -43,7 +43,11 @@ class AsyncRallyClientProtocol(Protocol):
     async def update_points(self, ticket: Ticket, points: float) -> Ticket | None: ...
     async def update_state(self, ticket: Ticket, state: str) -> Ticket | None: ...
     async def create_ticket(
-        self, title: str, ticket_type: str, description: str = ""
+        self,
+        title: str,
+        ticket_type: str,
+        description: str = "",
+        points: float | None = None,
     ) -> Ticket | None: ...
     async def get_iterations(self, count: int = 5) -> list[Iteration]: ...
     async def get_feature(self, formatted_id: str) -> tuple[str, str] | None: ...
@@ -290,11 +294,12 @@ class AsyncCachingRallyClient:
         title: str,
         ticket_type: str,
         description: str = "",
+        points: float | None = None,
     ) -> Ticket | None:
         """Create a new ticket."""
         if self._is_offline:
             return None
-        return await self._client.create_ticket(title, ticket_type, description)
+        return await self._client.create_ticket(title, ticket_type, description, points)
 
     async def update_state(self, ticket: Ticket, state: str) -> Ticket | None:
         """Update a ticket's workflow state."""

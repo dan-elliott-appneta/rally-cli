@@ -138,6 +138,10 @@ def cli(
     \b
         # Export tickets to JSON
         rally-cli tickets --current-iteration --format json
+
+    \b
+        # Create a new ticket
+        rally-cli tickets create "My Story" --description "Brief description" --points 1
     """
     # Configure logging based on verbose flag
     _configure_logging(verbose)

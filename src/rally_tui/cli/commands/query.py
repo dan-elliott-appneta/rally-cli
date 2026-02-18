@@ -11,6 +11,7 @@ import click
 from rally_tui.cli.formatters.base import CLIResult
 from rally_tui.cli.main import CLIContext, cli, pass_context
 from rally_tui.config import RallyConfig
+from rally_tui.models import Ticket
 from rally_tui.services.async_rally_client import AsyncRallyClient
 
 
@@ -28,7 +29,14 @@ def _sanitize_query_value(value: str) -> str:
     return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
-@click.command("tickets")
+# Map CLI type names to Rally entity types
+CREATE_TYPE_MAP = {
+    "userstory": "HierarchicalRequirement",
+    "defect": "Defect",
+}
+
+
+@click.group("tickets", invoke_without_command=True)
 @click.option(
     "--current-iteration",
     is_flag=True,
@@ -78,9 +86,9 @@ def _sanitize_query_value(value: str) -> str:
     default="formatted_id",
     help="Sort by field.",
 )
-@pass_context
+@click.pass_context
 def tickets(
-    ctx: CLIContext,
+    click_ctx: click.Context,
     current_iteration: bool,
     my_tickets: bool,
     iteration: str | None,
@@ -95,6 +103,7 @@ def tickets(
 
     Without flags, returns all tickets in the project (excluding Jira Migration items).
     Use --current-iteration and --my-tickets for the most common use case.
+    Use 'tickets create' to create a new ticket.
 
     Examples:
 
@@ -107,14 +116,43 @@ def tickets(
         rally-cli tickets --iteration "Sprint 2024.01"
 
     \b
-        # Show all defects in current iteration
-        rally-cli tickets --current-iteration --ticket-type Defect
+        # Create a new ticket
+        rally-cli tickets create "My Story" --description "Brief description" --points 1
 
     \b
         # Custom query with JSON output
         rally-cli tickets --query '(State = "In-Progress")' --format json
     """
-    # Check for API key
+    if click_ctx.invoked_subcommand is not None:
+        return
+    ctx = click_ctx.obj
+    _tickets_list(
+        ctx=ctx,
+        current_iteration=current_iteration,
+        my_tickets=my_tickets,
+        iteration=iteration,
+        owner=owner,
+        state=state,
+        ticket_type=ticket_type,
+        custom_query=custom_query,
+        fields=fields,
+        sort_by=sort_by,
+    )
+
+
+def _tickets_list(
+    ctx: CLIContext,
+    current_iteration: bool,
+    my_tickets: bool,
+    iteration: str | None,
+    owner: str | None,
+    state: str | None,
+    ticket_type: str | None,
+    custom_query: str | None,
+    fields: str | None,
+    sort_by: str,
+) -> None:
+    """Run the list-tickets flow (default when no subcommand)."""
     if not ctx.apikey:
         result = CLIResult(
             success=False,
@@ -125,12 +163,10 @@ def tickets(
         click.echo(ctx.formatter.format_error(result), err=True)
         sys.exit(4)
 
-    # Parse fields
     field_list = None
     if fields:
         field_list = [f.strip() for f in fields.split(",")]
 
-    # Run async query
     result = asyncio.run(
         _fetch_tickets(
             ctx=ctx,
@@ -145,14 +181,93 @@ def tickets(
         )
     )
 
-    # Output result
     if result.success:
         output = ctx.formatter.format_tickets(result, field_list)
         click.echo(output)
         sys.exit(0)
     else:
-        output = ctx.formatter.format_error(result)
-        click.echo(output, err=True)
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(1)
+
+
+@tickets.command("create")
+@click.argument("name")
+@click.option(
+    "--description",
+    default="",
+    help="Ticket description.",
+)
+@click.option(
+    "--points",
+    type=float,
+    default=None,
+    help="Story points to set on the ticket.",
+)
+@click.option(
+    "--type",
+    "ticket_type",
+    type=click.Choice(["UserStory", "Defect"], case_sensitive=False),
+    default="UserStory",
+    help="Ticket type (default: UserStory).",
+)
+@pass_context
+def tickets_create(
+    ctx: CLIContext,
+    name: str,
+    description: str,
+    points: float | None,
+    ticket_type: str,
+) -> None:
+    """Create a new ticket in Rally.
+
+    Creates a User Story or Defect with the current user as owner and
+    current iteration, if available.
+
+    Examples:
+
+    \b
+        rally-cli tickets create "Ticket Name" --description "Brief description" --points 1
+        rally-cli tickets create "Bug in login" --type Defect --description "Repro steps..."
+    """
+    if not ctx.apikey:
+        result = CLIResult(
+            success=False,
+            data=None,
+            error="RALLY_APIKEY environment variable not set. "
+            "Set RALLY_APIKEY or use --apikey flag.",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(4)
+
+    entity_type = CREATE_TYPE_MAP.get(ticket_type.lower(), "HierarchicalRequirement")
+    config = RallyConfig(
+        server=ctx.server,
+        apikey=ctx.apikey,
+        workspace=ctx.workspace,
+        project=ctx.project,
+    )
+
+    async def _do_create() -> Ticket | None:
+        async with AsyncRallyClient(config) as client:
+            return await client.create_ticket(
+                title=name,
+                ticket_type=entity_type,
+                description=description,
+                points=points,
+            )
+
+    created = asyncio.run(_do_create())
+    if created:
+        result = CLIResult(success=True, data=[created])
+        click.echo(ctx.formatter.format_tickets(result))
+        sys.exit(0)
+    else:
+        result = CLIResult(
+            success=False,
+            data=None,
+            error="Failed to create ticket.",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
         sys.exit(1)
 
 

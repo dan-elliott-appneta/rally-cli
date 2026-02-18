@@ -138,9 +138,10 @@ class AsyncMockRallyClient:
         title: str,
         ticket_type: str,
         description: str = "",
+        points: float | None = None,
     ) -> Ticket | None:
         """Create a new ticket."""
-        return self._sync_client.create_ticket(title, ticket_type, description)
+        return self._sync_client.create_ticket(title, ticket_type, description, points)
 
     # -------------------------------------------------------------------------
     # Async Iteration Operations

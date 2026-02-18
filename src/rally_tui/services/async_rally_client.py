@@ -716,6 +716,7 @@ class AsyncRallyClient:
         title: str,
         ticket_type: str,
         description: str = "",
+        points: float | None = None,
     ) -> Ticket | None:
         """Create a new ticket in Rally.
 
@@ -723,6 +724,7 @@ class AsyncRallyClient:
             title: The ticket title/name.
             ticket_type: The entity type ("HierarchicalRequirement" or "Defect").
             description: Optional ticket description.
+            points: Optional story points (PlanEstimate) to set on create.
 
         Returns:
             The created Ticket, or None on failure.
@@ -734,6 +736,8 @@ class AsyncRallyClient:
                 "Name": title,
                 "Description": description,
             }
+            if points is not None:
+                ticket_data["PlanEstimate"] = points
 
             # Add current iteration if available
             if self._current_iteration:
