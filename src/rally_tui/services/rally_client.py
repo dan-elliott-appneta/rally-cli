@@ -1,12 +1,13 @@
 """Rally API client implementation."""
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from typing import Any
 
 from pyral import Rally
 
 from rally_tui.config import RallyConfig
-from rally_tui.models import Attachment, Discussion, Iteration, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
 from rally_tui.services.protocol import BulkResult
 from rally_tui.utils import get_logger
 
@@ -1225,96 +1226,137 @@ class RallyClient:
             _log.error(f"Error saving embedded image: {e}")
             return False
 
-    def set_owner(self, ticket: Ticket, owner_name: str) -> Ticket | None:
-        """Set a ticket's owner by display name.
+    def get_users(self, display_names: list[str] | None = None) -> list[Owner]:
+        """Fetch Rally users by display names.
+
+        Args:
+            display_names: Optional list of user display names to filter by.
+
+        Returns:
+            List of Owner objects matching the display names.
+        """
+        params = {
+            "fetch": "ObjectID,DisplayName,UserName,EmailAddress",
+            "pagesize": 200,
+        }
+
+        if display_names:
+            # Build OR query for display names (with sanitization to prevent injection)
+            conditions = [
+                f'(DisplayName = "{self._sanitize_query_value(name)}")' for name in display_names
+            ]
+            if len(conditions) == 1:
+                params["query"] = conditions[0]
+            else:
+                query = conditions[0]
+                for cond in conditions[1:]:
+                    query = f"({query} OR {cond})"
+                params["query"] = query
+
+        try:
+            response = self._rally.get("User", **params)
+            users: list[Owner] = []
+            for item in response:
+                users.append(self._to_owner(item))
+            return users
+        except Exception as e:
+            _log.error(f"Error fetching users: {e}")
+            return []
+
+    def _sanitize_query_value(self, value: str) -> str:
+        """Escape special characters for Rally WSAPI queries.
+
+        Args:
+            value: The value to sanitize.
+
+        Returns:
+            Sanitized value safe for use in queries.
+        """
+        return value.replace("\\", "\\\\").replace('"', '\\"')
+
+    def _to_owner(self, item: Any) -> Owner:
+        """Convert Rally User response to Owner model.
+
+        Args:
+            item: The pyral User object.
+
+        Returns:
+            An Owner instance.
+        """
+        return Owner(
+            object_id=str(item.ObjectID),
+            display_name=item.DisplayName,
+            user_name=getattr(item, "UserName", None),
+        )
+
+    def assign_owner(self, ticket: Ticket, owner: Owner) -> Ticket | None:
+        """Assign a ticket to a new owner.
 
         Args:
             ticket: The ticket to update.
-            owner_name: The owner's display name.
+            owner: The owner to assign (Owner object with object_id).
 
         Returns:
             The updated Ticket with new owner, or None on failure.
         """
         if not ticket.object_id:
-            _log.warning(f"Cannot set owner: no object_id for {ticket.formatted_id}")
+            _log.warning(f"Cannot assign owner: no object_id for {ticket.formatted_id}")
             return None
 
-        _log.info(f"Setting owner of {ticket.formatted_id} to {owner_name}")
+        if not owner.object_id or not owner.object_id.strip():
+            _log.warning(f"Cannot assign owner: invalid object_id for {owner.display_name}")
+            return None
+
+        _log.info(f"Assigning {ticket.formatted_id} to {owner.display_name}")
 
         try:
             entity_type = self._get_entity_type(ticket.formatted_id)
 
-            # Look up the user by display name
-            user_ref: str | None = None
-            response = self._rally.get(
-                "User",
-                fetch="DisplayName,ObjectID",
-                query=f'(DisplayName = "{owner_name}")',
-                pagesize=1,
-            )
-            for user in response:
-                user_ref = f"/user/{user.ObjectID}"
-                _log.debug(f"Found user ref: {user_ref} for owner: {owner_name}")
-                break
-
-            if not user_ref:
-                _log.error(f"User not found: {owner_name}")
-                return None
-
+            # Update the Owner field with user reference
             update_data = {
                 "ObjectID": ticket.object_id,
-                "Owner": user_ref,
+                "Owner": f"/user/{owner.object_id}",
             }
 
             self._rally.update(entity_type, update_data)
-            _log.info(f"Owner set successfully for {ticket.formatted_id}")
+            _log.info(f"Owner assigned successfully for {ticket.formatted_id}")
 
-            return Ticket(
-                formatted_id=ticket.formatted_id,
-                name=ticket.name,
-                ticket_type=ticket.ticket_type,
-                state=ticket.state,
-                owner=owner_name,
-                description=ticket.description,
-                notes=ticket.notes,
-                iteration=ticket.iteration,
-                points=ticket.points,
-                object_id=ticket.object_id,
-                parent_id=ticket.parent_id,
-            )
+            # Return updated ticket
+            return replace(ticket, owner=owner.display_name)
         except Exception as e:
-            _log.error(f"Error setting owner for {ticket.formatted_id}: {e}")
+            _log.error(f"Error assigning owner for {ticket.formatted_id}: {e}")
 
         return None
 
-    def bulk_set_owner(self, tickets: list[Ticket], owner_name: str) -> BulkResult:
-        """Set owner on multiple tickets.
+    def bulk_assign_owner(self, tickets: list[Ticket], owner: Owner) -> BulkResult:
+        """Assign owner to multiple tickets.
 
         Args:
             tickets: List of tickets to update.
-            owner_name: The owner's display name.
+            owner: The owner to assign to all tickets.
 
         Returns:
             BulkResult with success/failure counts and updated tickets.
         """
-        _log.info(f"Bulk setting owner to {owner_name} on {len(tickets)} tickets")
+        _log.info(f"Bulk assigning owner {owner.display_name} to {len(tickets)} tickets")
         result = BulkResult()
 
         for ticket in tickets:
             try:
-                updated = self.set_owner(ticket, owner_name)
+                updated = self.assign_owner(ticket, owner)
                 if updated:
                     result.success_count += 1
                     result.updated_tickets.append(updated)
                 else:
                     result.failed_count += 1
-                    result.errors.append(f"{ticket.formatted_id}: Failed to set owner")
+                    result.errors.append(f"{ticket.formatted_id}: Failed to assign owner")
             except Exception as e:
                 result.failed_count += 1
                 result.errors.append(f"{ticket.formatted_id}: {str(e)}")
-                _log.error(f"Error setting owner for {ticket.formatted_id}: {e}")
+                _log.error(f"Error assigning owner for {ticket.formatted_id}: {e}")
 
         _log.info(
-            f"Bulk owner complete: {result.success_count} success, {result.failed_count} failed"
+            f"Bulk owner assignment complete: {result.success_count} success, "
+            f"{result.failed_count} failed"
         )
         return result

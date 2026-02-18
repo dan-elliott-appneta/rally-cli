@@ -7,7 +7,7 @@ from collections.abc import Callable
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from rally_tui.models import Attachment, Discussion, Iteration, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
 from rally_tui.services.cache_manager import CacheManager
 from rally_tui.services.protocol import BulkResult, RallyClientProtocol
 
@@ -350,17 +350,85 @@ class CachingRallyClient:
         """Download an embedded image from a URL."""
         return self._client.download_embedded_image(url, dest_path)
 
-    def set_owner(self, ticket: Ticket, owner_name: str) -> Ticket | None:
-        """Set a ticket's owner by display name."""
+    def get_users(self, display_names: list[str] | None = None) -> list[Owner]:
+        """Fetch Rally users, optionally filtered by display names.
+
+        Args:
+            display_names: Optional list of display names to filter by.
+
+        Returns:
+            List of Owner objects representing Rally users.
+        """
+        return self._client.get_users(display_names)
+
+    def assign_owner(self, ticket: Ticket, owner: Owner) -> Ticket | None:
+        """Assign a ticket to a new owner.
+
+        Updates the ticket in the cache if the assignment succeeds.
+
+        Args:
+            ticket: The ticket to update.
+            owner: The owner to assign (Owner object with object_id).
+
+        Returns:
+            The updated Ticket with new owner, or None on failure.
+        """
         if self._is_offline:
             return None
-        return self._client.set_owner(ticket, owner_name)
 
-    def bulk_set_owner(self, tickets: list[Ticket], owner_name: str) -> BulkResult:
-        """Set owner on multiple tickets."""
+        result = self._client.assign_owner(ticket, owner)
+        if result and self._enabled:
+            # Update ticket in cache
+            self._update_ticket_in_cache(result)
+        return result
+
+    def bulk_assign_owner(self, tickets: list[Ticket], owner: Owner) -> BulkResult:
+        """Assign owner to multiple tickets.
+
+        Updates successfully updated tickets in the cache.
+
+        Args:
+            tickets: List of tickets to update.
+            owner: The owner to assign to all tickets.
+
+        Returns:
+            BulkResult with success/failure counts and updated tickets.
+        """
         if self._is_offline:
             return BulkResult(
                 failed_count=len(tickets),
                 errors=["Cannot update tickets while offline"],
             )
-        return self._client.bulk_set_owner(tickets, owner_name)
+
+        result = self._client.bulk_assign_owner(tickets, owner)
+        if self._enabled:
+            # Update all successfully updated tickets in cache
+            for updated_ticket in result.updated_tickets:
+                self._update_ticket_in_cache(updated_ticket)
+        return result
+
+    def _update_ticket_in_cache(self, updated_ticket: Ticket) -> None:
+        """Update a ticket in the cache after a mutation.
+
+        Args:
+            updated_ticket: The updated ticket to store in cache.
+        """
+        cached_tickets, metadata = self._cache.get_cached_tickets()
+        if cached_tickets:
+            found = False
+            # Find and replace the ticket in cached list
+            for i, cached_ticket in enumerate(cached_tickets):
+                if cached_ticket.formatted_id == updated_ticket.formatted_id:
+                    cached_tickets[i] = updated_ticket
+                    found = True
+                    break
+
+            # Only save if ticket was found in cache
+            if found:
+                self._cache.save_tickets(
+                    cached_tickets,
+                    workspace=self.workspace,
+                    project=self.project,
+                )
+            else:
+                logger.debug(f"Ticket {updated_ticket.formatted_id} not in cache, skipping save")

@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from rally_tui.models import Ticket
+from rally_tui.models import Owner, Ticket
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,8 @@ class CacheManager:
     Cache directory structure:
         ~/.cache/rally-tui/
         ├── meta.json      # Cache metadata
-        └── tickets.json   # Cached tickets
+        ├── tickets.json   # Cached tickets
+        └── owners.json    # Cached owners per iteration
     """
 
     def __init__(self, cache_dir: Path | None = None) -> None:
@@ -59,6 +60,7 @@ class CacheManager:
         self._cache_dir = cache_dir or Path.home() / ".cache" / "rally-tui"
         self._meta_file = self._cache_dir / "meta.json"
         self._tickets_file = self._cache_dir / "tickets.json"
+        self._owners_file = self._cache_dir / "owners.json"
 
     @property
     def cache_dir(self) -> Path:
@@ -230,13 +232,102 @@ class CacheManager:
 
     def clear_cache(self) -> None:
         """Remove all cached files."""
-        for path in [self._meta_file, self._tickets_file]:
+        for path in [self._meta_file, self._tickets_file, self._owners_file]:
             try:
                 path.unlink(missing_ok=True)
             except OSError as e:
                 logger.warning(f"Failed to remove {path}: {e}")
 
         logger.info("Cache cleared")
+
+    def get_iteration_owners(self, iteration: str) -> set[Owner]:
+        """Get cached owners for an iteration.
+
+        Args:
+            iteration: Iteration name (or FILTER_BACKLOG constant)
+
+        Returns:
+            Set of Owner objects for the iteration, empty set if not cached
+        """
+        data = self._read_json(self._owners_file)
+        if not data or "iterations" not in data:
+            return set()
+
+        iteration_owners = data["iterations"].get(iteration, [])
+        owners = set()
+        for owner_data in iteration_owners:
+            try:
+                owner = Owner(
+                    object_id=owner_data["object_id"],
+                    display_name=owner_data["display_name"],
+                    user_name=owner_data.get("user_name"),
+                )
+                owners.add(owner)
+            except (TypeError, KeyError) as e:
+                logger.warning(f"Skipping invalid cached owner: {e}")
+                continue
+
+        return owners
+
+    def set_iteration_owners(self, iteration: str, owners: set[Owner]) -> None:
+        """Cache owners for an iteration.
+
+        Args:
+            iteration: Iteration name (or FILTER_BACKLOG constant)
+            owners: Set of Owner objects to cache
+        """
+        logger.info(f"Caching {len(owners)} owners for iteration: {iteration}")
+
+        # Read existing data or create new structure
+        data = self._read_json(self._owners_file)
+        if data is None:
+            if self._owners_file.exists():
+                logger.warning(f"Owners cache file corrupted, starting fresh: {self._owners_file}")
+            data = {"iterations": {}}
+        elif not isinstance(data.get("iterations"), dict):
+            logger.warning("Owners cache 'iterations' is not a dict, reinitializing")
+            data = {"iterations": {}}
+
+        # Convert Owner objects to dicts for JSON serialization
+        owners_list = [
+            {
+                "object_id": owner.object_id,
+                "display_name": owner.display_name,
+                "user_name": owner.user_name,
+            }
+            for owner in owners
+        ]
+
+        # Update iteration owners
+        data["iterations"][iteration] = owners_list
+
+        # Write atomically
+        self._atomic_write(self._owners_file, data)
+
+    def clear_iteration_owners(self, iteration: str | None = None) -> None:
+        """Clear cached owners.
+
+        Args:
+            iteration: Specific iteration to clear, or None to clear all
+        """
+        if iteration is None:
+            # Clear all owners by deleting the file
+            try:
+                self._owners_file.unlink(missing_ok=True)
+                logger.info("Cleared all iteration owners from cache")
+            except OSError as e:
+                logger.warning(f"Failed to remove {self._owners_file}: {e}")
+            return
+
+        # Clear specific iteration
+        data = self._read_json(self._owners_file)
+        if not data or "iterations" not in data:
+            return
+
+        if iteration in data["iterations"]:
+            del data["iterations"][iteration]
+            self._atomic_write(self._owners_file, data)
+            logger.info(f"Cleared owners cache for iteration: {iteration}")
 
     def is_cache_for_project(self, workspace: str, project: str) -> bool:
         """Check if cache is for the specified workspace and project.

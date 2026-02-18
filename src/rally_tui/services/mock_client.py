@@ -2,7 +2,7 @@
 
 from datetime import UTC, date, datetime, timedelta
 
-from rally_tui.models import Attachment, Discussion, Iteration, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
 from rally_tui.models.sample_data import SAMPLE_DISCUSSIONS, SAMPLE_TICKETS
 from rally_tui.services.protocol import BulkResult
 
@@ -88,6 +88,15 @@ DEFAULT_FEATURES: dict[str, str] = {
     "F59627": "Customer Portal Enhancement Phase 2",
     "F59628": "Infrastructure Reliability Improvements",
 }
+
+# Default mock users for owner assignment
+MOCK_USERS = [
+    {"ObjectID": "100001", "DisplayName": "Alice Johnson", "UserName": "alice@example.com"},
+    {"ObjectID": "100002", "DisplayName": "Bob Smith", "UserName": "bob@example.com"},
+    {"ObjectID": "100003", "DisplayName": "Carol Davis", "UserName": "carol@example.com"},
+    {"ObjectID": "100004", "DisplayName": "David Wilson", "UserName": "david@example.com"},
+    {"ObjectID": "100005", "DisplayName": "Emma Brown", "UserName": "emma@example.com"},
+]
 
 
 class MockRallyClient:
@@ -691,16 +700,39 @@ class MockRallyClient:
         except Exception:
             return False
 
-    def set_owner(self, ticket: Ticket, owner_name: str) -> Ticket | None:
-        """Set a ticket's owner by display name.
+    def get_users(self, display_names: list[str] | None = None) -> list[Owner]:
+        """Fetch Rally users, optionally filtered by display names.
+
+        Args:
+            display_names: Optional list of display names to filter by.
+
+        Returns:
+            List of Owner objects representing Rally users.
+        """
+        users = MOCK_USERS
+        if display_names:
+            users = [u for u in users if u["DisplayName"] in display_names]
+
+        return [
+            Owner(
+                object_id=u["ObjectID"],
+                display_name=u["DisplayName"],
+                user_name=u.get("UserName"),
+            )
+            for u in users
+        ]
+
+    def assign_owner(self, ticket: Ticket, owner: Owner) -> Ticket | None:
+        """Assign a ticket to a new owner.
 
         Args:
             ticket: The ticket to update.
-            owner_name: The owner's display name.
+            owner: The owner to assign (Owner object with object_id).
 
         Returns:
             The updated Ticket with new owner, or None on failure.
         """
+        # Find and update the ticket in our list
         for i, t in enumerate(self._tickets):
             if t.formatted_id == ticket.formatted_id:
                 updated = Ticket(
@@ -708,7 +740,7 @@ class MockRallyClient:
                     name=t.name,
                     ticket_type=t.ticket_type,
                     state=t.state,
-                    owner=owner_name,
+                    owner=owner.display_name,
                     description=t.description,
                     notes=t.notes,
                     iteration=t.iteration,
@@ -720,12 +752,12 @@ class MockRallyClient:
                 return updated
         return None
 
-    def bulk_set_owner(self, tickets: list[Ticket], owner_name: str) -> BulkResult:
-        """Set owner on multiple tickets.
+    def bulk_assign_owner(self, tickets: list[Ticket], owner: Owner) -> BulkResult:
+        """Assign owner to multiple tickets.
 
         Args:
             tickets: List of tickets to update.
-            owner_name: The owner's display name.
+            owner: The owner to assign to all tickets.
 
         Returns:
             BulkResult with success/failure counts and updated tickets.
@@ -734,7 +766,7 @@ class MockRallyClient:
 
         for ticket in tickets:
             try:
-                updated = self.set_owner(ticket, owner_name)
+                updated = self.assign_owner(ticket, owner)
                 if updated:
                     result.success_count += 1
                     result.updated_tickets.append(updated)

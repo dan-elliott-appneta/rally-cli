@@ -1,0 +1,72 @@
+name: Release to PyPI
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+          pip install -e ".[dev]"
+
+      - name: Run linting
+        run: ruff check src/ tests/
+
+      - name: Run type checking
+        run: mypy src/
+
+      - name: Run tests
+        run: pytest --cov=rally_tui
+
+      - name: Build distribution packages
+        run: python -m build
+
+      - name: Verify build artifacts
+        run: |
+          ls -lh dist/
+          twine check dist/*
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: twine upload dist/*
+
+      - name: Verify PyPI upload
+        run: |
+          echo "✓ Package published to PyPI"
+          echo "Install with: pip install rally-tui"
+          echo "Package URL: https://pypi.org/project/rally-tui/"

@@ -15,7 +15,7 @@ from rally_tui.screens.iteration_screen import (
     IterationScreen,
 )
 from rally_tui.screens.keybindings_screen import KeybindingsScreen
-from rally_tui.screens.owner_screen import OwnerOption, OwnerScreen
+from rally_tui.screens.owner_screen import OwnerSelectionScreen
 from rally_tui.screens.parent_screen import ParentOption, ParentScreen
 from rally_tui.screens.points_screen import PointsScreen
 from rally_tui.screens.quick_ticket_screen import QuickTicketData, QuickTicketScreen
@@ -37,8 +37,7 @@ __all__ = [
     "FILTER_BACKLOG",
     "IterationScreen",
     "KeybindingsScreen",
-    "OwnerOption",
-    "OwnerScreen",
+    "OwnerSelectionScreen",
     "ParentOption",
     "ParentScreen",
     "PointsScreen",

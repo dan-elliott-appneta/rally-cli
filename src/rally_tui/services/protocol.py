@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from rally_tui.models import Attachment, Discussion, Iteration, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
 
 
 @dataclass
@@ -281,24 +281,36 @@ class RallyClientProtocol(Protocol):
         """
         ...
 
-    def set_owner(self, ticket: Ticket, owner_name: str) -> Ticket | None:
-        """Set a ticket's owner by display name.
+    def get_users(self, display_names: list[str] | None = None) -> list[Owner]:
+        """Fetch Rally users, optionally filtered by display names.
+
+        Args:
+            display_names: Optional list of display names to filter by.
+                          If None, returns all users in the project.
+
+        Returns:
+            List of Owner objects representing Rally users.
+        """
+        ...
+
+    def assign_owner(self, ticket: Ticket, owner: Owner) -> Ticket | None:
+        """Assign a ticket to a new owner.
 
         Args:
             ticket: The ticket to update.
-            owner_name: The owner's display name.
+            owner: The owner to assign (Owner object with object_id).
 
         Returns:
             The updated Ticket with new owner, or None on failure.
         """
         ...
 
-    def bulk_set_owner(self, tickets: list[Ticket], owner_name: str) -> BulkResult:
-        """Set owner on multiple tickets.
+    def bulk_assign_owner(self, tickets: list[Ticket], owner: Owner) -> BulkResult:
+        """Assign owner to multiple tickets.
 
         Args:
             tickets: List of tickets to update.
-            owner_name: The owner's display name.
+            owner: The owner to assign to all tickets.
 
         Returns:
             BulkResult with success/failure counts and updated tickets.

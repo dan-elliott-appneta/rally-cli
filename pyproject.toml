@@ -29,6 +29,7 @@ dependencies = [
     "pydantic-settings>=2.0.0",
     "httpx>=0.27.0",
     "tenacity>=8.2.0",
+    "click>=8.1.0",
 ]
 
 [project.optional-dependencies]
@@ -43,6 +44,7 @@ dev = [
 
 [project.scripts]
 rally-tui = "rally_tui.app:main"
+rally-cli = "rally_tui.cli.main:cli"
 
 [tool.setuptools.packages.find]
 where = ["src"]

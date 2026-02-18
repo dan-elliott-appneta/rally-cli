@@ -1,9 +1,24 @@
-# Rally TUI
+# Rally TUI & CLI
 
-A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work items.
+<p align="center">
+  <img src="docs/logo.png" alt="Rally CLI Logo" width="200">
+</p>
+
+[![CI](https://github.com/dan-elliott-appneta/rally-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/dan-elliott-appneta/rally-cli/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/rally-cli.svg)](https://pypi.org/project/rally-cli/)
+[![Python](https://img.shields.io/pypi/pyversions/rally-cli.svg)](https://pypi.org/project/rally-cli/)
+
+A terminal user interface (TUI) and command-line interface (CLI) for browsing and managing Rally (Broadcom) work items.
 
 ## Features
 
+### CLI Features (NEW)
+- **Query tickets**: `rally-cli tickets --current-iteration --my-tickets`
+- **Post comments**: `rally-cli comment S459344 "message"`
+- **Multiple output formats**: text, JSON, CSV for scripting
+- **Supports all ticket types**: Stories (S/US), Defects (DE), Tasks (TA), Test Cases (TC)
+
+### TUI Features
 - Browse Rally tickets in a navigable list
 - View ticket details in a split-pane layout
 - Keyboard-driven interface with vim-style navigation
@@ -18,6 +33,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Parent Requirement**: Must select a parent Feature before moving to "In Progress" state
 - **Quick Create**: Press `w` to create a new workitem (User Story or Defect)
 - **Toggle Notes**: Press `n` to toggle between description and notes view
+- **Assign Owner**: Press `a` to assign a ticket to a team member (individual or bulk)
 - **Sprint Filter**: Press `i` to filter tickets by iteration/sprint
 - **My Items Filter**: Press `u` to toggle showing only your tickets
 - **Team Breakdown**: Press `b` to view ticket count and points breakdown by owner for a sprint
@@ -29,7 +45,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - **Log redaction**: Sensitive data (API keys, emails, user names) automatically redacted from logs
 - **Default filter**: When connected, shows only tickets in the current iteration owned by you
 - **Discussions**: View ticket discussions and add comments
-- **Attachments**: Press `a` to view, download, or upload ticket attachments (includes embedded images from description/notes)
+- **Attachments**: Press `A` (Shift+a) to view, download, or upload ticket attachments (includes embedded images from description/notes)
 - **Local caching**: Tickets cached to `~/.cache/rally-tui/` for performance and offline access
 - **Cache refresh**: Press `r` to manually refresh the ticket cache
 - **Loading indicator**: Visual feedback in status bar when fetching tickets from API
@@ -39,7 +55,12 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 
 ## Status
 
-**Iteration 14 Complete** - Local Caching + Async API Integration.
+**Iteration 15 In Progress** - CLI Interface Added.
+
+### Recent Additions
+- **CLI Interface**: Non-interactive command-line for scripting (`rally-cli tickets`, `rally-cli comment`)
+- **S Prefix Support**: Rally stories with S prefix (e.g., S459344) now fully supported
+- **JSON/CSV Export**: Export tickets to JSON or CSV for automation and reporting
 
 ### Recent Bug Fixes
 - **Fixed**: FlowState/State handling for Rally reference objects (prevents "unhashable type: dict" errors)
@@ -59,7 +80,7 @@ A terminal user interface (TUI) for browsing and managing Rally (Broadcom) work 
 - Multi-select tickets with `Space` key (toggle selection)
 - Select all tickets with `Ctrl+A` (toggle select all/deselect all)
 - Press `m` to open bulk actions menu on selected tickets
-- Bulk operations: Set Parent, Set State, Set Iteration, Set Points, Yank (copy URLs)
+- Bulk operations: Set Parent, Set State, Set Iteration, Set Points, Assign Owner, Yank (copy URLs)
 - Press `F2` to open ConfigScreen for editing settings
 - Configure theme, log level, and parent options from the TUI
 - Settings saved immediately with Ctrl+S or Save button
@@ -107,9 +128,23 @@ See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
 ## Installation
 
+[![PyPI version](https://img.shields.io/pypi/v/rally-tui.svg)](https://pypi.org/project/rally-tui/)
+
+### From PyPI (Recommended)
+
+```bash
+# Using pipx (isolated environment - recommended)
+pipx install rally-tui
+
+# Or using pip
+pip install rally-tui
+```
+
+### From Source (Development)
+
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/dan-elliott-appneta/rally-cli.git
 cd rally-cli
 
 # Create virtual environment
@@ -126,7 +161,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 0.7.9
+# Output: rally-tui 0.8.1
 ```
 
 ### Running with Rally API
@@ -147,6 +182,28 @@ rally-tui
 # Without RALLY_APIKEY, the app runs with sample data
 rally-tui
 ```
+
+### CLI (Command-Line Interface)
+
+In addition to the TUI, rally-cli provides a non-interactive CLI for scripting and automation:
+
+```bash
+# Query tickets in current iteration
+rally-cli tickets --current-iteration --my-tickets
+
+# Post a comment to a ticket
+rally-cli comment S459344 "Deployed to staging"
+
+# Export to JSON for scripting
+rally-cli --format json tickets --current-iteration | jq '.data[].formatted_id'
+
+# Export to CSV for spreadsheets
+rally-cli --format csv tickets --current-iteration > sprint.csv
+```
+
+**Supported ticket prefixes:** `S`, `US` (stories), `DE` (defects), `TA` (tasks), `TC` (test cases)
+
+See [docs/CLI.md](docs/CLI.md) for full CLI documentation.
 
 ### Environment Variables
 
@@ -179,7 +236,8 @@ rally-tui
 | p | list/detail | Set story points |
 | n | list/detail | Toggle description/notes |
 | d | list/detail | Open discussions |
-| a | list/detail | View/download/upload attachments |
+| a | list/detail | Assign owner to ticket |
+| A (Shift+a) | list/detail | View/download/upload attachments |
 | i | list/detail | Filter by iteration/sprint |
 | u | list/detail | Toggle My Items filter |
 | o | list | Cycle sort mode (Recent/State/Owner/Parent) |
