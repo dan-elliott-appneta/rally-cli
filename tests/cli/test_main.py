@@ -86,6 +86,24 @@ class TestCLIEntryPoint:
         assert result.exit_code == 2
         assert "No comment text provided" in result.output
 
+    def test_tickets_create_help(self):
+        """Test that tickets create --help shows create options."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["tickets", "create", "--help"])
+        assert result.exit_code == 0
+        assert "--description" in result.output
+        assert "--points" in result.output
+        assert "--type" in result.output
+        assert "--backlog" in result.output
+        assert "UserStory" in result.output or "Defect" in result.output
+
+    def test_tickets_create_no_apikey_error(self):
+        """Test that tickets create fails without API key."""
+        runner = CliRunner(env={"RALLY_APIKEY": ""})
+        result = runner.invoke(cli, ["tickets", "create", "Test"])
+        assert result.exit_code == 4
+        assert "RALLY_APIKEY" in result.output
+
 
 class TestOutputFormat:
     """Tests for output format selection."""

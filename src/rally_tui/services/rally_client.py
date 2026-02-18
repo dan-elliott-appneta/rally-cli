@@ -507,16 +507,20 @@ class RallyClient:
         title: str,
         ticket_type: str,
         description: str = "",
+        points: float | None = None,
+        backlog: bool = False,
     ) -> Ticket | None:
         """Create a new ticket in Rally.
 
         Creates a ticket with the current user as owner and assigns it
-        to the current iteration.
+        to the current iteration unless backlog is True.
 
         Args:
             title: The ticket title/name.
             ticket_type: The entity type ("HierarchicalRequirement" or "Defect").
             description: Optional ticket description.
+            points: Optional story points (PlanEstimate) to set on create.
+            backlog: If True, do not assign to current iteration (leave in backlog).
 
         Returns:
             The created Ticket, or None on failure.
@@ -525,13 +529,15 @@ class RallyClient:
 
         try:
             # Build the ticket data
-            ticket_data: dict[str, str | None] = {
+            ticket_data: dict[str, str | None | float] = {
                 "Name": title,
                 "Description": description,
             }
+            if points is not None:
+                ticket_data["PlanEstimate"] = points
 
-            # Add current iteration if available
-            if self._current_iteration:
+            # Add current iteration if available (unless backlog)
+            if not backlog and self._current_iteration:
                 # Query for the iteration ref
                 response = self._rally.get(
                     "Iteration",
