@@ -142,9 +142,7 @@ class AsyncMockRallyClient:
         backlog: bool = False,
     ) -> Ticket | None:
         """Create a new ticket."""
-        return self._sync_client.create_ticket(
-            title, ticket_type, description, points, backlog
-        )
+        return self._sync_client.create_ticket(title, ticket_type, description, points, backlog)
 
     # -------------------------------------------------------------------------
     # Async Iteration Operations

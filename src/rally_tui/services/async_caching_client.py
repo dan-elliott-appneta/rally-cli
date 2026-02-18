@@ -301,9 +301,7 @@ class AsyncCachingRallyClient:
         """Create a new ticket."""
         if self._is_offline:
             return None
-        return await self._client.create_ticket(
-            title, ticket_type, description, points, backlog
-        )
+        return await self._client.create_ticket(title, ticket_type, description, points, backlog)
 
     async def update_state(self, ticket: Ticket, state: str) -> Ticket | None:
         """Update a ticket's workflow state."""
