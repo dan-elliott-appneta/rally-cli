@@ -210,6 +210,12 @@ def _tickets_list(
     default="UserStory",
     help="Ticket type (default: UserStory).",
 )
+@click.option(
+    "--backlog",
+    is_flag=True,
+    default=False,
+    help="Put the ticket in the backlog (do not assign to current iteration).",
+)
 @pass_context
 def tickets_create(
     ctx: CLIContext,
@@ -217,17 +223,20 @@ def tickets_create(
     description: str,
     points: float | None,
     ticket_type: str,
+    backlog: bool,
 ) -> None:
     """Create a new ticket in Rally.
 
     Creates a User Story or Defect with the current user as owner and
-    current iteration, if available.
+    current iteration, if available. Use --backlog to leave the ticket
+    in the backlog for planning.
 
     Examples:
 
     \b
         rally-cli tickets create "Ticket Name" --description "Brief description" --points 1
         rally-cli tickets create "Bug in login" --type Defect --description "Repro steps..."
+        rally-cli tickets create "Future idea" --backlog
     """
     if not ctx.apikey:
         result = CLIResult(
@@ -254,6 +263,7 @@ def tickets_create(
                 ticket_type=entity_type,
                 description=description,
                 points=points,
+                backlog=backlog,
             )
 
     created = asyncio.run(_do_create())

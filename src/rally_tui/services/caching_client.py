@@ -271,11 +271,14 @@ class CachingRallyClient:
         ticket_type: str,
         description: str = "",
         points: float | None = None,
+        backlog: bool = False,
     ) -> Ticket | None:
         """Create a new ticket."""
         if self._is_offline:
             return None
-        return self._client.create_ticket(title, ticket_type, description, points)
+        return self._client.create_ticket(
+            title, ticket_type, description, points, backlog
+        )
 
     def update_state(self, ticket: Ticket, state: str) -> Ticket | None:
         """Update a ticket's workflow state."""

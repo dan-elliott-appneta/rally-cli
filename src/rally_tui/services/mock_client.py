@@ -282,6 +282,7 @@ class MockRallyClient:
         ticket_type: str,
         description: str = "",
         points: float | None = None,
+        backlog: bool = False,
     ) -> Ticket | None:
         """Create a new ticket.
 
@@ -290,6 +291,7 @@ class MockRallyClient:
             ticket_type: The entity type ("HierarchicalRequirement" or "Defect").
             description: Optional ticket description.
             points: Optional story points to set on create.
+            backlog: If True, do not assign to current iteration (leave in backlog).
 
         Returns:
             The created Ticket.
@@ -304,10 +306,11 @@ class MockRallyClient:
             self._next_defect_id += 1
             internal_type = "Defect"
 
-        # Create the ticket with current user/iteration
+        # Create the ticket with current user/iteration (unless backlog)
         stored_points = None
         if points is not None:
             stored_points = int(points) if points == int(points) else points
+        iteration = None if backlog else self._current_iteration
         ticket = Ticket(
             formatted_id=formatted_id,
             name=title,
@@ -315,7 +318,7 @@ class MockRallyClient:
             state="Defined",
             owner=self._current_user,
             description=description,
-            iteration=self._current_iteration,
+            iteration=iteration,
             points=stored_points,
             object_id=str(self._next_discussion_id),
         )

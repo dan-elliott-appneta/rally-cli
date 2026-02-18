@@ -94,6 +94,7 @@ class TestCLIEntryPoint:
         assert "--description" in result.output
         assert "--points" in result.output
         assert "--type" in result.output
+        assert "--backlog" in result.output
         assert "UserStory" in result.output or "Defect" in result.output
 
     def test_tickets_create_no_apikey_error(self):
