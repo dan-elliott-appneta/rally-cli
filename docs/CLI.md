@@ -318,6 +318,162 @@ rally-cli tickets delete DE67890 --confirm --format json
 
 ---
 
+### `rally-cli discussions`
+
+Show the discussion thread (comments) for a ticket.
+
+```bash
+rally-cli discussions TICKET_ID [OPTIONS]
+```
+
+#### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `TICKET_ID` | Ticket formatted ID (e.g., `US12345`, `DE67890`) |
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--format [text\|json\|csv]` | Output format |
+
+#### Examples
+
+```bash
+# Show discussions for a ticket
+rally-cli discussions US12345
+
+# JSON output for scripting
+rally-cli discussions US12345 --format json
+
+# Extract just the comment text with jq
+rally-cli discussions US12345 --format json | jq '.data.discussions[].text'
+
+# CSV output
+rally-cli discussions DE67890 --format csv
+```
+
+#### Output
+
+```
+Discussions for US12345 (2 comments)
+=====================================
+
+Jane Smith - Jan 15, 2026 10:30 AM
+  Updated the implementation to use async handlers.
+
+John Doe - Jan 16, 2026 02:15 PM
+  Looks good, approved.
+```
+
+---
+
+### `rally-cli iterations`
+
+Show project iterations (sprints) with optional filtering.
+
+```bash
+rally-cli iterations [OPTIONS]
+```
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--count INT` | Number of iterations to show (default: 5) |
+| `--current` | Show only the current iteration |
+| `--future` | Show future iterations |
+| `--past` | Show past iterations only |
+| `--state TEXT` | Filter by state (Planning, Committed, Accepted) |
+| `--format [text\|json\|csv]` | Output format |
+
+#### Examples
+
+```bash
+# Show recent iterations
+rally-cli iterations
+
+# Show more iterations
+rally-cli iterations --count 10
+
+# Show only the current sprint
+rally-cli iterations --current
+
+# Show future sprints
+rally-cli iterations --future
+
+# Show past sprints
+rally-cli iterations --past
+
+# Filter by state
+rally-cli iterations --state "Committed"
+
+# JSON output for scripting
+rally-cli iterations --format json
+
+# CSV output
+rally-cli iterations --format csv > iterations.csv
+```
+
+#### Output
+
+```
+Name                                    Dates                 State         Current
+--------------------------------------------------------------------------------
+FY26-Q1 PI Sprint 7                     Feb 10 - Feb 23       Committed     *
+FY26-Q1 PI Sprint 6                     Jan 27 - Feb 09       Accepted
+FY26-Q1 PI Sprint 5                     Jan 13 - Jan 26       Accepted
+```
+
+---
+
+### `rally-cli users`
+
+Show project members/users with optional search filtering.
+
+```bash
+rally-cli users [OPTIONS]
+```
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--search TEXT` | Filter users by display name (substring match) |
+| `--format [text\|json\|csv]` | Output format |
+
+#### Examples
+
+```bash
+# List all project users
+rally-cli users
+
+# Search for a specific user
+rally-cli users --search "Daniel"
+
+# JSON output for scripting
+rally-cli users --format json
+
+# CSV export
+rally-cli users --format csv > team-members.csv
+
+# Get user emails with jq
+rally-cli users --format json | jq -r '.data[].user_name'
+```
+
+#### Output
+
+```
+Display Name                    Username
+--------------------------------------------
+Alice Baker                     abaker@example.com
+Daniel Elliot                   delliot@example.com
+Jane Smith                      jsmith@example.com
+```
+
+---
+
 ### `rally-cli comment`
 
 Add a comment to a ticket's discussion.

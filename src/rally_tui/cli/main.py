@@ -171,7 +171,13 @@ def cli(
 
 # Import and register commands
 # These are imported here to avoid circular imports
-from rally_tui.cli.commands import comment, query  # noqa: E402, F401
+from rally_tui.cli.commands import (  # noqa: E402, F401
+    comment,
+    discussions,
+    iterations,
+    query,
+    users,
+)
 
 
 def main() -> None:
