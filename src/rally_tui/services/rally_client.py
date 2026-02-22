@@ -639,9 +639,7 @@ class RallyClient:
 
         return None
 
-    def update_ticket(
-        self, ticket: Ticket, fields: dict[str, Any]
-    ) -> Ticket | None:
+    def update_ticket(self, ticket: Ticket, fields: dict[str, Any]) -> Ticket | None:
         """Update arbitrary fields on a ticket.
 
         Note: The sync RallyClient delegates to update_state for state
@@ -649,8 +647,9 @@ class RallyClient:
         """
         if "state" in fields and len(fields) == 1:
             return self.update_state(ticket, fields["state"])
-        _log.warning("update_ticket with multiple fields not supported "
-                     "in sync client; use async client")
+        _log.warning(
+            "update_ticket with multiple fields not supported in sync client; use async client"
+        )
         return None
 
     def delete_ticket(self, formatted_id: str) -> bool:

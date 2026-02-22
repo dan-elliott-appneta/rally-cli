@@ -693,8 +693,7 @@ class AsyncRallyClient:
             if self._project:
                 sanitized_proj = self._sanitize_query_value(self._project)
                 state_query = (
-                    f'((Name = "{sanitized_state}") AND'
-                    f' (Project.Name = "{sanitized_proj}"))'
+                    f'((Name = "{sanitized_state}") AND (Project.Name = "{sanitized_proj}"))'
                 )
             else:
                 state_query = f'(Name = "{sanitized_state}")'
@@ -780,9 +779,7 @@ class AsyncRallyClient:
                     # Look up FlowState reference by name, scoped to the project
                     sanitized_state = self._sanitize_query_value(str(value))
                     if self._project:
-                        sanitized_proj = self._sanitize_query_value(
-                            self._project
-                        )
+                        sanitized_proj = self._sanitize_query_value(self._project)
                         state_query = (
                             f'((Name = "{sanitized_state}") AND'
                             f' (Project.Name = "{sanitized_proj}"))'

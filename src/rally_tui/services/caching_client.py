@@ -284,9 +284,7 @@ class CachingRallyClient:
             return None
         return self._client.update_state(ticket, state)
 
-    def update_ticket(
-        self, ticket: Ticket, fields: dict[str, Any]
-    ) -> Ticket | None:
+    def update_ticket(self, ticket: Ticket, fields: dict[str, Any]) -> Ticket | None:
         """Update arbitrary fields on a ticket."""
         if self._is_offline:
             return None

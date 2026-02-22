@@ -55,9 +55,7 @@ class TestTicketsShow:
         for ticket_id in valid_ids:
             result = runner.invoke(cli, ["tickets", "show", ticket_id])
             # Should fail with exit code 1 (API error) not 2 (input validation error)
-            assert result.exit_code != 2, (
-                f"Ticket ID {ticket_id} was incorrectly rejected"
-            )
+            assert result.exit_code != 2, f"Ticket ID {ticket_id} was incorrectly rejected"
 
 
 class TestTicketsUpdate:

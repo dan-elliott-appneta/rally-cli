@@ -177,6 +177,7 @@ def tickets(
     # subcommands that inherit the context also see the updated formatter.
     if sub_format:
         from rally_tui.cli.formatters.base import OutputFormat
+
         ctx.set_format(OutputFormat(sub_format.lower()))
 
     if click_ctx.invoked_subcommand is not None:
@@ -360,6 +361,7 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
     """
     if sub_format:
         from rally_tui.cli.formatters.base import OutputFormat
+
         ctx.set_format(OutputFormat(sub_format.lower()))
 
     if not ctx.apikey:
@@ -457,7 +459,9 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
 @click.option("--severity", default=None, help="Severity (Defect only).")
 @click.option("--priority", default=None, help="Priority (Defect only).")
 @click.option(
-    "--target-date", default=None, callback=_validate_date,
+    "--target-date",
+    default=None,
+    callback=_validate_date,
     help="Target date (YYYY-MM-DD).",
 )
 @click.option(
@@ -507,6 +511,7 @@ def tickets_update(
     """
     if sub_format:
         from rally_tui.cli.formatters.base import OutputFormat
+
         ctx.set_format(OutputFormat(sub_format.lower()))
 
     if not ctx.apikey:
@@ -682,6 +687,7 @@ def tickets_delete(ctx: CLIContext, ticket_id: str, confirm: bool, sub_format: s
     """
     if sub_format:
         from rally_tui.cli.formatters.base import OutputFormat
+
         ctx.set_format(OutputFormat(sub_format.lower()))
 
     if not ctx.apikey:
