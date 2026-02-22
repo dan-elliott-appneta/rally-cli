@@ -718,8 +718,6 @@ class TextFormatter(BaseFormatter):
         # Header line
         header = f"{feature.formatted_id} - {feature.name}"
         try:
-            import os
-
             terminal_width = os.get_terminal_size().columns
         except (ValueError, OSError):
             terminal_width = 80

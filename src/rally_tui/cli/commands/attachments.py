@@ -199,10 +199,18 @@ def attachments_download(
         sys.exit(2)
 
     if download_all:
-        asyncio.run(_download_all_attachments(ctx, ticket_id, output_dir))
+        result = asyncio.run(_download_all_attachments(ctx, ticket_id, output_dir))
     else:
         assert filename is not None
-        asyncio.run(_download_single_attachment(ctx, ticket_id, filename, output_path))
+        result = asyncio.run(_download_single_attachment(ctx, ticket_id, filename, output_path))
+
+    if result.success:
+        output = ctx.formatter.format_attachment_action(result)
+        click.echo(output)
+        sys.exit(0)
+    else:
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(1)
 
 
 @attachments.command("upload")
@@ -287,7 +295,7 @@ async def _fetch_attachments(ctx: CLIContext, ticket_id: str) -> CLIResult:
             return CLIResult(
                 success=True,
                 data={
-                    "ticket_id": ticket_id,
+                    "formatted_id": ticket_id,
                     "attachments": attachment_list,
                     "count": len(attachment_list),
                 },
@@ -312,7 +320,7 @@ async def _download_single_attachment(
     ticket_id: str,
     filename: str,
     output_path: str | None,
-) -> None:
+) -> CLIResult:
     """Download a single attachment from a ticket.
 
     Args:
@@ -320,6 +328,9 @@ async def _download_single_attachment(
         ticket_id: The ticket's formatted ID.
         filename: Name of the attachment to download.
         output_path: Optional path to save the file.
+
+    Returns:
+        CLIResult with download result or error.
     """
     config = RallyConfig(
         server=ctx.server,
@@ -332,25 +343,21 @@ async def _download_single_attachment(
         async with AsyncRallyClient(config) as client:
             ticket = await client.get_ticket(ticket_id)
             if not ticket:
-                result = CLIResult(success=False, data=None, error=f"Ticket {ticket_id} not found.")
-                click.echo(ctx.formatter.format_error(result), err=True)
-                sys.exit(1)
+                return CLIResult(success=False, data=None, error=f"Ticket {ticket_id} not found.")
 
             attachments_list = await client.get_attachments(ticket)
             target = next((a for a in attachments_list if a.name == filename), None)
             if not target:
-                result = CLIResult(
+                return CLIResult(
                     success=False,
                     data=None,
                     error=f"Attachment '{filename}' not found on {ticket_id}.",
                 )
-                click.echo(ctx.formatter.format_error(result), err=True)
-                sys.exit(1)
 
             dest = output_path or filename
             success = await client.download_attachment(ticket, target, dest)
             if success:
-                result = CLIResult(
+                return CLIResult(
                     success=True,
                     data={
                         "ticket_id": ticket_id,
@@ -359,39 +366,36 @@ async def _download_single_attachment(
                         "action": "downloaded",
                     },
                 )
-                click.echo(ctx.formatter.format_attachment_action(result))
-                sys.exit(0)
             else:
-                result = CLIResult(
+                return CLIResult(
                     success=False,
                     data=None,
                     error=f"Failed to download attachment '{filename}'.",
                 )
-                click.echo(ctx.formatter.format_error(result), err=True)
-                sys.exit(1)
 
     except Exception as e:
         error_msg = str(e)
-        result = CLIResult(
+        return CLIResult(
             success=False,
             data=None,
             error=f"Failed to download attachment: {error_msg}",
         )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(1)
 
 
 async def _download_all_attachments(
     ctx: CLIContext,
     ticket_id: str,
     output_dir: str | None,
-) -> None:
+) -> CLIResult:
     """Download all attachments from a ticket.
 
     Args:
         ctx: CLI context.
         ticket_id: The ticket's formatted ID.
         output_dir: Optional directory to save files to.
+
+    Returns:
+        CLIResult with download result or error.
     """
     config = RallyConfig(
         server=ctx.server,
@@ -407,23 +411,20 @@ async def _download_all_attachments(
         async with AsyncRallyClient(config) as client:
             ticket = await client.get_ticket(ticket_id)
             if not ticket:
-                result = CLIResult(success=False, data=None, error=f"Ticket {ticket_id} not found.")
-                click.echo(ctx.formatter.format_error(result), err=True)
-                sys.exit(1)
+                return CLIResult(success=False, data=None, error=f"Ticket {ticket_id} not found.")
 
             attachments_list = await client.get_attachments(ticket)
             if not attachments_list:
-                result = CLIResult(
+                return CLIResult(
                     success=True,
                     data={
                         "ticket_id": ticket_id,
                         "downloaded": [],
                         "count": 0,
+                        "total": 0,
                         "action": "downloaded_all",
                     },
                 )
-                click.echo(ctx.formatter.format_attachment_action(result))
-                sys.exit(0)
 
             downloaded = []
             for att in attachments_list:
@@ -431,27 +432,32 @@ async def _download_all_attachments(
                 if await client.download_attachment(ticket, att, dest):
                     downloaded.append(att.name)
 
-            result = CLIResult(
-                success=True,
+            total = len(attachments_list)
+            partial_failure = len(downloaded) < total
+            return CLIResult(
+                success=not partial_failure,
                 data={
                     "ticket_id": ticket_id,
                     "downloaded": downloaded,
                     "count": len(downloaded),
+                    "total": total,
                     "action": "downloaded_all",
                 },
+                error=(
+                    f"Downloaded {len(downloaded)} of {total} attachments "
+                    f"({total - len(downloaded)} failed)."
+                    if partial_failure
+                    else None
+                ),
             )
-            click.echo(ctx.formatter.format_attachment_action(result))
-            sys.exit(0)
 
     except Exception as e:
         error_msg = str(e)
-        result = CLIResult(
+        return CLIResult(
             success=False,
             data=None,
             error=f"Failed to download attachments: {error_msg}",
         )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(1)
 
 
 async def _upload_attachment(ctx: CLIContext, ticket_id: str, file_path: str) -> CLIResult:

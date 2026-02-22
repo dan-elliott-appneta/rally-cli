@@ -13,7 +13,6 @@ import click
 from rally_tui.cli.formatters.base import CLIResult, OutputFormat
 from rally_tui.cli.main import CLIContext, cli, pass_context
 from rally_tui.config import RallyConfig
-from rally_tui.models import Feature
 from rally_tui.services.async_rally_client import AsyncRallyClient
 
 # Pattern matching valid Rally feature IDs (case-insensitive)
@@ -174,62 +173,12 @@ async def _fetch_features(ctx: CLIContext, query_filter: str | None) -> CLIResul
 
     try:
         async with AsyncRallyClient(config) as client:
-            params: dict = {
-                "fetch": "FormattedID,Name,State,Owner,Release,UserStories",
-                "pagesize": "200",
-                "order": "FormattedID desc",
-                "projectScopeUp": "true",
-                "projectScopeDown": "true",
-            }
-
+            query = None
             if query_filter:
                 sanitized = query_filter.replace("\\", "\\\\").replace('"', '\\"')
-                params["query"] = f'(Name contains "{sanitized}")'
+                query = f'(Name contains "{sanitized}")'
 
-            response = await client._get("/portfolioitem/feature", params=params)
-
-            # Parse the response
-            from rally_tui.services.async_rally_client import parse_query_result
-
-            results, _ = parse_query_result(response)
-
-            feature_list = []
-            for item in results:
-                owner_ref = item.get("Owner")
-                owner_name = ""
-                if isinstance(owner_ref, dict):
-                    owner_name = owner_ref.get("_refObjectName", "")
-
-                release_ref = item.get("Release")
-                release_name = ""
-                if isinstance(release_ref, dict):
-                    release_name = release_ref.get("_refObjectName", "")
-
-                stories_ref = item.get("UserStories")
-                story_count = 0
-                if isinstance(stories_ref, dict):
-                    story_count = stories_ref.get("Count", 0)
-
-                state_ref = item.get("State")
-                state_name = ""
-                if isinstance(state_ref, dict):
-                    state_name = state_ref.get("_refObjectName", "")
-                elif isinstance(state_ref, str):
-                    state_name = state_ref
-
-                feature_list.append(
-                    Feature(
-                        object_id=str(item.get("ObjectID", "")),
-                        formatted_id=item.get("FormattedID", ""),
-                        name=item.get("Name", ""),
-                        state=state_name,
-                        owner=owner_name,
-                        release=release_name,
-                        story_count=story_count,
-                        description=item.get("Description", "") or "",
-                    )
-                )
-
+            feature_list = await client.get_features(query=query)
             return CLIResult(success=True, data=feature_list)
 
     except Exception as e:
@@ -270,65 +219,21 @@ async def _fetch_feature_detail(
     try:
         async with AsyncRallyClient(config) as client:
             sanitized_id = feature_id.replace("\\", "\\\\").replace('"', '\\"')
-            response = await client._get(
-                "/portfolioitem/feature",
-                params={
-                    "fetch": "FormattedID,Name,State,Owner,Release,Description,"
-                    "UserStories,ObjectID",
-                    "query": f'((FormattedID = "{sanitized_id}"))',
-                    "projectScopeUp": "true",
-                    "projectScopeDown": "true",
-                },
-            )
-            from rally_tui.services.async_rally_client import parse_query_result
+            query = f'(FormattedID = "{sanitized_id}")'
+            features = await client.get_features(query=query, count=1)
 
-            results, _ = parse_query_result(response)
-
-            if not results:
+            if not features:
                 return CLIResult(
                     success=False,
                     data=None,
                     error=f"Feature {feature_id} not found.",
                 )
 
-            item = results[0]
-
-            owner_ref = item.get("Owner")
-            owner_name = ""
-            if isinstance(owner_ref, dict):
-                owner_name = owner_ref.get("_refObjectName", "")
-
-            release_ref = item.get("Release")
-            release_name = ""
-            if isinstance(release_ref, dict):
-                release_name = release_ref.get("_refObjectName", "")
-
-            stories_ref = item.get("UserStories")
-            story_count = 0
-            if isinstance(stories_ref, dict):
-                story_count = stories_ref.get("Count", 0)
-
-            state_ref = item.get("State")
-            state_name = ""
-            if isinstance(state_ref, dict):
-                state_name = state_ref.get("_refObjectName", "")
-            elif isinstance(state_ref, str):
-                state_name = state_ref
-
-            feature = Feature(
-                object_id=str(item.get("ObjectID", "")),
-                formatted_id=item.get("FormattedID", ""),
-                name=item.get("Name", ""),
-                state=state_name,
-                owner=owner_name,
-                release=release_name,
-                story_count=story_count,
-                description=item.get("Description", "") or "",
-            )
+            feature = features[0]
 
             children = []
-            if include_children and story_count > 0:
-                children = await _fetch_children(client, feature_id)
+            if include_children and feature.story_count > 0:
+                children = await client.get_feature_children(feature_id)
 
             return CLIResult(
                 success=True,
@@ -351,49 +256,6 @@ async def _fetch_feature_detail(
             data=None,
             error=f"Failed to fetch feature: {error_msg}",
         )
-
-
-async def _fetch_children(client: AsyncRallyClient, feature_id: str) -> list[dict]:
-    """Fetch child user stories of a feature.
-
-    Args:
-        client: The Rally API client.
-        feature_id: Feature formatted ID.
-
-    Returns:
-        List of child story dicts with formatted_id, name, state, owner.
-    """
-    sanitized_id = feature_id.replace("\\", "\\\\").replace('"', '\\"')
-    response = await client._get(
-        "/hierarchicalrequirement",
-        params={
-            "fetch": "FormattedID,Name,ScheduleState,Owner",
-            "query": f'(Feature.FormattedID = "{sanitized_id}")',
-            "order": "FormattedID",
-            "pagesize": "200",
-        },
-    )
-    from rally_tui.services.async_rally_client import parse_query_result
-
-    results, _ = parse_query_result(response)
-
-    children = []
-    for item in results:
-        owner_ref = item.get("Owner")
-        owner_name = ""
-        if isinstance(owner_ref, dict):
-            owner_name = owner_ref.get("_refObjectName", "")
-
-        children.append(
-            {
-                "formatted_id": item.get("FormattedID", ""),
-                "name": item.get("Name", ""),
-                "state": item.get("ScheduleState", ""),
-                "owner": owner_name,
-            }
-        )
-
-    return children
 
 
 # Register command with CLI

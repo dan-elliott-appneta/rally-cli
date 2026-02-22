@@ -945,10 +945,11 @@ class RallyClient:
         _log.debug(f"Fetching children for feature: {feature_id}")
 
         try:
+            sanitized_id = feature_id.replace("\\", "\\\\").replace('"', '\\"')
             response = self._rally.get(
                 "HierarchicalRequirement",
                 fetch=True,
-                query=f'PortfolioItem.FormattedID = "{feature_id}"',
+                query=f'PortfolioItem.FormattedID = "{sanitized_id}"',
                 projectScopeUp=True,
                 projectScopeDown=True,
             )

@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 from click.testing import CliRunner
 
 from rally_tui.cli.main import cli
-from rally_tui.models import Feature
+from rally_tui.models import Feature, Ticket
 
 
 def _make_feature(
@@ -31,35 +31,21 @@ def _make_feature(
     )
 
 
-def _mock_api_response(features_data):
-    """Create a mock Rally API response for features.
-
-    Args:
-        features_data: List of dicts representing Rally API feature items.
-
-    Returns:
-        Dict mimicking the Rally WSAPI response structure.
-    """
-    return {
-        "QueryResult": {
-            "Results": features_data,
-            "TotalResultCount": len(features_data),
-        }
-    }
-
-
-def _feature_to_api_item(feature: Feature) -> dict:
-    """Convert a Feature model to a Rally API response dict."""
-    return {
-        "ObjectID": feature.object_id,
-        "FormattedID": feature.formatted_id,
-        "Name": feature.name,
-        "State": {"_refObjectName": feature.state} if feature.state else None,
-        "Owner": {"_refObjectName": feature.owner} if feature.owner else None,
-        "Release": {"_refObjectName": feature.release} if feature.release else None,
-        "UserStories": {"Count": feature.story_count},
-        "Description": feature.description,
-    }
+def _make_ticket(
+    formatted_id: str = "US12345",
+    name: str = "Login page",
+    state: str = "In-Progress",
+    owner: str = "Dev User",
+) -> Ticket:
+    """Create a Ticket for testing child stories."""
+    return Ticket(
+        object_id="t1",
+        formatted_id=formatted_id,
+        name=name,
+        state=state,
+        owner=owner,
+        ticket_type="HierarchicalRequirement",
+    )
 
 
 class TestFeaturesHelp:
@@ -106,11 +92,8 @@ class TestFeaturesList:
             _make_feature("F59626", "Dashboard Redesign"),
         ]
 
-        api_items = [_feature_to_api_item(f) for f in features_list]
-        api_response = _mock_api_response(api_items)
-
         mock_client = AsyncMock()
-        mock_client._get = AsyncMock(return_value=api_response)
+        mock_client.get_features = AsyncMock(return_value=features_list)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_client
@@ -126,11 +109,9 @@ class TestFeaturesList:
     def test_features_list_json_format(self, mock_client_cls):
         """--format json returns valid JSON output."""
         features_list = [_make_feature("F59625", "Auth Epic")]
-        api_items = [_feature_to_api_item(f) for f in features_list]
-        api_response = _mock_api_response(api_items)
 
         mock_client = AsyncMock()
-        mock_client._get = AsyncMock(return_value=api_response)
+        mock_client.get_features = AsyncMock(return_value=features_list)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_client
@@ -144,10 +125,8 @@ class TestFeaturesList:
     @patch("rally_tui.cli.commands.features.AsyncRallyClient")
     def test_features_list_empty(self, mock_client_cls):
         """Empty features shows appropriate message."""
-        api_response = _mock_api_response([])
-
         mock_client = AsyncMock()
-        mock_client._get = AsyncMock(return_value=api_response)
+        mock_client.get_features = AsyncMock(return_value=[])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_client
@@ -170,11 +149,9 @@ class TestFeaturesShow:
             state="Developing",
             owner="Test User",
         )
-        api_items = [_feature_to_api_item(feature)]
-        api_response = _mock_api_response(api_items)
 
         mock_client = AsyncMock()
-        mock_client._get = AsyncMock(return_value=api_response)
+        mock_client.get_features = AsyncMock(return_value=[feature])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_client
@@ -193,29 +170,15 @@ class TestFeaturesShow:
             "Authentication Epic",
             story_count=2,
         )
-        feature_api = [_feature_to_api_item(feature)]
-        feature_response = _mock_api_response(feature_api)
 
-        children_response = _mock_api_response(
-            [
-                {
-                    "FormattedID": "US12345",
-                    "Name": "Login page",
-                    "ScheduleState": "In-Progress",
-                    "Owner": {"_refObjectName": "Dev User"},
-                },
-                {
-                    "FormattedID": "US12346",
-                    "Name": "OAuth integration",
-                    "ScheduleState": "Defined",
-                    "Owner": {"_refObjectName": "Other User"},
-                },
-            ]
-        )
+        children = [
+            _make_ticket("US12345", "Login page", "In-Progress", "Dev User"),
+            _make_ticket("US12346", "OAuth integration", "Defined", "Other User"),
+        ]
 
         mock_client = AsyncMock()
-        # First call: feature detail, Second call: children
-        mock_client._get = AsyncMock(side_effect=[feature_response, children_response])
+        mock_client.get_features = AsyncMock(return_value=[feature])
+        mock_client.get_feature_children = AsyncMock(return_value=children)
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_client
@@ -232,11 +195,9 @@ class TestFeaturesShow:
     def test_show_feature_json_format(self, mock_client_cls):
         """features show --format json returns JSON output."""
         feature = _make_feature("F59625", "Auth Epic")
-        api_items = [_feature_to_api_item(feature)]
-        api_response = _mock_api_response(api_items)
 
         mock_client = AsyncMock()
-        mock_client._get = AsyncMock(return_value=api_response)
+        mock_client.get_features = AsyncMock(return_value=[feature])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_client
@@ -250,10 +211,8 @@ class TestFeaturesShow:
     @patch("rally_tui.cli.commands.features.AsyncRallyClient")
     def test_show_feature_not_found(self, mock_client_cls):
         """Showing a nonexistent feature exits with error."""
-        api_response = _mock_api_response([])
-
         mock_client = AsyncMock()
-        mock_client._get = AsyncMock(return_value=api_response)
+        mock_client.get_features = AsyncMock(return_value=[])
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_client
@@ -295,7 +254,7 @@ class TestFeaturesErrorCases:
     def test_list_api_error(self, mock_client_cls):
         """API error when listing features shows error message."""
         mock_client = AsyncMock()
-        mock_client._get = AsyncMock(side_effect=Exception("Network error"))
+        mock_client.get_features = AsyncMock(side_effect=Exception("Network error"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_client
@@ -309,7 +268,7 @@ class TestFeaturesErrorCases:
     def test_list_auth_error(self, mock_client_cls):
         """Authentication error when listing features shows auth message."""
         mock_client = AsyncMock()
-        mock_client._get = AsyncMock(side_effect=Exception("401 Unauthorized"))
+        mock_client.get_features = AsyncMock(side_effect=Exception("401 Unauthorized"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client_cls.return_value = mock_client
