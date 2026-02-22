@@ -25,6 +25,17 @@ class Ticket:
     points: int | float | None = None
     object_id: str | None = None  # Rally ObjectID for API calls
     parent_id: str | None = None  # Parent Feature formatted ID (e.g., "F59625")
+    acceptance_criteria: str = ""  # c_AcceptanceCriteria custom field
+    blocked: bool = False
+    blocked_reason: str = ""
+    schedule_state: str = ""  # Defined, In-Progress, Completed, Accepted
+    severity: str | None = None  # Defect only
+    priority: str | None = None  # Defect only
+    ready: bool = False
+    expedite: bool = False
+    target_date: str | None = None  # ISO date string
+    creation_date: str | None = None  # ISO datetime string
+    last_update_date: str | None = None  # ISO datetime string
 
     @property
     def display_text(self) -> str:

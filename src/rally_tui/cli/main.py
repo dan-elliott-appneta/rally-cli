@@ -40,6 +40,19 @@ class CLIContext:
         self.verbose = verbose
         self._formatter: BaseFormatter | None = None
 
+    def set_format(self, fmt: OutputFormat) -> None:
+        """Set the output format and reset the cached formatter.
+
+        This is the public API for changing the output format after
+        construction. It resets the internal formatter cache so the
+        next access to ``formatter`` builds the correct instance.
+
+        Args:
+            fmt: The new output format.
+        """
+        self.output_format = fmt
+        self._formatter = None
+
     @property
     def formatter(self) -> BaseFormatter:
         """Get the appropriate formatter based on output format."""

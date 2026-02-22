@@ -4,7 +4,9 @@ This module implements the 'tickets' command for querying Rally work items.
 """
 
 import asyncio
+import re
 import sys
+from datetime import date as date_type
 
 import click
 
@@ -13,6 +15,9 @@ from rally_tui.cli.main import CLIContext, cli, pass_context
 from rally_tui.config import RallyConfig
 from rally_tui.models import Ticket
 from rally_tui.services.async_rally_client import AsyncRallyClient
+
+# Pattern matching valid Rally ticket IDs (case-insensitive)
+_TICKET_ID_RE = re.compile(r"^(US|S|DE|TA|TC|F)\d+$", re.IGNORECASE)
 
 
 def _sanitize_query_value(value: str) -> str:
@@ -29,6 +34,41 @@ def _sanitize_query_value(value: str) -> str:
     return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
+def _validate_date(ctx: click.Context, param: click.Parameter, value: str | None) -> str | None:
+    """Validate that a date string matches YYYY-MM-DD format.
+
+    Args:
+        ctx: Click context (unused).
+        param: Click parameter (unused).
+        value: The date string to validate.
+
+    Returns:
+        The validated date string, or None if not provided.
+
+    Raises:
+        click.BadParameter: If the date string is not valid YYYY-MM-DD.
+    """
+    if value is None:
+        return None
+    try:
+        date_type.fromisoformat(value)
+    except ValueError:
+        raise click.BadParameter(f"'{value}' is not a valid date. Use YYYY-MM-DD format.")
+    return value
+
+
+def _is_valid_ticket_id(ticket_id: str) -> bool:
+    """Validate that a ticket ID matches the expected Rally format.
+
+    Args:
+        ticket_id: The ticket ID string to validate.
+
+    Returns:
+        True if the format is valid, False otherwise.
+    """
+    return bool(_TICKET_ID_RE.match(ticket_id))
+
+
 # Map CLI type names to Rally entity types
 CREATE_TYPE_MAP = {
     "userstory": "HierarchicalRequirement",
@@ -37,6 +77,13 @@ CREATE_TYPE_MAP = {
 
 
 @click.group("tickets", invoke_without_command=True)
+@click.option(
+    "--format",
+    "sub_format",
+    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
+    default=None,
+    help="Output format (overrides global --format).",
+)
 @click.option(
     "--current-iteration",
     is_flag=True,
@@ -89,6 +136,7 @@ CREATE_TYPE_MAP = {
 @click.pass_context
 def tickets(
     click_ctx: click.Context,
+    sub_format: str | None,
     current_iteration: bool,
     my_tickets: bool,
     iteration: str | None,
@@ -123,9 +171,18 @@ def tickets(
         # Custom query with JSON output
         rally-cli tickets --query '(State = "In-Progress")' --format json
     """
+    ctx = click_ctx.obj
+
+    # Apply sub-format override before any subcommand or list runs so that
+    # subcommands that inherit the context also see the updated formatter.
+    if sub_format:
+        from rally_tui.cli.formatters.base import OutputFormat
+
+        ctx.set_format(OutputFormat(sub_format.lower()))
+
     if click_ctx.invoked_subcommand is not None:
         return
-    ctx = click_ctx.obj
+
     _tickets_list(
         ctx=ctx,
         current_iteration=current_iteration,
@@ -276,6 +333,419 @@ def tickets_create(
             success=False,
             data=None,
             error="Failed to create ticket.",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(1)
+
+
+@tickets.command("show")
+@click.argument("ticket_id")
+@click.option(
+    "--format",
+    "sub_format",
+    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
+    default=None,
+    help="Output format.",
+)
+@pass_context
+def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> None:
+    """Show detailed information for a single ticket.
+
+    TICKET_ID is the formatted ID (e.g., US12345, DE67890).
+
+    Examples:
+
+    \b
+        rally-cli tickets show US12345
+        rally-cli tickets show DE67890 --format json
+    """
+    if sub_format:
+        from rally_tui.cli.formatters.base import OutputFormat
+
+        ctx.set_format(OutputFormat(sub_format.lower()))
+
+    if not ctx.apikey:
+        result = CLIResult(
+            success=False,
+            data=None,
+            error="RALLY_APIKEY environment variable not set. "
+            "Set RALLY_APIKEY or use --apikey flag.",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(4)
+
+    if not _is_valid_ticket_id(ticket_id):
+        result = CLIResult(
+            success=False,
+            data=None,
+            error=f"Invalid ticket ID format: {ticket_id}. "
+            "Ticket ID must match pattern US/S/DE/TA/TC/F followed by digits.",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(2)
+
+    async def _do_show() -> Ticket | None:
+        config = RallyConfig(
+            server=ctx.server,
+            apikey=ctx.apikey,
+            workspace=ctx.workspace,
+            project=ctx.project,
+        )
+        async with AsyncRallyClient(config) as client:
+            return await client.get_ticket(ticket_id)
+
+    try:
+        ticket = asyncio.run(_do_show())
+    except Exception as exc:
+        error_msg = str(exc)
+        result = CLIResult(
+            success=False,
+            data=None,
+            error=f"Failed to fetch ticket: {error_msg}",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(1)
+
+    if ticket:
+        result = CLIResult(success=True, data=ticket)
+        click.echo(ctx.formatter.format_ticket_detail(result))
+        sys.exit(0)
+    else:
+        result = CLIResult(
+            success=False,
+            data=None,
+            error=f"Ticket {ticket_id} not found.",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(1)
+
+
+@tickets.command("update")
+@click.argument("ticket_id")
+@click.option("--state", default=None, help="Workflow state.")
+@click.option("--owner", "new_owner", default=None, help="Owner display name.")
+@click.option("--iteration", default=None, help="Iteration name.")
+@click.option(
+    "--no-iteration", is_flag=True, default=False, help="Remove from iteration (backlog)."
+)
+@click.option("--points", type=float, default=None, help="Story points.")
+@click.option("--parent", default=None, help="Parent Feature ID.")
+@click.option("--name", "new_name", default=None, help="Rename ticket.")
+@click.option("--description", default=None, help="Set description.")
+@click.option(
+    "--description-file",
+    type=click.Path(exists=True),
+    default=None,
+    help="Set description from file.",
+)
+@click.option("--notes", default=None, help="Set notes.")
+@click.option(
+    "--notes-file",
+    type=click.Path(exists=True),
+    default=None,
+    help="Set notes from file.",
+)
+@click.option("--ac", default=None, help="Set acceptance criteria.")
+@click.option(
+    "--ac-file",
+    type=click.Path(exists=True),
+    default=None,
+    help="Set acceptance criteria from file.",
+)
+@click.option("--blocked/--no-blocked", default=None, help="Set/clear blocked status.")
+@click.option("--blocked-reason", default=None, help="Reason for blocking.")
+@click.option("--ready/--no-ready", default=None, help="Set/clear ready status.")
+@click.option("--expedite/--no-expedite", default=None, help="Set/clear expedite flag.")
+@click.option("--severity", default=None, help="Severity (Defect only).")
+@click.option("--priority", default=None, help="Priority (Defect only).")
+@click.option(
+    "--target-date",
+    default=None,
+    callback=_validate_date,
+    help="Target date (YYYY-MM-DD).",
+)
+@click.option(
+    "--format",
+    "sub_format",
+    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
+    default=None,
+    help="Output format.",
+)
+@pass_context
+def tickets_update(
+    ctx: CLIContext,
+    ticket_id: str,
+    sub_format: str | None,
+    state: str | None,
+    new_owner: str | None,
+    iteration: str | None,
+    no_iteration: bool,
+    points: float | None,
+    parent: str | None,
+    new_name: str | None,
+    description: str | None,
+    description_file: str | None,
+    notes: str | None,
+    notes_file: str | None,
+    ac: str | None,
+    ac_file: str | None,
+    blocked: bool | None,
+    blocked_reason: str | None,
+    ready: bool | None,
+    expedite: bool | None,
+    severity: str | None,
+    priority: str | None,
+    target_date: str | None,
+) -> None:
+    """Update fields on an existing ticket.
+
+    TICKET_ID is the formatted ID (e.g., US12345, DE67890).
+
+    Examples:
+
+    \b
+        rally-cli tickets update US12345 --state "In-Progress" --points 3
+        rally-cli tickets update DE67890 --owner "Jane Smith" --priority High
+        rally-cli tickets update US12345 --description-file desc.txt
+        rally-cli tickets update US12345 --no-iteration
+    """
+    if sub_format:
+        from rally_tui.cli.formatters.base import OutputFormat
+
+        ctx.set_format(OutputFormat(sub_format.lower()))
+
+    if not ctx.apikey:
+        result = CLIResult(
+            success=False,
+            data=None,
+            error="RALLY_APIKEY environment variable not set. "
+            "Set RALLY_APIKEY or use --apikey flag.",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(4)
+
+    if not _is_valid_ticket_id(ticket_id):
+        result = CLIResult(
+            success=False,
+            data=None,
+            error=f"Invalid ticket ID format: {ticket_id}. "
+            "Ticket ID must match pattern US/S/DE/TA/TC/F followed by digits.",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(2)
+
+    # Read file-based options
+    if description_file:
+        with open(description_file) as f:
+            description = f.read()
+    if notes_file:
+        with open(notes_file) as f:
+            notes = f.read()
+    if ac_file:
+        with open(ac_file) as f:
+            ac = f.read()
+
+    # Build fields dict - map CLI option names to Rally field names
+    fields: dict = {}
+    changes: dict = {}
+
+    if state is not None:
+        fields["state"] = state
+        changes["state"] = state
+    if new_owner is not None:
+        fields["owner"] = new_owner
+        changes["owner"] = new_owner
+    if no_iteration:
+        fields["iteration"] = None
+        changes["iteration"] = "backlog"
+    elif iteration is not None:
+        fields["iteration"] = iteration
+        changes["iteration"] = iteration
+    if points is not None:
+        fields["PlanEstimate"] = points
+        changes["points"] = points
+    if parent is not None:
+        fields["parent"] = parent
+        changes["parent"] = parent
+    if new_name is not None:
+        fields["Name"] = new_name
+        changes["name"] = new_name
+    if description is not None:
+        fields["Description"] = description
+        changes["description"] = "(updated)"
+    if notes is not None:
+        fields["Notes"] = notes
+        changes["notes"] = "(updated)"
+    if ac is not None:
+        fields["c_AcceptanceCriteria"] = ac
+        changes["ac"] = "(updated)"
+    if blocked is not None:
+        fields["Blocked"] = blocked
+        changes["blocked"] = blocked
+    if blocked_reason is not None:
+        fields["BlockedReason"] = blocked_reason
+        changes["blocked_reason"] = blocked_reason
+    if ready is not None:
+        fields["Ready"] = ready
+        changes["ready"] = ready
+    if expedite is not None:
+        fields["Expedite"] = expedite
+        changes["expedite"] = expedite
+    if severity is not None:
+        fields["Severity"] = severity
+        changes["severity"] = severity
+    if priority is not None:
+        fields["Priority"] = priority
+        changes["priority"] = priority
+    if target_date is not None:
+        fields["TargetDate"] = target_date
+        changes["target_date"] = target_date
+
+    if not fields:
+        result = CLIResult(
+            success=False,
+            data=None,
+            error="No fields to update. Provide at least one update option.",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(2)
+
+    async def _do_update() -> Ticket | None:
+        config = RallyConfig(
+            server=ctx.server,
+            apikey=ctx.apikey,
+            workspace=ctx.workspace,
+            project=ctx.project,
+        )
+        async with AsyncRallyClient(config) as client:
+            ticket = await client.get_ticket(ticket_id)
+            if not ticket:
+                return None
+            return await client.update_ticket(ticket, fields)
+
+    try:
+        updated_ticket = asyncio.run(_do_update())
+    except Exception as exc:
+        error_msg = str(exc)
+        if "401" in error_msg or "unauthorized" in error_msg.lower():
+            error_msg = "Authentication failed: Invalid API key"
+        result = CLIResult(
+            success=False,
+            data=None,
+            error=f"Failed to update ticket: {error_msg}",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(1)
+
+    if updated_ticket:
+        result = CLIResult(
+            success=True,
+            data={
+                "formatted_id": updated_ticket.formatted_id,
+                "ticket": updated_ticket,
+                "changes": changes,
+            },
+        )
+        click.echo(ctx.formatter.format_update_result(result))
+        sys.exit(0)
+    else:
+        result = CLIResult(
+            success=False,
+            data=None,
+            error=f"Ticket {ticket_id} not found or update failed.",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(1)
+
+
+@tickets.command("delete")
+@click.argument("ticket_id")
+@click.option(
+    "--confirm",
+    is_flag=True,
+    required=True,
+    help="Required safety flag - must be provided to confirm deletion.",
+)
+@click.option(
+    "--format",
+    "sub_format",
+    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
+    default=None,
+    help="Output format.",
+)
+@pass_context
+def tickets_delete(ctx: CLIContext, ticket_id: str, confirm: bool, sub_format: str | None) -> None:
+    """Delete a ticket from Rally.
+
+    TICKET_ID is the formatted ID (e.g., US12345, DE67890).
+    The --confirm flag is required as a safety measure.
+
+    Examples:
+
+    \b
+        rally-cli tickets delete US12345 --confirm
+    """
+    if sub_format:
+        from rally_tui.cli.formatters.base import OutputFormat
+
+        ctx.set_format(OutputFormat(sub_format.lower()))
+
+    if not ctx.apikey:
+        result = CLIResult(
+            success=False,
+            data=None,
+            error="RALLY_APIKEY environment variable not set. "
+            "Set RALLY_APIKEY or use --apikey flag.",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(4)
+
+    if not _is_valid_ticket_id(ticket_id):
+        result = CLIResult(
+            success=False,
+            data=None,
+            error=f"Invalid ticket ID format: {ticket_id}. "
+            "Ticket ID must match pattern US/S/DE/TA/TC/F followed by digits.",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(2)
+
+    async def _do_delete() -> bool:
+        config = RallyConfig(
+            server=ctx.server,
+            apikey=ctx.apikey,
+            workspace=ctx.workspace,
+            project=ctx.project,
+        )
+        async with AsyncRallyClient(config) as client:
+            return await client.delete_ticket(ticket_id)
+
+    try:
+        deleted = asyncio.run(_do_delete())
+    except Exception as exc:
+        error_msg = str(exc)
+        if "401" in error_msg or "unauthorized" in error_msg.lower():
+            error_msg = "Authentication failed: Invalid API key"
+        result = CLIResult(
+            success=False,
+            data=None,
+            error=f"Failed to delete ticket: {error_msg}",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(1)
+
+    if deleted:
+        result = CLIResult(
+            success=True,
+            data={"formatted_id": ticket_id, "deleted": True},
+        )
+        click.echo(ctx.formatter.format_delete_result(result))
+        sys.exit(0)
+    else:
+        result = CLIResult(
+            success=False,
+            data=None,
+            error=f"Failed to delete ticket {ticket_id}.",
         )
         click.echo(ctx.formatter.format_error(result), err=True)
         sys.exit(1)

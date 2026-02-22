@@ -101,6 +101,109 @@ class CSVFormatter(BaseFormatter):
 
         return output.getvalue().rstrip("\n")
 
+    def format_ticket_detail(self, result: CLIResult) -> str:
+        """Format a single ticket with full details as a single CSV row.
+
+        Args:
+            result: CLIResult containing a single Ticket.
+
+        Returns:
+            CSV string with all ticket fields as a single row.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        ticket = result.data
+        if ticket is None:
+            return ""
+
+        detail_fields = [
+            "formatted_id",
+            "name",
+            "ticket_type",
+            "state",
+            "owner",
+            "points",
+            "iteration",
+            "parent_id",
+            "blocked",
+            "ready",
+            "expedite",
+            "severity",
+            "priority",
+            "target_date",
+            "creation_date",
+            "last_update_date",
+            "acceptance_criteria",
+            "description",
+            "notes",
+            "blocked_reason",
+        ]
+
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(detail_fields)
+        row = [self._get_field_value(ticket, f) for f in detail_fields]
+        writer.writerow(row)
+        return output.getvalue().rstrip("\n")
+
+    def format_update_result(self, result: CLIResult) -> str:
+        """Format ticket update result as CSV.
+
+        Args:
+            result: CLIResult with data dict or Ticket.
+
+        Returns:
+            CSV string with updated ticket fields.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        from rally_tui.models import Ticket
+
+        data = result.data
+        if isinstance(data, Ticket):
+            single_result = type(result)(success=True, data=data, error=None)
+            return self.format_ticket_detail(single_result)
+        elif isinstance(data, dict):
+            ticket = data.get("ticket")
+            if isinstance(ticket, Ticket):
+                single_result = type(result)(success=True, data=ticket, error=None)
+                return self.format_ticket_detail(single_result)
+
+            # Fallback: render dict as key/value rows
+            output = io.StringIO()
+            writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+            writer.writerow(["field", "value"])
+            for k, v in data.items():
+                if k != "ticket":
+                    writer.writerow([k, v])
+            return output.getvalue().rstrip("\n")
+
+        return ""
+
+    def format_delete_result(self, result: CLIResult) -> str:
+        """Format ticket delete result as CSV.
+
+        Args:
+            result: CLIResult with data dict containing 'formatted_id'.
+
+        Returns:
+            CSV string confirming deletion.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["formatted_id", "deleted"])
+        if isinstance(data, dict):
+            writer.writerow([data.get("formatted_id", ""), "true"])
+        else:
+            writer.writerow(["", "true"])
+        return output.getvalue().rstrip("\n")
+
     def format_error(self, result: CLIResult) -> str:
         """Format error as plain text.
 

@@ -70,3 +70,39 @@ class BaseFormatter(ABC):
             Formatted string output.
         """
         pass
+
+    @abstractmethod
+    def format_ticket_detail(self, result: CLIResult) -> str:
+        """Format single ticket detail output for the show command.
+
+        Args:
+            result: CLIResult containing a single ticket.
+
+        Returns:
+            Formatted string output with full ticket details.
+        """
+        pass
+
+    @abstractmethod
+    def format_update_result(self, result: CLIResult) -> str:
+        """Format ticket update result for the update command.
+
+        Args:
+            result: CLIResult containing the updated ticket and change summary.
+
+        Returns:
+            Formatted string output summarising what changed.
+        """
+        pass
+
+    @abstractmethod
+    def format_delete_result(self, result: CLIResult) -> str:
+        """Format ticket delete result for the delete command.
+
+        Args:
+            result: CLIResult containing deletion confirmation data.
+
+        Returns:
+            Formatted string output confirming deletion.
+        """
+        pass

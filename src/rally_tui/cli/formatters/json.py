@@ -105,6 +105,70 @@ class JSONFormatter(BaseFormatter):
             "artifact_id": discussion.artifact_id,
         }
 
+    def format_ticket_detail(self, result: CLIResult) -> str:
+        """Format a single ticket with full details as JSON.
+
+        Args:
+            result: CLIResult containing a single Ticket.
+
+        Returns:
+            JSON string with success wrapper and full ticket data.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            ticket = result.data
+            if isinstance(ticket, Ticket):
+                output["data"] = self._ticket_to_dict(ticket)
+            elif isinstance(ticket, dict):
+                output["data"] = ticket
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
+    def format_update_result(self, result: CLIResult) -> str:
+        """Format ticket update result as JSON.
+
+        Args:
+            result: CLIResult with data dict containing 'ticket' and 'changes'.
+
+        Returns:
+            JSON string with success wrapper and update data.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            data = result.data
+            if isinstance(data, Ticket):
+                output["data"] = self._ticket_to_dict(data)
+            elif isinstance(data, dict):
+                ticket = data.get("ticket")
+                if isinstance(ticket, Ticket):
+                    output["data"] = {
+                        "ticket": self._ticket_to_dict(ticket),
+                        "changes": data.get("changes", {}),
+                    }
+                else:
+                    output["data"] = data
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
+    def format_delete_result(self, result: CLIResult) -> str:
+        """Format ticket delete result as JSON.
+
+        Args:
+            result: CLIResult with data dict containing 'formatted_id'.
+
+        Returns:
+            JSON string confirming deletion.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            data = result.data
+            if isinstance(data, dict):
+                output["data"] = {
+                    "formatted_id": data.get("formatted_id", ""),
+                    "deleted": True,
+                }
+            else:
+                output["data"] = {"deleted": True}
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
     def _json_serializer(self, obj: Any) -> Any:
         """Custom JSON serializer for non-standard types.
 

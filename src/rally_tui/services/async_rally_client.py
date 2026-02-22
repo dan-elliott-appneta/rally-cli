@@ -482,6 +482,19 @@ class AsyncRallyClient:
         if parent_obj and isinstance(parent_obj, dict):
             parent_id = parent_obj.get("FormattedID")
 
+        # Extract Phase 1 extended fields
+        acceptance_criteria = item.get("c_AcceptanceCriteria") or ""
+        blocked = bool(item.get("Blocked", False))
+        blocked_reason = item.get("BlockedReason") or ""
+        schedule_state = item.get("ScheduleState") or ""
+        severity = item.get("Severity") if entity_type == "Defect" else None
+        priority = item.get("Priority") if entity_type == "Defect" else None
+        ready = bool(item.get("Ready", False))
+        expedite = bool(item.get("Expedite", False))
+        target_date = item.get("TargetDate")
+        creation_date = item.get("CreationDate")
+        last_update_date = item.get("LastUpdateDate")
+
         return Ticket(
             formatted_id=item.get("FormattedID", ""),
             name=item.get("Name", ""),
@@ -494,6 +507,17 @@ class AsyncRallyClient:
             points=points,
             object_id=str(item.get("ObjectID", "")),
             parent_id=parent_id,
+            acceptance_criteria=acceptance_criteria,
+            blocked=blocked,
+            blocked_reason=blocked_reason,
+            schedule_state=schedule_state,
+            severity=severity,
+            priority=priority,
+            ready=ready,
+            expedite=expedite,
+            target_date=target_date,
+            creation_date=creation_date,
+            last_update_date=last_update_date,
         )
 
     # -------------------------------------------------------------------------
@@ -664,13 +688,21 @@ class AsyncRallyClient:
         _log.info(f"Updating state for {ticket.formatted_id} to {state}")
 
         try:
-            # Look up the FlowState reference by name
+            # Look up the FlowState reference by name, scoped to the project
+            sanitized_state = self._sanitize_query_value(state)
+            if self._project:
+                sanitized_proj = self._sanitize_query_value(self._project)
+                state_query = (
+                    f'((Name = "{sanitized_state}") AND (Project.Name = "{sanitized_proj}"))'
+                )
+            else:
+                state_query = f'(Name = "{sanitized_state}")'
             flow_state_response = await self._get(
                 "/flowstate",
                 params={
-                    "query": f'(Name = "{state}")',
+                    "query": state_query,
                     "fetch": "Name,ObjectID",
-                    "pagesize": "1",
+                    "pagesize": 1,
                 },
             )
             flow_states, _ = parse_query_result(flow_state_response)
@@ -710,6 +742,189 @@ class AsyncRallyClient:
             _log.error(f"Error updating state for {ticket.formatted_id}: {e}")
 
         return None
+
+    async def update_ticket(self, ticket: Ticket, fields: dict[str, Any]) -> Ticket | None:
+        """Update arbitrary fields on a ticket.
+
+        Handles special field lookups for FlowState, Owner, Iteration, and
+        PortfolioItem (parent Feature). All other fields are passed directly
+        to the Rally API.
+
+        Special field handling:
+        - 'state'     -> looks up FlowState reference by name
+        - 'owner'     -> looks up Owner user by display name
+        - 'iteration' -> looks up Iteration by name (None removes iteration)
+        - 'parent'    -> looks up Feature by formatted ID
+
+        Args:
+            ticket: The ticket to update.
+            fields: Dict of field names to new values. Keys use Rally field names
+                    except for the special aliases above.
+
+        Returns:
+            The updated Ticket (re-fetched from Rally), or None on failure.
+        """
+        if not ticket.object_id:
+            _log.warning(f"Cannot update ticket: no object_id for {ticket.formatted_id}")
+            return None
+
+        _log.info(f"Updating {ticket.formatted_id} with fields: {list(fields.keys())}")
+
+        try:
+            entity_type = get_entity_type_from_prefix(ticket.formatted_id)
+            rally_data: dict[str, Any] = {}
+
+            for key, value in fields.items():
+                if key == "state":
+                    # Look up FlowState reference by name, scoped to the project
+                    sanitized_state = self._sanitize_query_value(str(value))
+                    if self._project:
+                        sanitized_proj = self._sanitize_query_value(self._project)
+                        state_query = (
+                            f'((Name = "{sanitized_state}") AND'
+                            f' (Project.Name = "{sanitized_proj}"))'
+                        )
+                    else:
+                        state_query = f'(Name = "{sanitized_state}")'
+                    flow_state_response = await self._get(
+                        "/flowstate",
+                        params={
+                            "query": state_query,
+                            "fetch": "Name,ObjectID",
+                            "pagesize": 1,
+                        },
+                    )
+                    flow_states, _ = parse_query_result(flow_state_response)
+                    if not flow_states:
+                        raise ValueError(
+                            f"FlowState '{value}' not found"
+                            + (f" in project '{self._project}'" if self._project else "")
+                        )
+                    rally_data["FlowState"] = f"/flowstate/{flow_states[0].get('ObjectID')}"
+
+                elif key == "owner":
+                    # Look up Owner by display name
+                    sanitized_owner = self._sanitize_query_value(str(value))
+                    user_response = await self._get(
+                        "/user",
+                        params={
+                            "fetch": "DisplayName,ObjectID",
+                            "query": f'(DisplayName = "{sanitized_owner}")',
+                            "pagesize": 1,
+                        },
+                    )
+                    user_results, _ = parse_query_result(user_response)
+                    if not user_results:
+                        raise ValueError(f"User '{value}' not found")
+                    rally_data["Owner"] = f"/user/{user_results[0].get('ObjectID')}"
+
+                elif key == "iteration":
+                    # Look up Iteration by name; None removes the iteration (backlog)
+                    if value is None:
+                        rally_data["Iteration"] = None
+                    else:
+                        sanitized_iter = self._sanitize_query_value(str(value))
+                        iter_response = await self._get(
+                            "/iteration",
+                            params={
+                                "fetch": "Name,ObjectID",
+                                "query": f'(Name = "{sanitized_iter}")',
+                                "pagesize": 1,
+                            },
+                        )
+                        iter_results, _ = parse_query_result(iter_response)
+                        if not iter_results:
+                            raise ValueError(f"Iteration '{value}' not found")
+                        rally_data["Iteration"] = f"/iteration/{iter_results[0].get('ObjectID')}"
+
+                elif key == "parent":
+                    # Look up Feature by formatted ID
+                    if value is None:
+                        rally_data["PortfolioItem"] = None
+                    else:
+                        sanitized_parent = self._sanitize_query_value(str(value))
+                        feature_response = await self._get(
+                            "/portfolioitem/feature",
+                            params={
+                                "fetch": "ObjectID",
+                                "query": f'((FormattedID = "{sanitized_parent}"))',
+                                "projectScopeUp": "true",
+                                "projectScopeDown": "true",
+                            },
+                        )
+                        feature_results, _ = parse_query_result(feature_response)
+                        if not feature_results:
+                            raise ValueError(f"Feature '{value}' not found")
+                        feature_oid = feature_results[0].get("ObjectID")
+                        rally_data["PortfolioItem"] = f"/portfolioitem/feature/{feature_oid}"
+
+                else:
+                    # Pass field directly to Rally (Name, Description, Notes,
+                    # c_AcceptanceCriteria, Blocked, BlockedReason, Ready,
+                    # Expedite, TargetDate, PlanEstimate, ScheduleState, etc.)
+                    rally_data[key] = value
+
+            if not rally_data:
+                _log.warning(f"No Rally fields to update for {ticket.formatted_id}")
+                return ticket
+
+            path = f"/{get_url_path(entity_type)}/{ticket.object_id}"
+            await self._post(path, data={entity_type: rally_data})
+
+            # Re-fetch to get the authoritative updated state
+            updated = await self.get_ticket(ticket.formatted_id)
+            if updated:
+                _log.info(f"Ticket updated successfully: {ticket.formatted_id}")
+            return updated
+
+        except ValueError:
+            raise  # Let lookup errors propagate with descriptive messages
+        except Exception as e:
+            _log.error(f"Error updating ticket {ticket.formatted_id}: {e}")
+
+        return None
+
+    async def delete_ticket(self, formatted_id: str) -> bool:
+        """Delete a ticket from Rally.
+
+        Args:
+            formatted_id: The ticket's formatted ID (e.g., "US1234").
+
+        Returns:
+            True on success, False on failure.
+        """
+        _log.info(f"Deleting ticket: {formatted_id}")
+
+        try:
+            # First fetch the ticket to get its object_id
+            ticket = await self.get_ticket(formatted_id)
+            if not ticket:
+                _log.error(f"Ticket not found: {formatted_id}")
+                return False
+
+            if not ticket.object_id:
+                _log.error(f"No object_id for ticket: {formatted_id}")
+                return False
+
+            entity_type = get_entity_type_from_prefix(formatted_id)
+            path = f"/{get_url_path(entity_type)}/{ticket.object_id}"
+
+            response = await self._request("DELETE", path)
+
+            # Check for Rally-level errors in the response body
+            op_result = response.get("OperationResult", {})
+            errors = op_result.get("Errors", [])
+            if errors:
+                _log.error(f"Rally errors deleting {formatted_id}: {errors}")
+                return False
+
+            _log.info(f"Ticket deleted successfully: {formatted_id}")
+            return True
+
+        except Exception as e:
+            _log.error(f"Error deleting ticket {formatted_id}: {e}")
+
+        return False
 
     async def create_ticket(
         self,
@@ -898,11 +1113,12 @@ class AsyncRallyClient:
         _log.debug(f"Fetching feature: {formatted_id}")
 
         try:
+            sanitized_id = self._sanitize_query_value(formatted_id)
             response = await self._get(
                 "/portfolioitem/feature",
                 params={
                     "fetch": "FormattedID,Name",
-                    "query": f'FormattedID = "{formatted_id}"',
+                    "query": f'((FormattedID = "{sanitized_id}"))',
                     "projectScopeUp": "true",
                     "projectScopeDown": "true",
                 },
@@ -934,11 +1150,12 @@ class AsyncRallyClient:
 
         try:
             # Get the Feature's ObjectID
+            sanitized_parent_id = self._sanitize_query_value(parent_id)
             feature_response = await self._get(
                 "/portfolioitem/feature",
                 params={
                     "fetch": "ObjectID",
-                    "query": f'FormattedID = "{parent_id}"',
+                    "query": f'((FormattedID = "{sanitized_parent_id}"))',
                     "projectScopeUp": "true",
                     "projectScopeDown": "true",
                 },

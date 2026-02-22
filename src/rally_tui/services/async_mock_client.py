@@ -12,6 +12,9 @@ from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
 from rally_tui.services.mock_client import MockRallyClient
 from rally_tui.services.protocol import BulkResult
 
+# Re-export for type checking
+__all__ = ["AsyncMockRallyClient"]
+
 
 class AsyncMockRallyClient:
     """Async wrapper around MockRallyClient for testing.
@@ -242,3 +245,26 @@ class AsyncMockRallyClient:
             BulkResult with success/failure counts and updated tickets.
         """
         return self._sync_client.bulk_assign_owner(tickets, owner)
+
+    async def update_ticket(self, ticket: Ticket, fields: dict[str, Any]) -> Ticket | None:
+        """Update arbitrary fields on a ticket.
+
+        Args:
+            ticket: The ticket to update.
+            fields: Dict of field names to new values.
+
+        Returns:
+            The updated Ticket, or None on failure.
+        """
+        return self._sync_client.update_ticket(ticket, fields)
+
+    async def delete_ticket(self, formatted_id: str) -> bool:
+        """Delete a ticket from Rally.
+
+        Args:
+            formatted_id: The ticket's formatted ID (e.g., "US1234").
+
+        Returns:
+            True on success, False on failure.
+        """
+        return self._sync_client.delete_ticket(formatted_id)
