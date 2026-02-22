@@ -296,9 +296,13 @@ class CachingRallyClient:
             return False
         return self._client.delete_ticket(formatted_id)
 
-    def get_iterations(self, count: int = 5) -> list[Iteration]:
+    def get_iterations(self, count: int = 5, state: str | None = None) -> list[Iteration]:
         """Fetch recent iterations (not cached)."""
-        return self._client.get_iterations(count)
+        return self._client.get_iterations(count, state=state)
+
+    def get_future_iterations(self, count: int = 5) -> list[Iteration]:
+        """Fetch future iterations (not cached)."""
+        return self._client.get_future_iterations(count)
 
     def get_feature(self, formatted_id: str) -> tuple[str, str] | None:
         """Fetch a Feature's name by ID (not cached)."""

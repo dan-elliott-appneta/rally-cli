@@ -669,7 +669,7 @@ class RallyClient:
             _log.error(f"Error deleting {formatted_id}: {e}")
             return False
 
-    def get_iterations(self, count: int = 5) -> list[Iteration]:
+    def get_iterations(self, count: int = 5, state: str | None = None) -> list[Iteration]:
         """Fetch recent iterations from Rally.
 
         Returns the current iteration first (button 1), followed by recent
@@ -677,13 +677,14 @@ class RallyClient:
 
         Args:
             count: Maximum number of iterations to return.
+            state: Optional state filter (Planning, Committed, Accepted).
 
         Returns:
             List of Iteration objects with current sprint first.
         """
         from datetime import datetime
 
-        _log.debug(f"Fetching {count} recent iterations")
+        _log.debug(f"Fetching {count} recent iterations (state={state})")
         iterations: list[Iteration] = []
         current_iteration: Iteration | None = None
 
@@ -700,7 +701,8 @@ class RallyClient:
             for item in current_response:
                 current_iteration = self._to_iteration(item)
                 if current_iteration:
-                    iterations.append(current_iteration)
+                    if state is None or current_iteration.state == state:
+                        iterations.append(current_iteration)
                     _log.debug(f"Current iteration: {current_iteration.name}")
                 break
 
@@ -718,11 +720,47 @@ class RallyClient:
                     break
                 iteration = self._to_iteration(item)
                 if iteration:
-                    iterations.append(iteration)
+                    if state is None or iteration.state == state:
+                        iterations.append(iteration)
 
             _log.debug(f"Fetched {len(iterations)} iterations")
         except Exception as e:
             _log.error(f"Error fetching iterations: {e}")
+
+        return iterations
+
+    def get_future_iterations(self, count: int = 5) -> list[Iteration]:
+        """Fetch future iterations starting after today.
+
+        Args:
+            count: Maximum number of iterations to return.
+
+        Returns:
+            List of Iteration objects sorted by start date ascending.
+        """
+        from datetime import datetime
+
+        _log.debug(f"Fetching {count} future iterations")
+        iterations: list[Iteration] = []
+
+        try:
+            today = datetime.now(UTC).strftime("%Y-%m-%d")
+            response = self._rally.get(
+                "Iteration",
+                fetch="ObjectID,Name,StartDate,EndDate,State",
+                query=f'(StartDate > "{today}")',
+                order="StartDate asc",
+                pagesize=count,
+            )
+            for item in response:
+                if len(iterations) >= count:
+                    break
+                iteration = self._to_iteration(item)
+                if iteration:
+                    iterations.append(iteration)
+            _log.debug(f"Fetched {len(iterations)} future iterations")
+        except Exception as e:
+            _log.error(f"Error fetching future iterations: {e}")
 
         return iterations
 

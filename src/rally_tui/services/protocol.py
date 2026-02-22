@@ -144,7 +144,7 @@ class RallyClientProtocol(Protocol):
         """
         ...
 
-    def get_iterations(self, count: int = 5) -> list[Iteration]:
+    def get_iterations(self, count: int = 5, state: str | None = None) -> list[Iteration]:
         """Fetch recent iterations (sprints).
 
         Returns iterations centered around the current iteration:
@@ -152,9 +152,21 @@ class RallyClientProtocol(Protocol):
 
         Args:
             count: Maximum number of iterations to return.
+            state: Optional state filter (Planning, Committed, Accepted).
 
         Returns:
             List of iterations, sorted by start date (newest first).
+        """
+        ...
+
+    def get_future_iterations(self, count: int = 5) -> list[Iteration]:
+        """Fetch future iterations (sprints) starting after today.
+
+        Args:
+            count: Maximum number of iterations to return.
+
+        Returns:
+            List of future iterations, sorted by start date ascending.
         """
         ...
 

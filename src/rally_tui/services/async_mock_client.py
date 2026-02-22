@@ -151,9 +151,13 @@ class AsyncMockRallyClient:
     # Async Iteration Operations
     # -------------------------------------------------------------------------
 
-    async def get_iterations(self, count: int = 5) -> list[Iteration]:
+    async def get_iterations(self, count: int = 5, state: str | None = None) -> list[Iteration]:
         """Fetch recent iterations."""
-        return self._sync_client.get_iterations(count)
+        return self._sync_client.get_iterations(count, state)
+
+    async def get_future_iterations(self, count: int = 5) -> list[Iteration]:
+        """Fetch future iterations starting after today."""
+        return self._sync_client.get_future_iterations(count)
 
     # -------------------------------------------------------------------------
     # Async Feature/Parent Operations

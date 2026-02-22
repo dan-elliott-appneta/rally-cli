@@ -5,7 +5,7 @@ import io
 from typing import Any
 
 from rally_tui.cli.formatters.base import BaseFormatter, CLIResult
-from rally_tui.models import Discussion, Ticket
+from rally_tui.models import Discussion, Iteration, Owner, Ticket
 
 
 class CSVFormatter(BaseFormatter):
@@ -202,6 +202,108 @@ class CSVFormatter(BaseFormatter):
             writer.writerow([data.get("formatted_id", ""), "true"])
         else:
             writer.writerow(["", "true"])
+        return output.getvalue().rstrip("\n")
+
+    def format_discussions(self, result: CLIResult) -> str:
+        """Format discussion list as CSV.
+
+        Args:
+            result: CLIResult containing discussion data. The data field
+                should contain a dict with 'discussions', 'formatted_id', 'count'.
+
+        Returns:
+            CSV string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data
+        if isinstance(data, dict):
+            discussions = data.get("discussions", [])
+        else:
+            discussions = data if data else []
+
+        if not discussions:
+            return ""
+
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["artifact_id", "user", "created_at", "text"])
+
+        for disc in discussions:
+            writer.writerow(
+                [
+                    disc.artifact_id,
+                    disc.user,
+                    disc.created_at.isoformat(),
+                    disc.text,
+                ]
+            )
+
+        return output.getvalue().rstrip("\n")
+
+    def format_iterations(self, result: CLIResult) -> str:
+        """Format iteration list as CSV.
+
+        Args:
+            result: CLIResult containing iteration data.
+
+        Returns:
+            CSV string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        iterations: list[Iteration] = result.data
+        if not iterations:
+            return ""
+
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["name", "start_date", "end_date", "state", "is_current"])
+
+        for it in iterations:
+            writer.writerow(
+                [
+                    it.name,
+                    it.start_date.isoformat(),
+                    it.end_date.isoformat(),
+                    it.state,
+                    it.is_current,
+                ]
+            )
+
+        return output.getvalue().rstrip("\n")
+
+    def format_users(self, result: CLIResult) -> str:
+        """Format user list as CSV.
+
+        Args:
+            result: CLIResult containing user/owner data.
+
+        Returns:
+            CSV string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        users: list[Owner] = result.data
+        if not users:
+            return ""
+
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["display_name", "user_name", "object_id"])
+
+        for u in users:
+            writer.writerow(
+                [
+                    u.display_name,
+                    u.user_name or "",
+                    u.object_id,
+                ]
+            )
+
         return output.getvalue().rstrip("\n")
 
     def format_error(self, result: CLIResult) -> str:

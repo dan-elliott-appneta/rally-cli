@@ -360,17 +360,35 @@ class MockRallyClient:
                 return updated
         return None
 
-    def get_iterations(self, count: int = 5) -> list[Iteration]:
+    def get_iterations(self, count: int = 5, state: str | None = None) -> list[Iteration]:
         """Fetch recent iterations (sprints).
+
+        Args:
+            count: Maximum number of iterations to return.
+            state: Optional state filter (Planning, Committed, Accepted).
+
+        Returns:
+            List of iterations, sorted by start date (most recent first).
+        """
+        iters = self._iterations
+        if state:
+            iters = [i for i in iters if i.state == state]
+        # Sort by start date descending (most recent first)
+        sorted_iters = sorted(iters, key=lambda i: i.start_date, reverse=True)
+        return sorted_iters[:count]
+
+    def get_future_iterations(self, count: int = 5) -> list[Iteration]:
+        """Fetch future iterations starting after today.
 
         Args:
             count: Maximum number of iterations to return.
 
         Returns:
-            List of iterations, sorted by start date (most recent first).
+            List of future iterations, sorted by start date ascending.
         """
-        # Sort by start date descending (most recent first)
-        sorted_iters = sorted(self._iterations, key=lambda i: i.start_date, reverse=True)
+        today = date.today()
+        future = [i for i in self._iterations if i.start_date > today]
+        sorted_iters = sorted(future, key=lambda i: i.start_date)
         return sorted_iters[:count]
 
     def get_feature(self, formatted_id: str) -> tuple[str, str] | None:

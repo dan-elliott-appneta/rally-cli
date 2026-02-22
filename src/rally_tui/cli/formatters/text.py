@@ -1,9 +1,11 @@
 """Text formatter for human-readable CLI output."""
 
+import html
 import os
+import re
 
 from rally_tui.cli.formatters.base import BaseFormatter, CLIResult
-from rally_tui.models import Discussion, Ticket
+from rally_tui.models import Discussion, Iteration, Owner, Ticket
 
 
 class TextFormatter(BaseFormatter):
@@ -312,6 +314,136 @@ class TextFormatter(BaseFormatter):
             ticket_id = data.get("formatted_id", "")
             return f"Deleted {ticket_id}"
         return "Deleted ticket"
+
+    def format_discussions(self, result: CLIResult) -> str:
+        """Format discussion list as human-readable text.
+
+        Args:
+            result: CLIResult containing discussion data. The data field
+                can be a dict with 'discussions', 'formatted_id', 'count'
+                keys, or a plain list of Discussion objects.
+
+        Returns:
+            Formatted discussion output.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data
+
+        # Support both dict-style (from CLI commands) and list-style data
+        if isinstance(data, dict):
+            discussions: list[Discussion] = data.get("discussions", [])
+            formatted_id = data.get("formatted_id", "")
+            count = data.get("count", len(discussions))
+        else:
+            discussions = data if data else []
+            formatted_id = ""
+            count = len(discussions)
+
+        if not discussions:
+            return "No discussions found."
+
+        lines: list[str] = []
+
+        # Header with ticket ID and count
+        if formatted_id:
+            header = f"Discussions for {formatted_id} ({count} comments)"
+            lines.append(header)
+            lines.append("=" * len(header))
+            lines.append("")
+
+        for disc in discussions:
+            lines.append(disc.display_header)
+            # Strip HTML tags for plain text display
+            text = disc.text.replace("<br>", "\n").replace("<br/>", "\n")
+            text = re.sub(r"<[^>]+>", "", text)
+            text = html.unescape(text)
+            for text_line in text.splitlines():
+                stripped = text_line.strip()
+                if stripped:
+                    lines.append(f"  {stripped}")
+            lines.append("")  # blank line between discussions
+
+        return "\n".join(lines).rstrip()
+
+    def format_iterations(self, result: CLIResult) -> str:
+        """Format iteration list as a human-readable table.
+
+        Args:
+            result: CLIResult containing iteration data. The data field
+                should contain a list of Iteration objects.
+
+        Returns:
+            Formatted iteration table.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        iterations: list[Iteration] = result.data
+        if not iterations:
+            return "No iterations found."
+
+        lines: list[str] = []
+        lines.append("Iterations")
+        lines.append("==========")
+
+        # Column widths
+        name_w = max(max(len(it.name) for it in iterations), 4)
+        name_w = min(name_w, 40)
+
+        header = f"{'Name':<{name_w}}  {'Start':<12}  {'End':<12}  {'State':<12}  {'Current'}"
+        lines.append(header)
+        lines.append("-" * len(header))
+
+        for it in iterations:
+            current_marker = "*" if it.is_current else ""
+            name_display = self._truncate(it.name, name_w).ljust(name_w)
+            start_str = it.start_date.strftime("%b %d")
+            end_str = it.end_date.strftime("%b %d")
+            lines.append(
+                f"{name_display}  {start_str:<12}  {end_str:<12}  {it.state:<12}  {current_marker}"
+            )
+
+        return "\n".join(lines)
+
+    def format_users(self, result: CLIResult) -> str:
+        """Format user list as a human-readable table.
+
+        Args:
+            result: CLIResult containing user/owner data. The data field
+                should contain a list of Owner objects.
+
+        Returns:
+            Formatted user table.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        users: list[Owner] = result.data
+        if not users:
+            return "No users found."
+
+        lines: list[str] = []
+        lines.append("Team Members")
+        lines.append("============")
+
+        # Column widths
+        name_w = max(max(len(u.display_name) for u in users), 4)
+        name_w = min(name_w, 30)
+        uname_w = max(max(len(u.user_name or "") for u in users), 8)
+        uname_w = min(uname_w, 40)
+
+        header = f"{'Name':<{name_w}}  {'Username':<{uname_w}}"
+        lines.append(header)
+        lines.append("-" * len(header))
+
+        for u in users:
+            display = self._truncate(u.display_name, name_w).ljust(name_w)
+            username = self._truncate(u.user_name or "-", uname_w).ljust(uname_w)
+            lines.append(f"{display}  {username}")
+
+        return "\n".join(lines)
 
     def _truncate(self, text: str, max_length: int) -> str:
         """Truncate text to max length with ellipsis.

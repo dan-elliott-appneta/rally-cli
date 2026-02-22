@@ -2,11 +2,11 @@
 
 import json
 from dataclasses import asdict
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from rally_tui.cli.formatters.base import BaseFormatter, CLIResult
-from rally_tui.models import Discussion, Ticket
+from rally_tui.models import Discussion, Iteration, Owner, Ticket
 
 
 class JSONFormatter(BaseFormatter):
@@ -73,7 +73,7 @@ class JSONFormatter(BaseFormatter):
         """
         return {
             "success": result.success,
-            "data": result.data if not result.success else None,
+            "data": result.data if result.success else None,
             "error": result.error,
         }
 
@@ -169,6 +169,95 @@ class JSONFormatter(BaseFormatter):
                 output["data"] = {"deleted": True}
         return json.dumps(output, indent=2, default=self._json_serializer)
 
+    def format_discussions(self, result: CLIResult) -> str:
+        """Format discussion list as JSON.
+
+        Args:
+            result: CLIResult containing discussion data. The data field
+                can be a dict with 'discussions', 'formatted_id', 'count'
+                keys, or a plain list of Discussion objects.
+
+        Returns:
+            JSON string with {success, data, error} envelope.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            data = result.data
+            if isinstance(data, dict):
+                discussions: list[Discussion] = data.get("discussions", [])
+                output["data"] = {
+                    "formatted_id": data.get("formatted_id", ""),
+                    "count": data.get("count", len(discussions)),
+                    "discussions": [self._discussion_to_dict(d) for d in discussions],
+                }
+            else:
+                discussions = data if data else []
+                output["data"] = [self._discussion_to_dict(d) for d in discussions]
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
+    def format_iterations(self, result: CLIResult) -> str:
+        """Format iteration list as JSON.
+
+        Args:
+            result: CLIResult containing iteration data.
+
+        Returns:
+            JSON string.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            iterations: list[Iteration] = result.data
+            output["data"] = [self._iteration_to_dict(it) for it in iterations]
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
+    def format_users(self, result: CLIResult) -> str:
+        """Format user list as JSON.
+
+        Args:
+            result: CLIResult containing user/owner data.
+
+        Returns:
+            JSON string.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            users: list[Owner] = result.data
+            output["data"] = [self._owner_to_dict(u) for u in users]
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
+    def _iteration_to_dict(self, iteration: Iteration) -> dict[str, Any]:
+        """Convert an Iteration to a dictionary.
+
+        Args:
+            iteration: The iteration to convert.
+
+        Returns:
+            Dictionary representation.
+        """
+        return {
+            "object_id": iteration.object_id,
+            "name": iteration.name,
+            "start_date": iteration.start_date.isoformat(),
+            "end_date": iteration.end_date.isoformat(),
+            "state": iteration.state,
+            "is_current": iteration.is_current,
+        }
+
+    def _owner_to_dict(self, owner: Owner) -> dict[str, Any]:
+        """Convert an Owner to a dictionary.
+
+        Args:
+            owner: The owner to convert.
+
+        Returns:
+            Dictionary representation.
+        """
+        return {
+            "object_id": owner.object_id,
+            "display_name": owner.display_name,
+            "user_name": owner.user_name,
+        }
+
     def _json_serializer(self, obj: Any) -> Any:
         """Custom JSON serializer for non-standard types.
 
@@ -182,5 +271,7 @@ class JSONFormatter(BaseFormatter):
             TypeError: If object is not serializable.
         """
         if isinstance(obj, datetime):
+            return obj.isoformat()
+        if isinstance(obj, date):
             return obj.isoformat()
         raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
