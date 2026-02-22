@@ -864,6 +864,8 @@ class AsyncRallyClient:
                 _log.info(f"Ticket updated successfully: {ticket.formatted_id}")
             return updated
 
+        except ValueError:
+            raise  # Let lookup errors propagate with descriptive messages
         except Exception as e:
             _log.error(f"Error updating ticket {ticket.formatted_id}: {e}")
 
