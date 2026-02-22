@@ -1,5 +1,6 @@
 """Text formatter for human-readable CLI output."""
 
+import html
 import os
 import re
 
@@ -357,6 +358,7 @@ class TextFormatter(BaseFormatter):
             # Strip HTML tags for plain text display
             text = disc.text.replace("<br>", "\n").replace("<br/>", "\n")
             text = re.sub(r"<[^>]+>", "", text)
+            text = html.unescape(text)
             for text_line in text.splitlines():
                 stripped = text_line.strip()
                 if stripped:
