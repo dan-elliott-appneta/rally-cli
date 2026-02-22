@@ -6,6 +6,7 @@ This module implements the 'tickets' command for querying Rally work items.
 import asyncio
 import re
 import sys
+from datetime import date as date_type
 
 import click
 
@@ -31,6 +32,29 @@ def _sanitize_query_value(value: str) -> str:
         Sanitized value safe for use in WSAPI query.
     """
     return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _validate_date(ctx: click.Context, param: click.Parameter, value: str | None) -> str | None:
+    """Validate that a date string matches YYYY-MM-DD format.
+
+    Args:
+        ctx: Click context (unused).
+        param: Click parameter (unused).
+        value: The date string to validate.
+
+    Returns:
+        The validated date string, or None if not provided.
+
+    Raises:
+        click.BadParameter: If the date string is not valid YYYY-MM-DD.
+    """
+    if value is None:
+        return None
+    try:
+        date_type.fromisoformat(value)
+    except ValueError:
+        raise click.BadParameter(f"'{value}' is not a valid date. Use YYYY-MM-DD format.")
+    return value
 
 
 def _is_valid_ticket_id(ticket_id: str) -> bool:
@@ -153,8 +177,7 @@ def tickets(
     # subcommands that inherit the context also see the updated formatter.
     if sub_format:
         from rally_tui.cli.formatters.base import OutputFormat
-        ctx.output_format = OutputFormat(sub_format.lower())
-        ctx._formatter = None  # Reset cached formatter so it is rebuilt
+        ctx.set_format(OutputFormat(sub_format.lower()))
 
     if click_ctx.invoked_subcommand is not None:
         return
@@ -337,8 +360,7 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
     """
     if sub_format:
         from rally_tui.cli.formatters.base import OutputFormat
-        ctx.output_format = OutputFormat(sub_format.lower())
-        ctx._formatter = None
+        ctx.set_format(OutputFormat(sub_format.lower()))
 
     if not ctx.apikey:
         result = CLIResult(
@@ -434,7 +456,7 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
 @click.option("--expedite/--no-expedite", default=None, help="Set/clear expedite flag.")
 @click.option("--severity", default=None, help="Severity (Defect only).")
 @click.option("--priority", default=None, help="Priority (Defect only).")
-@click.option("--target-date", default=None, help="Target date (YYYY-MM-DD).")
+@click.option("--target-date", default=None, callback=_validate_date, help="Target date (YYYY-MM-DD).")
 @click.option(
     "--format",
     "sub_format",
@@ -482,8 +504,7 @@ def tickets_update(
     """
     if sub_format:
         from rally_tui.cli.formatters.base import OutputFormat
-        ctx.output_format = OutputFormat(sub_format.lower())
-        ctx._formatter = None
+        ctx.set_format(OutputFormat(sub_format.lower()))
 
     if not ctx.apikey:
         result = CLIResult(
@@ -658,8 +679,7 @@ def tickets_delete(ctx: CLIContext, ticket_id: str, confirm: bool, sub_format: s
     """
     if sub_format:
         from rally_tui.cli.formatters.base import OutputFormat
-        ctx.output_format = OutputFormat(sub_format.lower())
-        ctx._formatter = None
+        ctx.set_format(OutputFormat(sub_format.lower()))
 
     if not ctx.apikey:
         result = CLIResult(

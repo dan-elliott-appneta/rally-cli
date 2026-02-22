@@ -1,5 +1,7 @@
 """Text formatter for human-readable CLI output."""
 
+import os
+
 from rally_tui.cli.formatters.base import BaseFormatter, CLIResult
 from rally_tui.models import Discussion, Ticket
 
@@ -196,7 +198,8 @@ class TextFormatter(BaseFormatter):
 
         # Header line
         header = f"{ticket.formatted_id} - {ticket.name}"
-        separator = "=" * min(len(header), 60)
+        terminal_width = os.get_terminal_size(fallback=(80, 24)).columns
+        separator = "=" * min(len(header), terminal_width)
 
         lines = [header, separator]
 

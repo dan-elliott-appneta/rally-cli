@@ -192,6 +192,132 @@ New tickets are automatically:
 
 ---
 
+### `rally-cli tickets show`
+
+Show detailed information for a single ticket.
+
+```bash
+rally-cli tickets show TICKET_ID [OPTIONS]
+```
+
+#### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `TICKET_ID` | Ticket formatted ID (e.g., `US12345`, `DE67890`) |
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--format [text\|json\|csv]` | Output format |
+
+#### Examples
+
+```bash
+# Show full ticket details
+rally-cli tickets show US12345
+
+# Show ticket details in JSON
+rally-cli tickets show DE67890 --format json
+```
+
+---
+
+### `rally-cli tickets update`
+
+Update fields on an existing ticket.
+
+```bash
+rally-cli tickets update TICKET_ID [OPTIONS]
+```
+
+#### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `TICKET_ID` | Ticket formatted ID (e.g., `US12345`, `DE67890`) |
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--state TEXT` | Set workflow state |
+| `--owner TEXT` | Set owner by display name |
+| `--iteration TEXT` | Set iteration by name |
+| `--no-iteration` | Remove from iteration (move to backlog) |
+| `--points FLOAT` | Set story points |
+| `--parent TEXT` | Set parent Feature ID |
+| `--name TEXT` | Rename ticket |
+| `--description TEXT` | Set description |
+| `--description-file PATH` | Set description from file |
+| `--notes TEXT` | Set notes |
+| `--notes-file PATH` | Set notes from file |
+| `--ac TEXT` | Set acceptance criteria |
+| `--ac-file PATH` | Set acceptance criteria from file |
+| `--blocked / --no-blocked` | Set/clear blocked status |
+| `--blocked-reason TEXT` | Set blocked reason |
+| `--ready / --no-ready` | Set/clear ready status |
+| `--expedite / --no-expedite` | Set/clear expedite flag |
+| `--severity TEXT` | Set severity (Defect only) |
+| `--priority TEXT` | Set priority (Defect only) |
+| `--target-date TEXT` | Set target date (YYYY-MM-DD) |
+| `--format [text\|json\|csv]` | Output format |
+
+#### Examples
+
+```bash
+# Update state and points
+rally-cli tickets update US12345 --state "In-Progress" --points 3
+
+# Change owner
+rally-cli tickets update DE67890 --owner "Jane Smith"
+
+# Move to backlog
+rally-cli tickets update US12345 --no-iteration
+
+# Set description from file
+rally-cli tickets update US12345 --description-file desc.txt
+
+# Set multiple fields at once
+rally-cli tickets update US12345 --state "Completed" --ready --points 5
+```
+
+---
+
+### `rally-cli tickets delete`
+
+Delete a ticket from Rally. Requires the `--confirm` safety flag.
+
+```bash
+rally-cli tickets delete TICKET_ID --confirm [OPTIONS]
+```
+
+#### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `TICKET_ID` | Ticket formatted ID (e.g., `US12345`, `DE67890`) |
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--confirm` | Required safety flag to confirm deletion |
+| `--format [text\|json\|csv]` | Output format |
+
+#### Examples
+
+```bash
+# Delete a ticket (requires --confirm)
+rally-cli tickets delete US12345 --confirm
+
+# Delete with JSON output
+rally-cli tickets delete DE67890 --confirm --format json
+```
+
+---
+
 ### `rally-cli comment`
 
 Add a comment to a ticket's discussion.

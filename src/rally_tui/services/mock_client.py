@@ -1,6 +1,8 @@
 """Mock Rally client for testing."""
 
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
 from rally_tui.models.sample_data import SAMPLE_DISCUSSIONS, SAMPLE_TICKETS
@@ -786,3 +788,78 @@ class MockRallyClient:
                 result.errors.append(f"{ticket.formatted_id}: {str(e)}")
 
         return result
+
+    def update_ticket(self, ticket: Ticket, fields: dict[str, Any]) -> Ticket | None:
+        """Update arbitrary fields on a ticket.
+
+        Handles special field aliases (state, owner, iteration, parent) and
+        passes all other fields directly as Ticket attribute updates.
+
+        Args:
+            ticket: The ticket to update.
+            fields: Dict of field names to new values.
+
+        Returns:
+            The updated Ticket, or None if the ticket is not found.
+        """
+        for i, t in enumerate(self._tickets):
+            if t.formatted_id == ticket.formatted_id:
+                kwargs: dict[str, Any] = {}
+                for key, value in fields.items():
+                    if key == "state":
+                        kwargs["state"] = value
+                    elif key == "owner":
+                        kwargs["owner"] = value
+                    elif key == "iteration":
+                        kwargs["iteration"] = value
+                    elif key == "parent":
+                        kwargs["parent_id"] = value
+                    elif key == "PlanEstimate":
+                        pts = value
+                        if pts is not None and isinstance(pts, float) and pts == int(pts):
+                            pts = int(pts)
+                        kwargs["points"] = pts
+                    elif key == "Name":
+                        kwargs["name"] = value
+                    elif key == "Description":
+                        kwargs["description"] = value
+                    elif key == "Notes":
+                        kwargs["notes"] = value
+                    elif key == "c_AcceptanceCriteria":
+                        kwargs["acceptance_criteria"] = value
+                    elif key == "Blocked":
+                        kwargs["blocked"] = value
+                    elif key == "BlockedReason":
+                        kwargs["blocked_reason"] = value
+                    elif key == "Ready":
+                        kwargs["ready"] = value
+                    elif key == "Expedite":
+                        kwargs["expedite"] = value
+                    elif key == "Severity":
+                        kwargs["severity"] = value
+                    elif key == "Priority":
+                        kwargs["priority"] = value
+                    elif key == "TargetDate":
+                        kwargs["target_date"] = value
+                    elif key == "ScheduleState":
+                        kwargs["schedule_state"] = value
+
+                updated = replace(t, **kwargs)
+                self._tickets[i] = updated
+                return updated
+        return None
+
+    def delete_ticket(self, formatted_id: str) -> bool:
+        """Delete a ticket from Rally (mock implementation).
+
+        Args:
+            formatted_id: The ticket's formatted ID (e.g., "US1234").
+
+        Returns:
+            True if the ticket was found and removed, False otherwise.
+        """
+        for i, t in enumerate(self._tickets):
+            if t.formatted_id == formatted_id:
+                del self._tickets[i]
+                return True
+        return False

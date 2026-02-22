@@ -688,13 +688,15 @@ class AsyncRallyClient:
         _log.info(f"Updating state for {ticket.formatted_id} to {state}")
 
         try:
-            # Look up the FlowState reference by name
+            # Look up the FlowState reference by name, scoped to the project
+            sanitized_state = self._sanitize_query_value(state)
+            state_query = f'((Name = "{sanitized_state}") AND (Project.Name = "{self._sanitize_query_value(self._project)}"))' if self._project else f'(Name = "{sanitized_state}")'
             flow_state_response = await self._get(
                 "/flowstate",
                 params={
-                    "query": f'(Name = "{state}")',
+                    "query": state_query,
                     "fetch": "Name,ObjectID",
-                    "pagesize": "1",
+                    "pagesize": 1,
                 },
             )
             flow_states, _ = parse_query_result(flow_state_response)
@@ -768,35 +770,39 @@ class AsyncRallyClient:
 
             for key, value in fields.items():
                 if key == "state":
-                    # Look up FlowState reference by name
+                    # Look up FlowState reference by name, scoped to the project
+                    sanitized_state = self._sanitize_query_value(str(value))
+                    state_query = f'((Name = "{sanitized_state}") AND (Project.Name = "{self._sanitize_query_value(self._project)}"))' if self._project else f'(Name = "{sanitized_state}")'
                     flow_state_response = await self._get(
                         "/flowstate",
                         params={
-                            "query": f'(Name = "{value}")',
+                            "query": state_query,
                             "fetch": "Name,ObjectID",
-                            "pagesize": "1",
+                            "pagesize": 1,
                         },
                     )
                     flow_states, _ = parse_query_result(flow_state_response)
                     if not flow_states:
-                        _log.error(f"FlowState not found: {value}")
-                        return None
+                        raise ValueError(
+                            f"FlowState '{value}' not found"
+                            + (f" in project '{self._project}'" if self._project else "")
+                        )
                     rally_data["FlowState"] = f"/flowstate/{flow_states[0].get('ObjectID')}"
 
                 elif key == "owner":
                     # Look up Owner by display name
+                    sanitized_owner = self._sanitize_query_value(str(value))
                     user_response = await self._get(
                         "/user",
                         params={
                             "fetch": "DisplayName,ObjectID",
-                            "query": f'(DisplayName = "{self._sanitize_query_value(str(value))}")',
+                            "query": f'(DisplayName = "{sanitized_owner}")',
                             "pagesize": 1,
                         },
                     )
                     user_results, _ = parse_query_result(user_response)
                     if not user_results:
-                        _log.error(f"User not found: {value}")
-                        return None
+                        raise ValueError(f"User '{value}' not found")
                     rally_data["Owner"] = f"/user/{user_results[0].get('ObjectID')}"
 
                 elif key == "iteration":
@@ -804,18 +810,18 @@ class AsyncRallyClient:
                     if value is None:
                         rally_data["Iteration"] = None
                     else:
+                        sanitized_iter = self._sanitize_query_value(str(value))
                         iter_response = await self._get(
                             "/iteration",
                             params={
                                 "fetch": "Name,ObjectID",
-                                "query": f'(Name = "{self._sanitize_query_value(str(value))}")',
+                                "query": f'(Name = "{sanitized_iter}")',
                                 "pagesize": 1,
                             },
                         )
                         iter_results, _ = parse_query_result(iter_response)
                         if not iter_results:
-                            _log.error(f"Iteration not found: {value}")
-                            return None
+                            raise ValueError(f"Iteration '{value}' not found")
                         rally_data["Iteration"] = f"/iteration/{iter_results[0].get('ObjectID')}"
 
                 elif key == "parent":
@@ -823,19 +829,19 @@ class AsyncRallyClient:
                     if value is None:
                         rally_data["PortfolioItem"] = None
                     else:
+                        sanitized_parent = self._sanitize_query_value(str(value))
                         feature_response = await self._get(
                             "/portfolioitem/feature",
                             params={
                                 "fetch": "ObjectID",
-                                "query": f'FormattedID = "{value}"',
+                                "query": f'((FormattedID = "{sanitized_parent}"))',
                                 "projectScopeUp": "true",
                                 "projectScopeDown": "true",
                             },
                         )
                         feature_results, _ = parse_query_result(feature_response)
                         if not feature_results:
-                            _log.error(f"Feature not found: {value}")
-                            return None
+                            raise ValueError(f"Feature '{value}' not found")
                         feature_oid = feature_results[0].get("ObjectID")
                         rally_data["PortfolioItem"] = f"/portfolioitem/feature/{feature_oid}"
 
@@ -888,7 +894,15 @@ class AsyncRallyClient:
             entity_type = get_entity_type_from_prefix(formatted_id)
             path = f"/{get_url_path(entity_type)}/{ticket.object_id}"
 
-            await self._request("DELETE", path)
+            response = await self._request("DELETE", path)
+
+            # Check for Rally-level errors in the response body
+            op_result = response.get("OperationResult", {})
+            errors = op_result.get("Errors", [])
+            if errors:
+                _log.error(f"Rally errors deleting {formatted_id}: {errors}")
+                return False
+
             _log.info(f"Ticket deleted successfully: {formatted_id}")
             return True
 
@@ -1084,11 +1098,12 @@ class AsyncRallyClient:
         _log.debug(f"Fetching feature: {formatted_id}")
 
         try:
+            sanitized_id = self._sanitize_query_value(formatted_id)
             response = await self._get(
                 "/portfolioitem/feature",
                 params={
                     "fetch": "FormattedID,Name",
-                    "query": f'FormattedID = "{formatted_id}"',
+                    "query": f'((FormattedID = "{sanitized_id}"))',
                     "projectScopeUp": "true",
                     "projectScopeDown": "true",
                 },
@@ -1120,11 +1135,12 @@ class AsyncRallyClient:
 
         try:
             # Get the Feature's ObjectID
+            sanitized_parent_id = self._sanitize_query_value(parent_id)
             feature_response = await self._get(
                 "/portfolioitem/feature",
                 params={
                     "fetch": "ObjectID",
-                    "query": f'FormattedID = "{parent_id}"',
+                    "query": f'((FormattedID = "{sanitized_parent_id}"))',
                     "projectScopeUp": "true",
                     "projectScopeDown": "true",
                 },
