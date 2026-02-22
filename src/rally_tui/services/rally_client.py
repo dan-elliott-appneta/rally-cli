@@ -639,6 +639,37 @@ class RallyClient:
 
         return None
 
+    def update_ticket(
+        self, ticket: Ticket, fields: dict[str, Any]
+    ) -> Ticket | None:
+        """Update arbitrary fields on a ticket.
+
+        Note: The sync RallyClient delegates to update_state for state
+        changes. Full multi-field update is handled by AsyncRallyClient.
+        """
+        if "state" in fields and len(fields) == 1:
+            return self.update_state(ticket, fields["state"])
+        _log.warning("update_ticket with multiple fields not supported "
+                     "in sync client; use async client")
+        return None
+
+    def delete_ticket(self, formatted_id: str) -> bool:
+        """Delete a ticket from Rally."""
+        if not formatted_id:
+            return False
+        try:
+            entity_type = self._get_entity_type(formatted_id)
+            ticket = self.get_ticket(formatted_id)
+            if not ticket or not ticket.object_id:
+                _log.error(f"Cannot delete: ticket {formatted_id} not found")
+                return False
+            self._rally.delete(entity_type, ticket.object_id)
+            _log.info(f"Deleted {formatted_id}")
+            return True
+        except Exception as e:
+            _log.error(f"Error deleting {formatted_id}: {e}")
+            return False
+
     def get_iterations(self, count: int = 5) -> list[Iteration]:
         """Fetch recent iterations from Rally.
 

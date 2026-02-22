@@ -456,7 +456,10 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
 @click.option("--expedite/--no-expedite", default=None, help="Set/clear expedite flag.")
 @click.option("--severity", default=None, help="Severity (Defect only).")
 @click.option("--priority", default=None, help="Priority (Defect only).")
-@click.option("--target-date", default=None, callback=_validate_date, help="Target date (YYYY-MM-DD).")
+@click.option(
+    "--target-date", default=None, callback=_validate_date,
+    help="Target date (YYYY-MM-DD).",
+)
 @click.option(
     "--format",
     "sub_format",

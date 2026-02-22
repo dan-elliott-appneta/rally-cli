@@ -690,7 +690,14 @@ class AsyncRallyClient:
         try:
             # Look up the FlowState reference by name, scoped to the project
             sanitized_state = self._sanitize_query_value(state)
-            state_query = f'((Name = "{sanitized_state}") AND (Project.Name = "{self._sanitize_query_value(self._project)}"))' if self._project else f'(Name = "{sanitized_state}")'
+            if self._project:
+                sanitized_proj = self._sanitize_query_value(self._project)
+                state_query = (
+                    f'((Name = "{sanitized_state}") AND'
+                    f' (Project.Name = "{sanitized_proj}"))'
+                )
+            else:
+                state_query = f'(Name = "{sanitized_state}")'
             flow_state_response = await self._get(
                 "/flowstate",
                 params={
@@ -772,7 +779,16 @@ class AsyncRallyClient:
                 if key == "state":
                     # Look up FlowState reference by name, scoped to the project
                     sanitized_state = self._sanitize_query_value(str(value))
-                    state_query = f'((Name = "{sanitized_state}") AND (Project.Name = "{self._sanitize_query_value(self._project)}"))' if self._project else f'(Name = "{sanitized_state}")'
+                    if self._project:
+                        sanitized_proj = self._sanitize_query_value(
+                            self._project
+                        )
+                        state_query = (
+                            f'((Name = "{sanitized_state}") AND'
+                            f' (Project.Name = "{sanitized_proj}"))'
+                        )
+                    else:
+                        state_query = f'(Name = "{sanitized_state}")'
                     flow_state_response = await self._get(
                         "/flowstate",
                         params={

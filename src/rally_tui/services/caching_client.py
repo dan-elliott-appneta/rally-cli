@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
 from rally_tui.services.cache_manager import CacheManager
@@ -283,6 +283,20 @@ class CachingRallyClient:
         if self._is_offline:
             return None
         return self._client.update_state(ticket, state)
+
+    def update_ticket(
+        self, ticket: Ticket, fields: dict[str, Any]
+    ) -> Ticket | None:
+        """Update arbitrary fields on a ticket."""
+        if self._is_offline:
+            return None
+        return self._client.update_ticket(ticket, fields)
+
+    def delete_ticket(self, formatted_id: str) -> bool:
+        """Delete a ticket from Rally."""
+        if self._is_offline:
+            return False
+        return self._client.delete_ticket(formatted_id)
 
     def get_iterations(self, count: int = 5) -> list[Iteration]:
         """Fetch recent iterations (not cached)."""

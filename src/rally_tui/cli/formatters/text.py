@@ -198,7 +198,10 @@ class TextFormatter(BaseFormatter):
 
         # Header line
         header = f"{ticket.formatted_id} - {ticket.name}"
-        terminal_width = os.get_terminal_size(fallback=(80, 24)).columns
+        try:
+            terminal_width = os.get_terminal_size().columns
+        except (ValueError, OSError):
+            terminal_width = 80
         separator = "=" * min(len(header), terminal_width)
 
         lines = [header, separator]
