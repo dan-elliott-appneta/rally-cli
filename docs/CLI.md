@@ -474,6 +474,144 @@ Jane Smith                      jsmith@example.com
 
 ---
 
+### `rally-cli releases`
+
+Show project releases with optional filtering.
+
+```bash
+rally-cli releases [OPTIONS]
+```
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--count INT` | Number of releases to show (default: 10) |
+| `--current` | Show only the current/active release |
+| `--state TEXT` | Filter by state (Planning, Active, Locked) |
+| `--format [text\|json\|csv]` | Output format |
+
+#### Examples
+
+```bash
+# Show recent releases
+rally-cli releases
+
+# Show more releases
+rally-cli releases --count 20
+
+# Show only the current release
+rally-cli releases --current
+
+# Filter by state
+rally-cli releases --state "Active"
+
+# JSON output for scripting
+rally-cli releases --format json
+
+# CSV export
+rally-cli releases --format csv > releases.csv
+```
+
+#### Output
+
+```
+Releases
+========
+Name          Start       End         State       Theme
+---------------------------------------------------------
+2026.Q1       Jan 01      Mar 31      Active      Security hardening
+2025.Q4       Oct 01      Dec 31      Locked      Performance
+```
+
+---
+
+### `rally-cli tags`
+
+Manage Rally tags - list, create, and manage tags on tickets.
+
+```bash
+rally-cli tags [OPTIONS]
+rally-cli tags create TAG_NAME
+rally-cli tags add TICKET_ID TAG_NAME
+rally-cli tags remove TICKET_ID TAG_NAME
+```
+
+#### Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| *(none)* | List all available tags |
+| `create` | Create a new tag |
+| `add` | Add a tag to a ticket |
+| `remove` | Remove a tag from a ticket |
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--format [text\|json\|csv]` | Output format |
+
+#### Examples
+
+```bash
+# List all tags
+rally-cli tags
+
+# List tags in JSON
+rally-cli tags --format json
+
+# Create a new tag
+rally-cli tags create "sprint-goal"
+
+# Add a tag to a ticket
+rally-cli tags add US12345 "sprint-goal"
+
+# Remove a tag from a ticket
+rally-cli tags remove US12345 "sprint-goal"
+```
+
+#### Output
+
+```
+Tags
+====
+Name
+----
+backlog
+sprint-goal
+technical-debt
+```
+
+---
+
+### `rally-cli tickets update` (Tag & Release Options)
+
+The `tickets update` command also supports tag and release management:
+
+```bash
+# Schedule a ticket into a release
+rally-cli tickets update US12345 --release "2026.Q1"
+
+# Unschedule from release
+rally-cli tickets update US12345 --no-release
+
+# Add a tag to a ticket
+rally-cli tickets update US12345 --add-tag "sprint-goal"
+
+# Remove a tag from a ticket
+rally-cli tickets update US12345 --remove-tag "backlog"
+```
+
+| Option | Description |
+|--------|-------------|
+| `--release TEXT` | Release name to schedule into |
+| `--no-release` | Remove from release (unschedule) |
+| `--add-tag TEXT` | Add a tag to the ticket |
+| `--remove-tag TEXT` | Remove a tag from the ticket |
+
+---
+
 ### `rally-cli comment`
 
 Add a comment to a ticket's discussion.

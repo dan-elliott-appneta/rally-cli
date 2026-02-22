@@ -452,6 +452,10 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
     default=None,
     help="Set acceptance criteria from file.",
 )
+@click.option("--release", default=None, help="Release name to schedule into.")
+@click.option("--no-release", is_flag=True, default=False, help="Remove from release (unschedule).")
+@click.option("--add-tag", default=None, help="Add a tag to the ticket.")
+@click.option("--remove-tag", default=None, help="Remove a tag from the ticket.")
 @click.option("--blocked/--no-blocked", default=None, help="Set/clear blocked status.")
 @click.option("--blocked-reason", default=None, help="Reason for blocking.")
 @click.option("--ready/--no-ready", default=None, help="Set/clear ready status.")
@@ -489,6 +493,10 @@ def tickets_update(
     notes_file: str | None,
     ac: str | None,
     ac_file: str | None,
+    release: str | None,
+    no_release: bool,
+    add_tag: str | None,
+    remove_tag: str | None,
     blocked: bool | None,
     blocked_reason: str | None,
     ready: bool | None,
@@ -508,6 +516,10 @@ def tickets_update(
         rally-cli tickets update DE67890 --owner "Jane Smith" --priority High
         rally-cli tickets update US12345 --description-file desc.txt
         rally-cli tickets update US12345 --no-iteration
+        rally-cli tickets update US12345 --release "2026.Q1"
+        rally-cli tickets update US12345 --no-release
+        rally-cli tickets update US12345 --add-tag "sprint-goal"
+        rally-cli tickets update US12345 --remove-tag "backlog"
     """
     if sub_format:
         from rally_tui.cli.formatters.base import OutputFormat
@@ -579,6 +591,18 @@ def tickets_update(
     if ac is not None:
         fields["c_AcceptanceCriteria"] = ac
         changes["ac"] = "(updated)"
+    if no_release:
+        fields["release"] = None
+        changes["release"] = "unscheduled"
+    elif release is not None:
+        fields["release"] = release
+        changes["release"] = release
+    if add_tag is not None:
+        fields["add_tag"] = add_tag
+        changes["add_tag"] = add_tag
+    if remove_tag is not None:
+        fields["remove_tag"] = remove_tag
+        changes["remove_tag"] = remove_tag
     if blocked is not None:
         fields["Blocked"] = blocked
         changes["blocked"] = blocked

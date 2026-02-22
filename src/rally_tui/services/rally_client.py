@@ -7,7 +7,7 @@ from typing import Any
 from pyral import Rally
 
 from rally_tui.config import RallyConfig
-from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Owner, Release, Tag, Ticket
 from rally_tui.services.protocol import BulkResult
 from rally_tui.utils import get_logger
 
@@ -1434,3 +1434,222 @@ class RallyClient:
             f"{result.failed_count} failed"
         )
         return result
+
+    # -------------------------------------------------------------------------
+    # Release Operations
+    # -------------------------------------------------------------------------
+
+    def get_releases(self, count: int = 10, state: str | None = None) -> list[Release]:
+        """Fetch releases from Rally.
+
+        Args:
+            count: Maximum number of releases to return.
+            state: Optional state filter (Planning, Active, Locked).
+
+        Returns:
+            List of Release objects sorted by start date descending.
+        """
+        _log.debug(f"Fetching {count} releases (state={state})")
+        releases: list[Release] = []
+
+        try:
+            kwargs: dict[str, Any] = {
+                "fetch": "ObjectID,Name,ReleaseStartDate,ReleaseDate,State,Theme,Notes",
+                "order": "ReleaseStartDate desc",
+                "pagesize": count,
+            }
+            if state:
+                kwargs["query"] = f'(State = "{self._sanitize_query_value(state)}")'
+
+            response = self._rally.get("Release", **kwargs)
+            for item in response:
+                if len(releases) >= count:
+                    break
+                release = self._to_release(item)
+                if release:
+                    releases.append(release)
+
+            _log.debug(f"Fetched {len(releases)} releases")
+        except Exception as e:
+            _log.error(f"Error fetching releases: {e}")
+
+        return releases
+
+    def get_release(self, name: str) -> Release | None:
+        """Fetch a single release by name.
+
+        Args:
+            name: The release name to search for.
+
+        Returns:
+            The Release if found, None otherwise.
+        """
+        _log.debug(f"Fetching release: {name}")
+
+        try:
+            sanitized_name = self._sanitize_query_value(name)
+            response = self._rally.get(
+                "Release",
+                fetch="ObjectID,Name,ReleaseStartDate,ReleaseDate,State,Theme,Notes",
+                query=f'(Name = "{sanitized_name}")',
+                pagesize=1,
+            )
+            for item in response:
+                return self._to_release(item)
+        except Exception as e:
+            _log.error(f"Error fetching release {name}: {e}")
+
+        return None
+
+    def set_release(self, ticket: Ticket, release_name: str | None) -> Ticket | None:
+        """Set or remove release assignment on a ticket.
+
+        Args:
+            ticket: The ticket to update.
+            release_name: The release name to assign, or None to remove.
+
+        Returns:
+            The updated Ticket, or None on failure.
+        """
+        if not ticket.object_id:
+            _log.warning(f"Cannot set release: no object_id for {ticket.formatted_id}")
+            return None
+
+        _log.info(f"Setting release on {ticket.formatted_id} to {release_name}")
+
+        try:
+            entity_type = self._get_entity_type(ticket.formatted_id)
+
+            if release_name is None:
+                update_data: dict[str, Any] = {
+                    "ObjectID": ticket.object_id,
+                    "Release": None,
+                }
+                self._rally.update(entity_type, update_data)
+            else:
+                release = self.get_release(release_name)
+                if not release:
+                    _log.error(f"Release not found: {release_name}")
+                    return None
+                update_data = {
+                    "ObjectID": ticket.object_id,
+                    "Release": f"/release/{release.object_id}",
+                }
+                self._rally.update(entity_type, update_data)
+
+            return replace(ticket, release=release_name or "")
+        except Exception as e:
+            _log.error(f"Error setting release for {ticket.formatted_id}: {e}")
+
+        return None
+
+    def _to_release(self, item: Any) -> Release | None:
+        """Convert a pyral Release entity to our Release model."""
+        try:
+            start_date = self._parse_rally_date(getattr(item, "ReleaseStartDate", None))
+            end_date = self._parse_rally_date(getattr(item, "ReleaseDate", None))
+
+            if not start_date or not end_date:
+                _log.warning(f"Missing dates for release: {item.Name}")
+                return None
+
+            return Release(
+                object_id=str(item.ObjectID),
+                name=item.Name,
+                start_date=start_date,
+                end_date=end_date,
+                state=getattr(item, "State", "Planning") or "Planning",
+                theme=getattr(item, "Theme", "") or "",
+                notes=getattr(item, "Notes", "") or "",
+            )
+        except Exception as e:
+            _log.warning(f"Failed to convert release: {e}")
+            return None
+
+    # -------------------------------------------------------------------------
+    # Tag Operations
+    # -------------------------------------------------------------------------
+
+    def get_tags(self) -> list[Tag]:
+        """Fetch all tags in the workspace.
+
+        Returns:
+            List of Tag objects sorted by name.
+        """
+        _log.debug("Fetching tags")
+        tags: list[Tag] = []
+
+        try:
+            response = self._rally.get(
+                "Tag",
+                fetch="ObjectID,Name",
+                order="Name asc",
+                pagesize=200,
+            )
+            for item in response:
+                tags.append(
+                    Tag(
+                        object_id=str(item.ObjectID),
+                        name=item.Name,
+                    )
+                )
+            _log.debug(f"Fetched {len(tags)} tags")
+        except Exception as e:
+            _log.error(f"Error fetching tags: {e}")
+
+        return tags
+
+    def add_tag(self, ticket: Ticket, tag_name: str) -> bool:
+        """Add a tag to a ticket.
+
+        Note: The sync RallyClient does not support tag collection
+        operations via pyral. Use AsyncRallyClient for tag operations.
+
+        Args:
+            ticket: The ticket to tag.
+            tag_name: The tag name to add.
+
+        Returns:
+            True on success, False on failure.
+        """
+        _log.warning("add_tag not supported in sync client; use async client")
+        return False
+
+    def remove_tag(self, ticket: Ticket, tag_name: str) -> bool:
+        """Remove a tag from a ticket.
+
+        Note: The sync RallyClient does not support tag collection
+        operations via pyral. Use AsyncRallyClient for tag operations.
+
+        Args:
+            ticket: The ticket to untag.
+            tag_name: The tag name to remove.
+
+        Returns:
+            True on success, False on failure.
+        """
+        _log.warning("remove_tag not supported in sync client; use async client")
+        return False
+
+    def create_tag(self, name: str) -> Tag | None:
+        """Create a new tag.
+
+        Args:
+            name: The tag name.
+
+        Returns:
+            The created Tag, or None on failure.
+        """
+        _log.info(f"Creating tag: {name}")
+
+        try:
+            created = self._rally.create("Tag", {"Name": name})
+            if created:
+                return Tag(
+                    object_id=str(created.ObjectID),
+                    name=created.Name,
+                )
+        except Exception as e:
+            _log.error(f"Error creating tag: {e}")
+
+        return None

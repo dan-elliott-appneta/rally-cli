@@ -36,6 +36,8 @@ class Ticket:
     target_date: str | None = None  # ISO date string
     creation_date: str | None = None  # ISO datetime string
     last_update_date: str | None = None  # ISO datetime string
+    release: str = ""  # Release name
+    tags: tuple[str, ...] = ()  # Tag names (tuple for frozen compatibility)
 
     @property
     def display_text(self) -> str:

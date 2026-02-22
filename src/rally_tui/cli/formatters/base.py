@@ -146,3 +146,42 @@ class BaseFormatter(ABC):
             Formatted string output.
         """
         pass
+
+    @abstractmethod
+    def format_releases(self, result: CLIResult) -> str:
+        """Format release list output.
+
+        Args:
+            result: CLIResult containing release data. The data field
+                should contain a list of Release objects.
+
+        Returns:
+            Formatted string output.
+        """
+        pass
+
+    @abstractmethod
+    def format_tags(self, result: CLIResult) -> str:
+        """Format tag list output.
+
+        Args:
+            result: CLIResult containing tag data. The data field
+                should contain a list of Tag objects.
+
+        Returns:
+            Formatted string output.
+        """
+        pass
+
+    @abstractmethod
+    def format_tag_action(self, result: CLIResult) -> str:
+        """Format tag action result (create/add/remove).
+
+        Args:
+            result: CLIResult containing tag action data. The data field
+                should contain a dict with 'action' and related info.
+
+        Returns:
+            Formatted string output.
+        """
+        pass

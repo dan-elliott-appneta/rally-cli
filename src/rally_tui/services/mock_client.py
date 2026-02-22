@@ -4,7 +4,7 @@ from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
-from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Owner, Release, Tag, Ticket
 from rally_tui.models.sample_data import SAMPLE_DISCUSSIONS, SAMPLE_TICKETS
 from rally_tui.services.protocol import BulkResult
 
@@ -101,6 +101,50 @@ MOCK_USERS = [
 ]
 
 
+def _generate_sample_releases() -> list[Release]:
+    """Generate sample releases around today's date."""
+    today = date.today()
+
+    return [
+        Release(
+            object_id="rel_001",
+            name="Release 2.0",
+            start_date=today - timedelta(days=30),
+            end_date=today + timedelta(days=30),
+            state="Active",
+            theme="Platform modernization",
+            notes="Major release with new API endpoints.",
+        ),
+        Release(
+            object_id="rel_002",
+            name="Release 2.1",
+            start_date=today + timedelta(days=31),
+            end_date=today + timedelta(days=90),
+            state="Planning",
+            theme="Performance improvements",
+            notes="Focus on query optimization and caching.",
+        ),
+        Release(
+            object_id="rel_003",
+            name="Release 1.9",
+            start_date=today - timedelta(days=90),
+            end_date=today - timedelta(days=31),
+            state="Locked",
+            theme="Bug fixes",
+            notes="Final patch release for 1.x series.",
+        ),
+    ]
+
+
+SAMPLE_TAGS: list[Tag] = [
+    Tag(object_id="tag_001", name="backend"),
+    Tag(object_id="tag_002", name="frontend"),
+    Tag(object_id="tag_003", name="urgent"),
+    Tag(object_id="tag_004", name="tech-debt"),
+    Tag(object_id="tag_005", name="security"),
+]
+
+
 class MockRallyClient:
     """Mock Rally client for testing and development.
 
@@ -116,6 +160,8 @@ class MockRallyClient:
         iterations: list[Iteration] | None = None,
         features: dict[str, str] | None = None,
         attachments: dict[str, list[Attachment]] | None = None,
+        releases: list[Release] | None = None,
+        tags: list[Tag] | None = None,
         workspace: str = "My Workspace",
         project: str = "My Project",
         current_user: str | None = None,
@@ -129,6 +175,8 @@ class MockRallyClient:
             iterations: List of iterations to use. Defaults to generated sample iterations.
             features: Dict mapping feature ID to name. Defaults to DEFAULT_FEATURES.
             attachments: Dict mapping formatted_id to attachments. Defaults to SAMPLE_ATTACHMENTS.
+            releases: List of releases to use. Defaults to generated sample releases.
+            tags: List of tags to use. Defaults to SAMPLE_TAGS.
             workspace: Workspace name to report.
             project: Project name to report.
             current_user: Current user's display name.
@@ -146,6 +194,10 @@ class MockRallyClient:
         self._attachments: dict[str, list[Attachment]] = (
             attachments if attachments is not None else dict(SAMPLE_ATTACHMENTS)
         )
+        self._releases = releases if releases is not None else _generate_sample_releases()
+        self._tags = tags if tags is not None else list(SAMPLE_TAGS)
+        # Track tag assignments per ticket: formatted_id -> set of tag names
+        self._ticket_tags: dict[str, set[str]] = {}
         self._workspace = workspace
         self._project = project
         self._current_user = current_user
@@ -154,6 +206,7 @@ class MockRallyClient:
         self._next_story_id = 9000  # For generating new User Story IDs
         self._next_defect_id = 9000  # For generating new Defect IDs
         self._next_attachment_id = 9000  # For generating new Attachment IDs
+        self._next_tag_id = 9000  # For generating new Tag IDs
 
     @property
     def workspace(self) -> str:
@@ -861,11 +914,166 @@ class MockRallyClient:
                         kwargs["target_date"] = value
                     elif key == "ScheduleState":
                         kwargs["schedule_state"] = value
+                    elif key == "release":
+                        kwargs["release"] = value if value else ""
+                    elif key == "release_remove":
+                        kwargs["release"] = ""
+                    elif key == "add_tag":
+                        # Handle tag add via ticket_tags tracking
+                        self.add_tag(t, str(value))
+                    elif key == "remove_tag":
+                        # Handle tag remove via ticket_tags tracking
+                        self.remove_tag(t, str(value))
+
+                # Sync tags from tracking dict
+                if t.formatted_id in self._ticket_tags:
+                    kwargs["tags"] = tuple(sorted(self._ticket_tags[t.formatted_id]))
 
                 updated = replace(t, **kwargs)
                 self._tickets[i] = updated
                 return updated
         return None
+
+    # -------------------------------------------------------------------------
+    # Release Operations
+    # -------------------------------------------------------------------------
+
+    def get_releases(self, count: int = 10, state: str | None = None) -> list[Release]:
+        """Fetch releases, optionally filtered by state.
+
+        Args:
+            count: Maximum number of releases to return.
+            state: Optional state filter (Planning, Active, Locked).
+
+        Returns:
+            List of releases, sorted by start date (newest first).
+        """
+        releases = self._releases
+        if state:
+            releases = [r for r in releases if r.state == state]
+        sorted_releases = sorted(releases, key=lambda r: r.start_date, reverse=True)
+        return sorted_releases[:count]
+
+    def get_release(self, name: str) -> Release | None:
+        """Fetch a single release by name.
+
+        Args:
+            name: The release name to search for.
+
+        Returns:
+            The Release if found, None otherwise.
+        """
+        for release in self._releases:
+            if release.name == name:
+                return release
+        return None
+
+    def set_release(self, ticket: Ticket, release_name: str | None) -> Ticket | None:
+        """Set or remove release assignment on a ticket.
+
+        Args:
+            ticket: The ticket to update.
+            release_name: The release name to assign, or None to remove.
+
+        Returns:
+            The updated Ticket, or None on failure.
+        """
+        for i, t in enumerate(self._tickets):
+            if t.formatted_id == ticket.formatted_id:
+                updated = replace(t, release=release_name or "")
+                self._tickets[i] = updated
+                return updated
+        return None
+
+    # -------------------------------------------------------------------------
+    # Tag Operations
+    # -------------------------------------------------------------------------
+
+    def get_tags(self) -> list[Tag]:
+        """Fetch all tags in the workspace.
+
+        Returns:
+            List of Tag objects sorted by name.
+        """
+        return sorted(self._tags, key=lambda t: t.name)
+
+    def add_tag(self, ticket: Ticket, tag_name: str) -> bool:
+        """Add a tag to a ticket. Creates the tag if it doesn't exist.
+
+        Args:
+            ticket: The ticket to tag.
+            tag_name: The tag name to add.
+
+        Returns:
+            True on success, False on failure.
+        """
+        # Find or create the tag
+        found = False
+        for tag in self._tags:
+            if tag.name == tag_name:
+                found = True
+                break
+        if not found:
+            new_tag = self.create_tag(tag_name)
+            if not new_tag:
+                return False
+
+        # Track the tag assignment
+        if ticket.formatted_id not in self._ticket_tags:
+            self._ticket_tags[ticket.formatted_id] = set(ticket.tags)
+        self._ticket_tags[ticket.formatted_id].add(tag_name)
+
+        # Update the ticket in-place
+        for i, t in enumerate(self._tickets):
+            if t.formatted_id == ticket.formatted_id:
+                new_tags = tuple(sorted(self._ticket_tags[ticket.formatted_id]))
+                self._tickets[i] = replace(t, tags=new_tags)
+                break
+
+        return True
+
+    def remove_tag(self, ticket: Ticket, tag_name: str) -> bool:
+        """Remove a tag from a ticket.
+
+        Args:
+            ticket: The ticket to untag.
+            tag_name: The tag name to remove.
+
+        Returns:
+            True on success, False on failure.
+        """
+        if ticket.formatted_id not in self._ticket_tags:
+            self._ticket_tags[ticket.formatted_id] = set(ticket.tags)
+
+        self._ticket_tags[ticket.formatted_id].discard(tag_name)
+
+        # Update the ticket in-place
+        for i, t in enumerate(self._tickets):
+            if t.formatted_id == ticket.formatted_id:
+                new_tags = tuple(sorted(self._ticket_tags[ticket.formatted_id]))
+                self._tickets[i] = replace(t, tags=new_tags)
+                break
+
+        return True
+
+    def create_tag(self, name: str) -> Tag | None:
+        """Create a new tag.
+
+        Args:
+            name: The tag name.
+
+        Returns:
+            The created Tag, or None on failure.
+        """
+        # Check if tag already exists
+        for tag in self._tags:
+            if tag.name == name:
+                return tag
+
+        new_tag = Tag(object_id=f"tag_{self._next_tag_id}", name=name)
+        self._next_tag_id += 1
+        self._tags.append(new_tag)
+        return new_tag
 
     def delete_ticket(self, formatted_id: str) -> bool:
         """Delete a ticket from Rally (mock implementation).

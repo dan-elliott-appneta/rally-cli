@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Owner, Release, Tag, Ticket
 
 
 @dataclass
@@ -330,6 +330,84 @@ class RallyClientProtocol(Protocol):
 
         Returns:
             BulkResult with success/failure counts and updated tickets.
+        """
+        ...
+
+    def get_releases(self, count: int = 10, state: str | None = None) -> list[Release]:
+        """Fetch releases, optionally filtered by state.
+
+        Args:
+            count: Maximum number of releases to return.
+            state: Optional state filter (Planning, Active, Locked).
+
+        Returns:
+            List of releases, sorted by start date (newest first).
+        """
+        ...
+
+    def get_release(self, name: str) -> Release | None:
+        """Fetch a single release by name.
+
+        Args:
+            name: The release name to search for.
+
+        Returns:
+            The Release if found, None otherwise.
+        """
+        ...
+
+    def set_release(self, ticket: Ticket, release_name: str | None) -> Ticket | None:
+        """Set or remove release assignment on a ticket.
+
+        Args:
+            ticket: The ticket to update.
+            release_name: The release name to assign, or None to remove.
+
+        Returns:
+            The updated Ticket, or None on failure.
+        """
+        ...
+
+    def get_tags(self) -> list[Tag]:
+        """Fetch all tags in the workspace.
+
+        Returns:
+            List of Tag objects sorted by name.
+        """
+        ...
+
+    def add_tag(self, ticket: Ticket, tag_name: str) -> bool:
+        """Add a tag to a ticket. Creates the tag if it doesn't exist.
+
+        Args:
+            ticket: The ticket to tag.
+            tag_name: The tag name to add.
+
+        Returns:
+            True on success, False on failure.
+        """
+        ...
+
+    def remove_tag(self, ticket: Ticket, tag_name: str) -> bool:
+        """Remove a tag from a ticket.
+
+        Args:
+            ticket: The ticket to untag.
+            tag_name: The tag name to remove.
+
+        Returns:
+            True on success, False on failure.
+        """
+        ...
+
+    def create_tag(self, name: str) -> Tag | None:
+        """Create a new tag.
+
+        Args:
+            name: The tag name.
+
+        Returns:
+            The created Tag, or None on failure.
         """
         ...
 

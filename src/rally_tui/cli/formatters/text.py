@@ -5,7 +5,7 @@ import os
 import re
 
 from rally_tui.cli.formatters.base import BaseFormatter, CLIResult
-from rally_tui.models import Discussion, Iteration, Owner, Ticket
+from rally_tui.models import Discussion, Iteration, Owner, Release, Tag, Ticket
 
 
 class TextFormatter(BaseFormatter):
@@ -444,6 +444,109 @@ class TextFormatter(BaseFormatter):
             lines.append(f"{display}  {username}")
 
         return "\n".join(lines)
+
+    def format_releases(self, result: CLIResult) -> str:
+        """Format release list as a human-readable table.
+
+        Args:
+            result: CLIResult containing release data. The data field
+                should contain a list of Release objects.
+
+        Returns:
+            Formatted release table.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        releases: list[Release] = result.data
+        if not releases:
+            return "No releases found."
+
+        lines: list[str] = []
+        lines.append("Releases")
+        lines.append("========")
+
+        # Column widths
+        name_w = max(max(len(r.name) for r in releases), 4)
+        name_w = min(name_w, 40)
+        theme_w = (
+            max(max(len(r.theme) for r in releases), 5) if any(r.theme for r in releases) else 5
+        )
+        theme_w = min(theme_w, 30)
+
+        header = (
+            f"{'Name':<{name_w}}  {'Start':<12}  {'End':<12}  {'State':<10}  {'Theme':<{theme_w}}"
+        )
+        lines.append(header)
+        lines.append("-" * len(header))
+
+        for r in releases:
+            name_display = self._truncate(r.name, name_w).ljust(name_w)
+            start_str = r.start_date.strftime("%b %d")
+            end_str = r.end_date.strftime("%b %d")
+            theme_display = self._truncate(r.theme, theme_w).ljust(theme_w)
+            lines.append(
+                f"{name_display}  {start_str:<12}  {end_str:<12}  {r.state:<10}  {theme_display}"
+            )
+
+        return "\n".join(lines)
+
+    def format_tags(self, result: CLIResult) -> str:
+        """Format tag list as a human-readable table.
+
+        Args:
+            result: CLIResult containing tag data. The data field
+                should contain a list of Tag objects.
+
+        Returns:
+            Formatted tag table.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        tags: list[Tag] = result.data
+        if not tags:
+            return "No tags found."
+
+        lines: list[str] = []
+        lines.append("Tags")
+        lines.append("====")
+        lines.append("Name")
+        lines.append("-" * max(max(len(t.name) for t in tags), 4))
+
+        for t in tags:
+            lines.append(t.name)
+
+        return "\n".join(lines)
+
+    def format_tag_action(self, result: CLIResult) -> str:
+        """Format tag action result (create/add/remove).
+
+        Args:
+            result: CLIResult containing tag action data.
+
+        Returns:
+            Formatted action confirmation string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data
+        if isinstance(data, dict):
+            action = data.get("action", "")
+            tag_name = data.get("tag_name", "")
+            ticket_id = data.get("ticket_id", "")
+
+            if action == "created":
+                tag = data.get("tag")
+                name = tag.name if tag else tag_name
+                return f"Tag created: {name}"
+            elif action == "added":
+                return f"Tag '{tag_name}' added to {ticket_id}"
+            elif action == "removed":
+                return f"Tag '{tag_name}' removed from {ticket_id}"
+
+        return "Tag operation completed"
 
     def _truncate(self, text: str, max_length: int) -> str:
         """Truncate text to max length with ellipsis.
