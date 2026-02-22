@@ -224,12 +224,154 @@ rally-cli tickets show DE67890 --format json
 
 ---
 
-### `rally-cli tickets update`
+### `rally-cli search`
 
-Update fields on an existing ticket.
+Full-text search across Rally tickets by Name and Description.
 
 ```bash
-rally-cli tickets update TICKET_ID [OPTIONS]
+rally-cli search QUERY [OPTIONS]
+```
+
+#### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `QUERY` | Text to search for |
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--type [UserStory\|Defect\|Task\|TestCase]` | Filter by ticket type |
+| `--state TEXT` | Filter by workflow state |
+| `--current-iteration` | Limit to the current iteration |
+| `--limit INT` | Maximum number of results (default: 50) |
+| `--format [text\|json\|csv]` | Output format |
+
+#### Examples
+
+```bash
+# Search for tickets mentioning OAuth
+rally-cli search "OAuth login"
+
+# Search only user stories
+rally-cli search "OAuth" --type UserStory
+
+# Search in current iteration
+rally-cli search "payment" --current-iteration
+
+# Search with state filter
+rally-cli search "login bug" --state "In-Progress"
+
+# Limit results
+rally-cli search "API" --limit 10
+
+# JSON output for scripting
+rally-cli search "authentication" --format json | jq '.data[].formatted_id'
+```
+
+---
+
+### `rally-cli summary`
+
+Show a sprint summary report for an iteration.
+
+```bash
+rally-cli summary [OPTIONS]
+```
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--iteration TEXT` | Iteration name to summarise (defaults to current iteration) |
+| `--format [text\|json\|csv]` | Output format |
+
+#### Examples
+
+```bash
+# Summary for the current iteration
+rally-cli summary
+
+# Summary for a specific iteration
+rally-cli summary --iteration "FY26-Q1 PI Sprint 7"
+
+# JSON output for scripting
+rally-cli summary --format json
+
+# CSV export
+rally-cli summary --format csv > sprint-summary.csv
+```
+
+#### Output
+
+```
+Sprint Summary: FY26-Q1 PI Sprint 7 (Feb 10 - Feb 21)
+=======================================================
+Total Tickets:  24
+Total Points:   47
+
+By State:
+  Defined            5 tickets,  12 points
+  In-Progress        8 tickets,  18 points
+  Completed          9 tickets,  14 points
+  Accepted           2 tickets,   3 points
+
+By Owner:
+  Daniel Elliot      6 tickets,  15 points
+  Jane Smith         8 tickets,  16 points
+  Bob Johnson       10 tickets,  16 points
+
+Blocked: 2 tickets
+  US12345 - Waiting on API team
+  DE67890 - Environment issue
+```
+
+---
+
+### `rally-cli config`
+
+Show the current Rally CLI configuration values.
+
+```bash
+rally-cli config [OPTIONS]
+```
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--format [text\|json\|csv]` | Output format |
+
+#### Examples
+
+```bash
+# Show current configuration
+rally-cli config
+
+# Show as JSON
+rally-cli config --format json
+```
+
+#### Output
+
+```
+Rally CLI Configuration
+=======================
+Server:     rally1.rallydev.com
+Workspace:  My Workspace
+Project:    My Project
+API Key:    ****...1234 (set via RALLY_APIKEY)
+```
+
+---
+
+### `rally-cli open`
+
+Open a Rally ticket in the default web browser.
+
+```bash
+rally-cli open TICKET_ID
 ```
 
 #### Arguments
@@ -237,6 +379,61 @@ rally-cli tickets update TICKET_ID [OPTIONS]
 | Argument | Description |
 |----------|-------------|
 | `TICKET_ID` | Ticket formatted ID (e.g., `US12345`, `DE67890`) |
+
+#### Examples
+
+```bash
+# Open a user story in browser
+rally-cli open US12345
+
+# Open a defect
+rally-cli open DE67890
+```
+
+---
+
+### `rally-cli completions`
+
+Generate shell completion scripts for rally-cli.
+
+```bash
+rally-cli completions SHELL
+```
+
+#### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `SHELL` | Shell type: `bash`, `zsh`, or `fish` |
+
+#### Examples
+
+```bash
+# Install bash completions (add to ~/.bashrc)
+eval "$(rally-cli completions bash)"
+
+# Install zsh completions (add to ~/.zshrc)
+eval "$(rally-cli completions zsh)"
+
+# Install fish completions (add to ~/.config/fish/config.fish)
+rally-cli completions fish | source
+```
+
+---
+
+### `rally-cli tickets update`
+
+Update fields on one or more existing tickets.
+
+```bash
+rally-cli tickets update TICKET_IDS... [OPTIONS]
+```
+
+#### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `TICKET_IDS` | One or more ticket formatted IDs (e.g., `US12345 US12346 DE67890`) |
 
 #### Options
 
@@ -267,7 +464,7 @@ rally-cli tickets update TICKET_ID [OPTIONS]
 #### Examples
 
 ```bash
-# Update state and points
+# Update state and points (single ticket)
 rally-cli tickets update US12345 --state "In-Progress" --points 3
 
 # Change owner
@@ -281,6 +478,17 @@ rally-cli tickets update US12345 --description-file desc.txt
 
 # Set multiple fields at once
 rally-cli tickets update US12345 --state "Completed" --ready --points 5
+
+# Bulk update multiple tickets at once
+rally-cli tickets update US12345 US12346 US12347 --state "Completed"
+
+# Bulk move multiple tickets to a sprint
+rally-cli tickets update US100 US101 US102 --iteration "FY26-Q1 PI Sprint 8"
+
+# Pipe from search for bulk operations
+rally-cli --format json tickets --current-iteration --state "Defined" | \
+  jq -r '.data[].formatted_id' | \
+  xargs rally-cli tickets update --state "In-Progress"
 ```
 
 ---
@@ -840,6 +1048,39 @@ rally-cli tickets --current-iteration --my-tickets
 echo ""
 echo "=== In Progress ==="
 rally-cli tickets --current-iteration --my-tickets --state "In-Progress"
+
+echo ""
+echo "=== Sprint Summary ==="
+rally-cli summary
+```
+
+### Sprint Summary Report
+
+```bash
+#!/bin/bash
+# Email sprint summary as JSON for dashboard integration
+rally-cli summary --format json | jq '{
+  iteration: .data.iteration_name,
+  total: .data.total_tickets,
+  points: .data.total_points,
+  blocked: (.data.blocked | length)
+}'
+```
+
+### Bulk Ticket Operations
+
+```bash
+#!/bin/bash
+# Move all defined tickets to in-progress at sprint start
+rally-cli --format json tickets --current-iteration --state "Defined" | \
+  jq -r '.data[].formatted_id' | \
+  xargs rally-cli tickets update --state "In-Progress"
+
+# Mark multiple tickets completed
+rally-cli tickets update US12345 US12346 US12347 --state "Completed"
+
+# Move tickets to next sprint
+rally-cli tickets update US100 US101 US102 --iteration "FY26-Q1 PI Sprint 8"
 ```
 
 ### Export Sprint to CSV
