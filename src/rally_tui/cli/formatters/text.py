@@ -178,6 +178,135 @@ class TextFormatter(BaseFormatter):
 
         return str(value)
 
+    def format_ticket_detail(self, result: CLIResult) -> str:
+        """Format a single ticket with full details for the show command.
+
+        Args:
+            result: CLIResult containing a single Ticket.
+
+        Returns:
+            Multi-line formatted string with all ticket fields.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        ticket: Ticket = result.data
+        if ticket is None:
+            return "No ticket found."
+
+        # Header line
+        header = f"{ticket.formatted_id} - {ticket.name}"
+        separator = "=" * min(len(header), 60)
+
+        lines = [header, separator]
+
+        # Core fields
+        label_width = 12
+        type_label = self.TYPE_ABBREV.get(ticket.ticket_type, ticket.ticket_type)
+        lines.append(f"{'Type:':<{label_width}}{type_label}")
+        lines.append(f"{'State:':<{label_width}}{ticket.state}")
+        lines.append(f"{'Owner:':<{label_width}}{ticket.owner or '-'}")
+        lines.append(f"{'Iteration:':<{label_width}}{ticket.iteration or '-'}")
+
+        # Points
+        if ticket.points is not None:
+            p = ticket.points
+            pts = int(p) if isinstance(p, float) and p == int(p) else p
+            lines.append(f"{'Points:':<{label_width}}{pts}")
+        else:
+            lines.append(f"{'Points:':<{label_width}}-")
+
+        lines.append(f"{'Parent:':<{label_width}}{ticket.parent_id or '-'}")
+        lines.append(f"{'Blocked:':<{label_width}}{'Yes' if ticket.blocked else 'No'}")
+        lines.append(f"{'Ready:':<{label_width}}{'Yes' if ticket.ready else 'No'}")
+
+        if ticket.expedite:
+            lines.append(f"{'Expedite:':<{label_width}}Yes")
+
+        if ticket.severity:
+            lines.append(f"{'Severity:':<{label_width}}{ticket.severity}")
+        if ticket.priority:
+            lines.append(f"{'Priority:':<{label_width}}{ticket.priority}")
+        if ticket.target_date:
+            date_str = ticket.target_date[:10]
+            lines.append(f"{'Target Date:':<{label_width}}{date_str}")
+
+        # Dates (trim to date only)
+        if ticket.creation_date:
+            lines.append(f"{'Created:':<{label_width}}{ticket.creation_date[:10]}")
+        if ticket.last_update_date:
+            lines.append(f"{'Updated:':<{label_width}}{ticket.last_update_date[:10]}")
+
+        # Rich text sections
+        if ticket.acceptance_criteria:
+            lines.append("")
+            lines.append("Acceptance Criteria:")
+            for ac_line in ticket.acceptance_criteria.splitlines():
+                lines.append(f"  {ac_line}")
+
+        if ticket.description:
+            lines.append("")
+            lines.append("Description:")
+            for desc_line in ticket.description.splitlines():
+                lines.append(f"  {desc_line}")
+
+        if ticket.notes:
+            lines.append("")
+            lines.append("Notes:")
+            for notes_line in ticket.notes.splitlines():
+                lines.append(f"  {notes_line}")
+
+        if ticket.blocked and ticket.blocked_reason:
+            lines.append("")
+            lines.append("Blocked Reason:")
+            for br_line in ticket.blocked_reason.splitlines():
+                lines.append(f"  {br_line}")
+
+        return "\n".join(lines)
+
+    def format_update_result(self, result: CLIResult) -> str:
+        """Format ticket update result showing what changed.
+
+        Args:
+            result: CLIResult with data dict containing 'ticket' and 'changes'.
+
+        Returns:
+            Concise update summary string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data
+        if isinstance(data, dict):
+            ticket_id = data.get("formatted_id", "")
+            changes = data.get("changes", {})
+            if changes:
+                change_parts = [f"{k} -> {v}" for k, v in changes.items()]
+                return f"Updated {ticket_id}: {', '.join(change_parts)}"
+            else:
+                return f"Updated {ticket_id}"
+        elif hasattr(data, "formatted_id"):
+            return f"Updated {data.formatted_id}"
+        return "Updated ticket"
+
+    def format_delete_result(self, result: CLIResult) -> str:
+        """Format ticket delete result confirming deletion.
+
+        Args:
+            result: CLIResult with data dict containing 'formatted_id'.
+
+        Returns:
+            Deletion confirmation string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data
+        if isinstance(data, dict):
+            ticket_id = data.get("formatted_id", "")
+            return f"Deleted {ticket_id}"
+        return "Deleted ticket"
+
     def _truncate(self, text: str, max_length: int) -> str:
         """Truncate text to max length with ellipsis.
 
