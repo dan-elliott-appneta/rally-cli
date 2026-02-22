@@ -64,7 +64,6 @@ def config(ctx: CLIContext, sub_format: str | None) -> None:
         "workspace": ctx.workspace or "(not set)",
         "project": ctx.project or "(not set)",
         "apikey": apikey_display,
-        "apikey_raw": ctx.apikey,
     }
 
     result = CLIResult(success=True, data=config_data)

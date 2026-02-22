@@ -491,8 +491,7 @@ class JSONFormatter(BaseFormatter):
         if result.success and result.data is not None:
             data = result.data
             if isinstance(data, dict):
-                # Exclude the raw apikey from JSON output for safety
-                output["data"] = {k: v for k, v in data.items() if k != "apikey_raw"}
+                output["data"] = data
         return json.dumps(output, indent=2, default=self._json_serializer)
 
     def format_summary(self, result: CLIResult) -> str:

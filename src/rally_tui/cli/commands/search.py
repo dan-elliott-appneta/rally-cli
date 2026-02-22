@@ -86,6 +86,15 @@ def search(
         click.echo(ctx.formatter.format_error(result), err=True)
         sys.exit(4)
 
+    if not query.strip():
+        result = CLIResult(
+            success=False,
+            data=None,
+            error="Search query must not be empty.",
+        )
+        click.echo(ctx.formatter.format_error(result), err=True)
+        sys.exit(2)
+
     async def _do_search():
         config = RallyConfig(
             server=ctx.server,
