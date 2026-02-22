@@ -5,7 +5,7 @@ import io
 from typing import Any
 
 from rally_tui.cli.formatters.base import BaseFormatter, CLIResult
-from rally_tui.models import Discussion, Iteration, Owner, Release, Tag, Ticket
+from rally_tui.models import Attachment, Discussion, Feature, Iteration, Owner, Release, Tag, Ticket
 
 
 class CSVFormatter(BaseFormatter):
@@ -405,6 +405,156 @@ class CSVFormatter(BaseFormatter):
             Error string.
         """
         return f"Error: {result.error}"
+
+    def format_attachment_action(self, result: CLIResult) -> str:
+        """Format attachment action result as CSV.
+
+        Args:
+            result: CLIResult containing attachment action data.
+
+        Returns:
+            CSV string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["action", "filename", "ticket_id"])
+
+        if isinstance(data, dict):
+            action = data.get("action", "")
+            ticket_id = data.get("ticket_id", "")
+            filename = data.get("filename", "")
+            if action == "uploaded":
+                attachment = data.get("attachment")
+                filename = attachment.name if attachment else filename
+            writer.writerow([action, filename, ticket_id])
+
+        return output.getvalue().rstrip("\n")
+
+    def format_attachments(self, result: CLIResult) -> str:
+        """Format attachment list as CSV.
+
+        Args:
+            result: CLIResult containing attachment data.
+
+        Returns:
+            CSV string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data
+        if isinstance(data, dict):
+            attachments: list[Attachment] = data.get("attachments", [])
+        else:
+            attachments = data if data else []
+
+        if not attachments:
+            return ""
+
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["name", "size", "content_type", "object_id"])
+
+        for att in attachments:
+            writer.writerow([att.name, att.size, att.content_type, att.object_id])
+
+        return output.getvalue().rstrip("\n")
+
+    def format_features(self, result: CLIResult) -> str:
+        """Format feature list as CSV.
+
+        Args:
+            result: CLIResult containing feature data.
+
+        Returns:
+            CSV string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        features: list[Feature] = result.data
+        if not features:
+            return ""
+
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["formatted_id", "name", "state", "owner", "release", "story_count"])
+
+        for f in features:
+            writer.writerow([f.formatted_id, f.name, f.state, f.owner, f.release, f.story_count])
+
+        return output.getvalue().rstrip("\n")
+
+    def format_feature_detail(self, result: CLIResult) -> str:
+        """Format single feature detail as CSV.
+
+        Args:
+            result: CLIResult containing feature data with optional children.
+
+        Returns:
+            CSV string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data
+        if isinstance(data, dict):
+            feature: Feature | None = data.get("feature")
+            children: list[Ticket] = data.get("children", [])
+        elif isinstance(data, Feature):
+            feature = data
+            children = []
+        else:
+            return ""
+
+        if feature is None:
+            return ""
+
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+
+        # Feature header row
+        writer.writerow(["formatted_id", "name", "state", "owner", "release", "story_count"])
+        writer.writerow(
+            [
+                feature.formatted_id,
+                feature.name,
+                feature.state,
+                feature.owner,
+                feature.release,
+                feature.story_count,
+            ]
+        )
+
+        # Child stories section (if any)
+        if children:
+            writer.writerow([])  # blank separator
+            writer.writerow(["child_id", "child_name", "child_state", "child_owner"])
+            for child in children:
+                if isinstance(child, dict):
+                    writer.writerow(
+                        [
+                            child.get("formatted_id", ""),
+                            child.get("name", ""),
+                            child.get("state", ""),
+                            child.get("owner", ""),
+                        ]
+                    )
+                else:
+                    writer.writerow(
+                        [
+                            child.formatted_id,
+                            child.name,
+                            child.state,
+                            child.owner or "",
+                        ]
+                    )
+
+        return output.getvalue().rstrip("\n")
 
     def _get_field_value(self, ticket: Ticket, field: str) -> Any:
         """Extract a field value from a ticket.

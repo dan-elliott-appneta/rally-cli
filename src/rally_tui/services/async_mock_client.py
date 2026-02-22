@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from rally_tui.models import Attachment, Discussion, Iteration, Owner, Release, Tag, Ticket
+from rally_tui.models import Attachment, Discussion, Feature, Iteration, Owner, Release, Tag, Ticket
 from rally_tui.services.mock_client import MockRallyClient
 from rally_tui.services.protocol import BulkResult
 
@@ -172,6 +172,14 @@ class AsyncMockRallyClient:
     async def get_feature(self, formatted_id: str) -> tuple[str, str] | None:
         """Fetch a Feature's name by formatted ID."""
         return self._sync_client.get_feature(formatted_id)
+
+    async def get_features(self, query: str | None = None, count: int = 50) -> list[Feature]:
+        """Fetch features (portfolio items)."""
+        return self._sync_client.get_features(query, count)
+
+    async def get_feature_children(self, feature_id: str) -> list[Ticket]:
+        """Fetch child user stories for a feature."""
+        return self._sync_client.get_feature_children(feature_id)
 
     async def set_parent(self, ticket: Ticket, parent_id: str) -> Ticket | None:
         """Set a ticket's parent Feature."""

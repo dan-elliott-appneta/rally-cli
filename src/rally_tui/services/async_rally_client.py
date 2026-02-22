@@ -21,7 +21,16 @@ from tenacity import (
 )
 
 from rally_tui.config import RallyConfig
-from rally_tui.models import Attachment, Discussion, Iteration, Owner, Release, Tag, Ticket
+from rally_tui.models import (
+    Attachment,
+    Discussion,
+    Feature,
+    Iteration,
+    Owner,
+    Release,
+    Tag,
+    Ticket,
+)
 from rally_tui.services.protocol import BulkResult
 from rally_tui.services.rally_api import (
     DEFAULT_TIMEOUT,
@@ -1562,6 +1571,127 @@ class AsyncRallyClient:
             _log.error(f"Error fetching feature {formatted_id}: {e}")
 
         return None
+
+    async def get_features(self, query: str | None = None, count: int = 50) -> list[Feature]:
+        """Fetch features (portfolio items) from Rally.
+
+        Optionally filter by query string. Fetches Name, FormattedID, State,
+        Owner, Release, and UserStories count.
+
+        Args:
+            query: Optional Rally query string to filter features.
+            count: Maximum number of features to return.
+
+        Returns:
+            List of Feature objects.
+        """
+        _log.debug(f"Fetching features (count={count}, query={query})")
+
+        try:
+            params: dict[str, Any] = {
+                "fetch": "ObjectID,FormattedID,Name,State,Owner,Release,UserStories,Description",
+                "pagesize": min(count, MAX_PAGE_SIZE),
+                "order": "FormattedID desc",
+                "projectScopeUp": "true",
+                "projectScopeDown": "true",
+            }
+            if query:
+                params["query"] = query
+
+            response = await self._get("/portfolioitem/feature", params)
+            results, _ = parse_query_result(response)
+
+            features: list[Feature] = []
+            for item in results:
+                if len(features) >= count:
+                    break
+                features.append(self._to_feature(item))
+
+            _log.debug(f"Fetched {len(features)} features")
+            return features
+        except Exception as e:
+            _log.error(f"Error fetching features: {e}")
+            return []
+
+    async def get_feature_children(self, feature_id: str) -> list[Ticket]:
+        """Fetch child user stories for a feature by its formatted ID.
+
+        Args:
+            feature_id: The Feature's formatted ID (e.g., "F59625").
+
+        Returns:
+            List of Ticket objects representing child user stories.
+        """
+        _log.debug(f"Fetching children for feature: {feature_id}")
+
+        try:
+            sanitized_id = self._sanitize_query_value(feature_id)
+            query = f'(PortfolioItem.FormattedID = "{sanitized_id}")'
+            response = await self._get(
+                "/hierarchicalrequirement",
+                params={
+                    "fetch": build_fetch_string("HierarchicalRequirement"),
+                    "query": query,
+                    "pagesize": MAX_PAGE_SIZE,
+                    "projectScopeUp": "true",
+                    "projectScopeDown": "true",
+                },
+            )
+            results, _ = parse_query_result(response)
+
+            tickets = [self._to_ticket(item, "HierarchicalRequirement") for item in results]
+            _log.debug(f"Fetched {len(tickets)} children for {feature_id}")
+            return tickets
+        except Exception as e:
+            _log.error(f"Error fetching children for {feature_id}: {e}")
+            return []
+
+    def _to_feature(self, item: dict[str, Any]) -> Feature:
+        """Convert a Rally API response to our Feature model.
+
+        Args:
+            item: The Rally API response dict for a PortfolioItem/Feature.
+
+        Returns:
+            A Feature instance.
+        """
+        # Extract owner name
+        owner = ""
+        owner_obj = item.get("Owner")
+        if owner_obj and isinstance(owner_obj, dict):
+            owner = owner_obj.get("_refObjectName") or ""
+
+        # Extract release name
+        release = ""
+        release_obj = item.get("Release")
+        if release_obj and isinstance(release_obj, dict):
+            release = release_obj.get("_refObjectName") or release_obj.get("Name") or ""
+
+        # Extract story count from UserStories collection
+        story_count = 0
+        stories_obj = item.get("UserStories")
+        if stories_obj and isinstance(stories_obj, dict):
+            story_count = stories_obj.get("Count", 0)
+
+        # Extract state - can be a string or reference object
+        state = ""
+        state_obj = item.get("State")
+        if state_obj:
+            if isinstance(state_obj, dict):
+                state = state_obj.get("_refObjectName") or state_obj.get("Name") or ""
+            else:
+                state = str(state_obj)
+
+        return Feature(
+            object_id=str(item.get("ObjectID", "")),
+            formatted_id=item.get("FormattedID", ""),
+            name=item.get("Name", ""),
+            state=state,
+            owner=owner,
+            release=release,
+            story_count=story_count,
+            description=item.get("Description") or "",
+        )
 
     async def set_parent(self, ticket: Ticket, parent_id: str) -> Ticket | None:
         """Set a ticket's parent Feature.
