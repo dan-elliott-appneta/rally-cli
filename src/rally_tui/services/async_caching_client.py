@@ -71,6 +71,15 @@ class AsyncRallyClientProtocol(Protocol):
     async def get_users(self, display_names: list[str] | None = None) -> list[Owner]: ...
     async def assign_owner(self, ticket: Ticket, owner: Owner) -> Ticket | None: ...
     async def bulk_assign_owner(self, tickets: list[Ticket], owner: Owner) -> BulkResult: ...
+    async def search_tickets(
+        self,
+        text: str,
+        ticket_type: str | None = None,
+        state: str | None = None,
+        current_iteration: bool = False,
+        limit: int = 50,
+    ) -> list[Ticket]: ...
+    async def get_sprint_summary(self, iteration_name: str | None = None) -> dict: ...
 
 
 class CacheStatus(Enum):
@@ -448,6 +457,45 @@ class AsyncCachingRallyClient:
             for updated_ticket in result.updated_tickets:
                 self._update_ticket_in_cache(updated_ticket)
         return result
+
+    async def search_tickets(
+        self,
+        text: str,
+        ticket_type: str | None = None,
+        state: str | None = None,
+        current_iteration: bool = False,
+        limit: int = 50,
+    ) -> list[Ticket]:
+        """Search tickets by full-text across Name and Description (not cached).
+
+        Args:
+            text: The search text to match against Name and Description.
+            ticket_type: Optional type filter (UserStory, Defect, Task, TestCase).
+            state: Optional workflow state filter.
+            current_iteration: If True, restrict to current iteration.
+            limit: Maximum number of results to return.
+
+        Returns:
+            List of matching Ticket objects.
+        """
+        return await self._client.search_tickets(
+            text=text,
+            ticket_type=ticket_type,
+            state=state,
+            current_iteration=current_iteration,
+            limit=limit,
+        )
+
+    async def get_sprint_summary(self, iteration_name: str | None = None) -> dict:
+        """Fetch all tickets for an iteration and aggregate into a summary (not cached).
+
+        Args:
+            iteration_name: Name of the iteration to summarise, or None for current.
+
+        Returns:
+            Dict with sprint summary data.
+        """
+        return await self._client.get_sprint_summary(iteration_name)
 
     def _update_ticket_in_cache(self, updated_ticket: Ticket) -> None:
         """Update a ticket in the cache after a mutation.

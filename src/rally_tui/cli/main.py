@@ -174,11 +174,16 @@ def cli(
 from rally_tui.cli.commands import (  # noqa: E402, F401
     attachments,
     comment,
+    completions,
+    config,
     discussions,
     features,
     iterations,
+    open_cmd,
     query,
     releases,
+    search,
+    summary,
     tags,
     users,
 )

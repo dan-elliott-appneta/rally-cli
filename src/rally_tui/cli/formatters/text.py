@@ -753,6 +753,125 @@ class TextFormatter(BaseFormatter):
 
         return "\n".join(lines)
 
+    def format_config(self, result: CLIResult) -> str:
+        """Format CLI configuration as human-readable text.
+
+        Args:
+            result: CLIResult containing configuration data.
+
+        Returns:
+            Formatted configuration string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data or {}
+        label_width = 12
+        lines = [
+            "Rally CLI Configuration",
+            "=======================",
+            f"{'Server:':<{label_width}}{data.get('server', '-')}",
+            f"{'Workspace:':<{label_width}}{data.get('workspace', '-')}",
+            f"{'Project:':<{label_width}}{data.get('project', '-')}",
+            f"{'API Key:':<{label_width}}{data.get('apikey', '-')}",
+        ]
+        return "\n".join(lines)
+
+    def format_summary(self, result: CLIResult) -> str:
+        """Format sprint summary as human-readable text.
+
+        Args:
+            result: CLIResult containing sprint summary data.
+
+        Returns:
+            Formatted sprint summary string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data or {}
+        iteration_name = data.get("iteration_name", "")
+        start_date = data.get("start_date")
+        end_date = data.get("end_date")
+        total_tickets = data.get("total_tickets", 0)
+        total_points = data.get("total_points", 0.0)
+        by_state: list[dict] = data.get("by_state", [])
+        by_owner: list[dict] = data.get("by_owner", [])
+        blocked: list[dict] = data.get("blocked", [])
+
+        # Header
+        if start_date and end_date:
+            start_str = self._format_date_short(start_date)
+            end_str = self._format_date_short(end_date)
+            title = f"Sprint Summary: {iteration_name} ({start_str} - {end_str})"
+        else:
+            title = f"Sprint Summary: {iteration_name}"
+        separator = "=" * len(title)
+
+        lines = [title, separator]
+
+        # Totals
+        pts_display: int | float = (
+            int(total_points)
+            if isinstance(total_points, float) and total_points == int(total_points)
+            else total_points
+        )
+        lines.append(f"Total Tickets:  {total_tickets}")
+        lines.append(f"Total Points:   {pts_display}")
+
+        # By state
+        if by_state:
+            lines.append("")
+            lines.append("By State:")
+            state_w = max((len(s["state"]) for s in by_state), default=5)
+            for entry in by_state:
+                pts = entry["points"]
+                pts_val: int | float = (
+                    int(pts) if isinstance(pts, float) and pts == int(pts) else pts
+                )
+                count = entry["count"]
+                label = entry["state"]
+                lines.append(f"  {label:<{state_w}}  {count:>3} tickets,  {pts_val:>3} points")
+
+        # By owner
+        if by_owner:
+            lines.append("")
+            lines.append("By Owner:")
+            owner_w = max((len(o["owner"]) for o in by_owner), default=5)
+            for entry in by_owner:
+                pts = entry["points"]
+                pts_val = int(pts) if isinstance(pts, float) and pts == int(pts) else pts
+                count = entry["count"]
+                owner_name = entry["owner"]
+                lines.append(f"  {owner_name:<{owner_w}}  {count:>3} tickets,  {pts_val:>3} points")
+
+        # Blocked
+        if blocked:
+            lines.append("")
+            lines.append(f"Blocked: {len(blocked)} tickets")
+            for item in blocked:
+                reason = item.get("blocked_reason") or item.get("name", "")
+                lines.append(f"  {item['formatted_id']} - {reason}")
+
+        return "\n".join(lines)
+
+    def _format_date_short(self, date_str: str) -> str:
+        """Format an ISO date string as 'Mon DD'.
+
+        Args:
+            date_str: ISO date string like '2026-02-10'.
+
+        Returns:
+            Short date like 'Feb 10'.
+        """
+        try:
+            from datetime import date
+
+            d = date.fromisoformat(date_str[:10])
+            return d.strftime("%b %d")
+        except (ValueError, TypeError):
+            return date_str or ""
+
     def _truncate(self, text: str, max_length: int) -> str:
         """Truncate text to max length with ellipsis.
 
