@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from rally_tui.models import Attachment, Discussion, Iteration, Owner, Release, Tag, Ticket
+from rally_tui.models import Attachment, Discussion, Feature, Iteration, Owner, Release, Tag, Ticket
 
 
 @dataclass
@@ -178,6 +178,29 @@ class RallyClientProtocol(Protocol):
 
         Returns:
             Tuple of (formatted_id, name) if found, None otherwise.
+        """
+        ...
+
+    def get_features(self, query: str | None = None, count: int = 50) -> list[Feature]:
+        """Fetch features (portfolio items) from Rally.
+
+        Args:
+            query: Optional Rally query string to filter features.
+            count: Maximum number of features to return.
+
+        Returns:
+            List of Feature objects.
+        """
+        ...
+
+    def get_feature_children(self, feature_id: str) -> list[Ticket]:
+        """Fetch child user stories for a feature by its formatted ID.
+
+        Args:
+            feature_id: The Feature's formatted ID (e.g., "F59625").
+
+        Returns:
+            List of Ticket objects representing child user stories.
         """
         ...
 

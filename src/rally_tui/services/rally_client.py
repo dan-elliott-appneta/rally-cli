@@ -7,7 +7,16 @@ from typing import Any
 from pyral import Rally
 
 from rally_tui.config import RallyConfig
-from rally_tui.models import Attachment, Discussion, Iteration, Owner, Release, Tag, Ticket
+from rally_tui.models import (
+    Attachment,
+    Discussion,
+    Feature,
+    Iteration,
+    Owner,
+    Release,
+    Tag,
+    Ticket,
+)
 from rally_tui.services.protocol import BulkResult
 from rally_tui.utils import get_logger
 
@@ -846,6 +855,114 @@ class RallyClient:
         except Exception as e:
             _log.error(f"Error fetching feature {formatted_id}: {e}")
             return None
+
+    def get_features(self, query: str | None = None, count: int = 50) -> list[Feature]:
+        """Fetch features (portfolio items) from Rally.
+
+        Args:
+            query: Optional Rally query string to filter features.
+            count: Maximum number of features to return.
+
+        Returns:
+            List of Feature objects.
+        """
+        _log.debug(f"Fetching features (count={count}, query={query})")
+
+        try:
+            kwargs: dict[str, Any] = {
+                "fetch": "ObjectID,FormattedID,Name,State,Owner,Release,UserStories,Description",
+                "projectScopeUp": True,
+                "projectScopeDown": True,
+                "pagesize": count,
+            }
+            if query:
+                kwargs["query"] = query
+
+            response = self._rally.get("PortfolioItem/Feature", **kwargs)
+
+            features: list[Feature] = []
+            for item in response:
+                if len(features) >= count:
+                    break
+
+                # Extract owner
+                owner = ""
+                if hasattr(item, "Owner") and item.Owner:
+                    owner = getattr(item.Owner, "_refObjectName", "") or getattr(
+                        item.Owner, "Name", ""
+                    )
+
+                # Extract release
+                release = ""
+                if hasattr(item, "Release") and item.Release:
+                    release = getattr(item.Release, "_refObjectName", "") or getattr(
+                        item.Release, "Name", ""
+                    )
+
+                # Extract story count
+                story_count = 0
+                if hasattr(item, "UserStories") and item.UserStories:
+                    story_count = getattr(item.UserStories, "Count", 0)
+
+                # Extract state
+                state = ""
+                if hasattr(item, "State") and item.State:
+                    if hasattr(item.State, "_refObjectName"):
+                        state = item.State._refObjectName or ""
+                    elif hasattr(item.State, "Name"):
+                        state = item.State.Name or ""
+                    else:
+                        state = str(item.State)
+
+                features.append(
+                    Feature(
+                        object_id=str(getattr(item, "ObjectID", "")),
+                        formatted_id=getattr(item, "FormattedID", ""),
+                        name=getattr(item, "Name", ""),
+                        state=state,
+                        owner=owner,
+                        release=release,
+                        story_count=story_count,
+                        description=getattr(item, "Description", "") or "",
+                    )
+                )
+
+            _log.debug(f"Fetched {len(features)} features")
+            return features
+        except Exception as e:
+            _log.error(f"Error fetching features: {e}")
+            return []
+
+    def get_feature_children(self, feature_id: str) -> list[Ticket]:
+        """Fetch child user stories for a feature by its formatted ID.
+
+        Args:
+            feature_id: The Feature's formatted ID (e.g., "F59625").
+
+        Returns:
+            List of Ticket objects representing child user stories.
+        """
+        _log.debug(f"Fetching children for feature: {feature_id}")
+
+        try:
+            response = self._rally.get(
+                "HierarchicalRequirement",
+                fetch=True,
+                query=f'PortfolioItem.FormattedID = "{feature_id}"',
+                projectScopeUp=True,
+                projectScopeDown=True,
+            )
+
+            tickets: list[Ticket] = []
+            for item in response:
+                ticket = self._to_ticket(item, "HierarchicalRequirement")
+                tickets.append(ticket)
+
+            _log.debug(f"Fetched {len(tickets)} children for {feature_id}")
+            return tickets
+        except Exception as e:
+            _log.error(f"Error fetching children for {feature_id}: {e}")
+            return []
 
     def set_parent(self, ticket: Ticket, parent_id: str) -> Ticket | None:
         """Set a ticket's parent Feature.

@@ -172,8 +172,10 @@ def cli(
 # Import and register commands
 # These are imported here to avoid circular imports
 from rally_tui.cli.commands import (  # noqa: E402, F401
+    attachments,
     comment,
     discussions,
+    features,
     iterations,
     query,
     releases,

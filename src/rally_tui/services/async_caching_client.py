@@ -11,7 +11,7 @@ from collections.abc import Callable
 from enum import Enum
 from typing import TYPE_CHECKING, Protocol
 
-from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
+from rally_tui.models import Attachment, Discussion, Feature, Iteration, Owner, Ticket
 from rally_tui.services.cache_manager import CacheManager
 from rally_tui.services.protocol import BulkResult
 
@@ -53,6 +53,8 @@ class AsyncRallyClientProtocol(Protocol):
     async def get_iterations(self, count: int = 5, state: str | None = None) -> list[Iteration]: ...
     async def get_future_iterations(self, count: int = 5) -> list[Iteration]: ...
     async def get_feature(self, formatted_id: str) -> tuple[str, str] | None: ...
+    async def get_features(self, query: str | None = None, count: int = 50) -> list[Feature]: ...
+    async def get_feature_children(self, feature_id: str) -> list[Ticket]: ...
     async def set_parent(self, ticket: Ticket, parent_id: str) -> Ticket | None: ...
     async def bulk_set_parent(self, tickets: list[Ticket], parent_id: str) -> BulkResult: ...
     async def bulk_update_state(self, tickets: list[Ticket], state: str) -> BulkResult: ...
@@ -317,6 +319,14 @@ class AsyncCachingRallyClient:
     async def get_feature(self, formatted_id: str) -> tuple[str, str] | None:
         """Fetch a Feature's name by ID (not cached)."""
         return await self._client.get_feature(formatted_id)
+
+    async def get_features(self, query: str | None = None, count: int = 50) -> list[Feature]:
+        """Fetch features (portfolio items) (not cached)."""
+        return await self._client.get_features(query, count)
+
+    async def get_feature_children(self, feature_id: str) -> list[Ticket]:
+        """Fetch child user stories for a feature (not cached)."""
+        return await self._client.get_feature_children(feature_id)
 
     async def set_parent(self, ticket: Ticket, parent_id: str) -> Ticket | None:
         """Set a ticket's parent Feature."""

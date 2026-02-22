@@ -185,3 +185,56 @@ class BaseFormatter(ABC):
             Formatted string output.
         """
         pass
+
+    @abstractmethod
+    def format_attachments(self, result: CLIResult) -> str:
+        """Format attachment list output.
+
+        Args:
+            result: CLIResult containing attachment data. The data field
+                should contain a dict with 'attachments' (list[Attachment]),
+                'formatted_id' (str), and 'count' (int).
+
+        Returns:
+            Formatted string output.
+        """
+        pass
+
+    @abstractmethod
+    def format_attachment_action(self, result: CLIResult) -> str:
+        """Format attachment action result (download/upload).
+
+        Args:
+            result: CLIResult containing attachment action data. The data
+                field should contain a dict with 'action' and related info.
+
+        Returns:
+            Formatted string output.
+        """
+        pass
+
+    @abstractmethod
+    def format_features(self, result: CLIResult) -> str:
+        """Format feature (portfolio item) list output.
+
+        Args:
+            result: CLIResult containing feature data. The data field
+                should contain a list of Feature objects.
+
+        Returns:
+            Formatted string output.
+        """
+        pass
+
+    @abstractmethod
+    def format_feature_detail(self, result: CLIResult) -> str:
+        """Format single feature detail output.
+
+        Args:
+            result: CLIResult containing a dict with 'feature' (Feature)
+                and optionally 'children' (list[Ticket]).
+
+        Returns:
+            Formatted string output with full feature details.
+        """
+        pass

@@ -612,6 +612,163 @@ rally-cli tickets update US12345 --remove-tag "backlog"
 
 ---
 
+### `rally-cli attachments`
+
+Manage file attachments on Rally tickets - list, download, and upload.
+
+```bash
+rally-cli attachments list TICKET_ID [OPTIONS]
+rally-cli attachments download TICKET_ID FILENAME [OPTIONS]
+rally-cli attachments download TICKET_ID --all [OPTIONS]
+rally-cli attachments upload TICKET_ID FILE_PATH [OPTIONS]
+```
+
+#### Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `list` | List all attachments on a ticket |
+| `download` | Download attachment(s) from a ticket |
+| `upload` | Upload a file to a ticket |
+
+#### List Options
+
+| Option | Description |
+|--------|-------------|
+| `--format [text\|json\|csv]` | Output format |
+
+#### Download Options
+
+| Option | Description |
+|--------|-------------|
+| `--output PATH` | Output file path for single download |
+| `--all` | Download all attachments |
+| `--output-dir PATH` | Directory for `--all` downloads |
+| `--format [text\|json\|csv]` | Output format |
+
+#### Upload Options
+
+| Option | Description |
+|--------|-------------|
+| `--format [text\|json\|csv]` | Output format |
+
+#### Examples
+
+```bash
+# List attachments on a ticket
+rally-cli attachments list US12345
+
+# List in JSON format
+rally-cli attachments list US12345 --format json
+
+# Download a specific attachment
+rally-cli attachments download US12345 requirements.pdf
+
+# Download to a specific path
+rally-cli attachments download US12345 requirements.pdf --output /tmp/req.pdf
+
+# Download all attachments to a directory
+rally-cli attachments download US12345 --all --output-dir ./attachments/
+
+# Upload a file
+rally-cli attachments upload US12345 ./screenshot.png
+
+# Upload with JSON output
+rally-cli attachments upload US12345 ./screenshot.png --format json
+```
+
+#### Output
+
+```
+Attachments for US12345 (2 files)
+=================================
+#     Name                            Size    Type
+----------------------------------------------------
+1     requirements.pdf               245 KB    pdf
+2     screenshot.png                 100 KB    png
+```
+
+---
+
+### `rally-cli features`
+
+View Rally portfolio features (epics) and their child stories.
+
+```bash
+rally-cli features [OPTIONS]
+rally-cli features show FEATURE_ID [OPTIONS]
+```
+
+#### Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| *(none)* | List all features in the project |
+| `show` | Show details for a specific feature |
+
+#### List Options
+
+| Option | Description |
+|--------|-------------|
+| `--query TEXT` | Filter features by name |
+| `--format [text\|json\|csv]` | Output format |
+
+#### Show Options
+
+| Option | Description |
+|--------|-------------|
+| `--children` | Show child user stories |
+| `--format [text\|json\|csv]` | Output format |
+
+#### Examples
+
+```bash
+# List all features
+rally-cli features
+
+# List features in JSON
+rally-cli features --format json
+
+# Filter features by name
+rally-cli features --query "authentication"
+
+# Show feature details
+rally-cli features show F59625
+
+# Show feature with child stories
+rally-cli features show F59625 --children
+
+# Show feature in JSON
+rally-cli features show F59625 --format json
+```
+
+#### Output
+
+```
+Features
+========
+ID        Name                            State            Owner            Stories
+----------------------------------------------------------------------------------
+F59625    Authentication Epic              Developing       Daniel Elliot    5
+F59626    Dashboard Redesign               Ideation         Jane Smith       3
+```
+
+**Show with children:**
+```
+F59625 - Authentication Epic
+============================
+State:      Developing
+Owner:      Daniel Elliot
+Release:    2026.Q1
+Stories:    5
+
+Child Stories:
+  US12345  In-Progress      Login page implementation
+  US12346  Defined           OAuth integration
+```
+
+---
+
 ### `rally-cli comment`
 
 Add a comment to a ticket's discussion.

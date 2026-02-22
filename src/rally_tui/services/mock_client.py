@@ -4,7 +4,7 @@ from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
-from rally_tui.models import Attachment, Discussion, Iteration, Owner, Release, Tag, Ticket
+from rally_tui.models import Attachment, Discussion, Feature, Iteration, Owner, Release, Tag, Ticket
 from rally_tui.models.sample_data import SAMPLE_DISCUSSIONS, SAMPLE_TICKETS
 from rally_tui.services.protocol import BulkResult
 
@@ -84,12 +84,46 @@ def _generate_sample_iterations() -> list[Iteration]:
     return iterations
 
 
-# Default mock features for parent selection
+# Default mock features for parent selection (legacy dict format)
 DEFAULT_FEATURES: dict[str, str] = {
     "F59625": "API Platform Modernization Initiative",
     "F59627": "Customer Portal Enhancement Phase 2",
     "F59628": "Infrastructure Reliability Improvements",
 }
+
+# Default mock Feature objects for get_features()
+SAMPLE_FEATURE_OBJECTS: list[Feature] = [
+    Feature(
+        object_id="feat_001",
+        formatted_id="F59625",
+        name="API Platform Modernization Initiative",
+        state="In Progress",
+        owner="Alice Johnson",
+        release="Release 2.0",
+        story_count=12,
+        description="Modernize the API platform to support REST and GraphQL.",
+    ),
+    Feature(
+        object_id="feat_002",
+        formatted_id="F59627",
+        name="Customer Portal Enhancement Phase 2",
+        state="Defined",
+        owner="Bob Smith",
+        release="Release 2.1",
+        story_count=8,
+        description="Enhance customer self-service portal with new features.",
+    ),
+    Feature(
+        object_id="feat_003",
+        formatted_id="F59628",
+        name="Infrastructure Reliability Improvements",
+        state="In Progress",
+        owner="Carol Davis",
+        release="Release 2.0",
+        story_count=5,
+        description="Improve infrastructure resilience and observability.",
+    ),
+]
 
 # Default mock users for owner assignment
 MOCK_USERS = [
@@ -457,6 +491,37 @@ class MockRallyClient:
         if name:
             return (formatted_id, name)
         return None
+
+    def get_features(self, query: str | None = None, count: int = 50) -> list[Feature]:
+        """Fetch features (portfolio items).
+
+        Args:
+            query: Optional search string to filter by feature name or ID.
+            count: Maximum number of features to return.
+
+        Returns:
+            List of Feature objects.
+        """
+        features = list(SAMPLE_FEATURE_OBJECTS)
+        if query:
+            query_lower = query.lower()
+            features = [
+                f
+                for f in features
+                if query_lower in f.name.lower() or query_lower in f.formatted_id.lower()
+            ]
+        return features[:count]
+
+    def get_feature_children(self, feature_id: str) -> list[Ticket]:
+        """Fetch child user stories for a feature.
+
+        Args:
+            feature_id: The Feature's formatted ID (e.g., "F59625").
+
+        Returns:
+            List of Ticket objects whose parent_id matches the feature ID.
+        """
+        return [t for t in self._tickets if t.parent_id == feature_id]
 
     def set_parent(self, ticket: Ticket, parent_id: str) -> Ticket | None:
         """Set a ticket's parent Feature.

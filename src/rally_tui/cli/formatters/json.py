@@ -6,7 +6,7 @@ from datetime import date, datetime
 from typing import Any
 
 from rally_tui.cli.formatters.base import BaseFormatter, CLIResult
-from rally_tui.models import Discussion, Iteration, Owner, Release, Tag, Ticket
+from rally_tui.models import Attachment, Discussion, Feature, Iteration, Owner, Release, Tag, Ticket
 
 
 class JSONFormatter(BaseFormatter):
@@ -344,6 +344,138 @@ class JSONFormatter(BaseFormatter):
         return {
             "object_id": tag.object_id,
             "name": tag.name,
+        }
+
+    def format_attachment_action(self, result: CLIResult) -> str:
+        """Format attachment action result as JSON.
+
+        Args:
+            result: CLIResult containing attachment action data.
+
+        Returns:
+            JSON string.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            data = result.data
+            if isinstance(data, dict):
+                action_data: dict[str, Any] = {"action": data.get("action", "")}
+                if "ticket_id" in data:
+                    action_data["ticket_id"] = data["ticket_id"]
+                if "filename" in data:
+                    action_data["filename"] = data["filename"]
+                if "dest" in data:
+                    action_data["dest"] = data["dest"]
+                attachment = data.get("attachment")
+                if attachment and isinstance(attachment, Attachment):
+                    action_data["attachment"] = self._attachment_to_dict(attachment)
+                if "downloaded" in data:
+                    action_data["downloaded"] = data["downloaded"]
+                if "count" in data:
+                    action_data["count"] = data["count"]
+                output["data"] = action_data
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
+    def format_attachments(self, result: CLIResult) -> str:
+        """Format attachment list as JSON.
+
+        Args:
+            result: CLIResult containing attachment data.
+
+        Returns:
+            JSON string.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            data = result.data
+            if isinstance(data, dict):
+                attachments: list[Attachment] = data.get("attachments", [])
+                output["data"] = {
+                    "formatted_id": data.get("formatted_id", ""),
+                    "count": data.get("count", len(attachments)),
+                    "attachments": [self._attachment_to_dict(a) for a in attachments],
+                }
+            else:
+                attachments = data if data else []
+                output["data"] = [self._attachment_to_dict(a) for a in attachments]
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
+    def format_features(self, result: CLIResult) -> str:
+        """Format feature list as JSON.
+
+        Args:
+            result: CLIResult containing feature data.
+
+        Returns:
+            JSON string.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            features: list[Feature] = result.data
+            output["data"] = [self._feature_to_dict(f) for f in features]
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
+    def format_feature_detail(self, result: CLIResult) -> str:
+        """Format single feature detail as JSON.
+
+        Args:
+            result: CLIResult containing feature data with optional children.
+
+        Returns:
+            JSON string.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            data = result.data
+            if isinstance(data, dict):
+                feature = data.get("feature")
+                children = data.get("children", [])
+                feature_dict: dict[str, Any] = {}
+                if isinstance(feature, Feature):
+                    feature_dict = self._feature_to_dict(feature)
+                feature_dict["children"] = [
+                    self._ticket_to_dict(t) if isinstance(t, Ticket) else t for t in children
+                ]
+                output["data"] = feature_dict
+            elif isinstance(data, Feature):
+                output["data"] = self._feature_to_dict(data)
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
+    def _attachment_to_dict(self, attachment: Attachment) -> dict[str, Any]:
+        """Convert an Attachment to a dictionary.
+
+        Args:
+            attachment: The attachment to convert.
+
+        Returns:
+            Dictionary representation.
+        """
+        return {
+            "object_id": attachment.object_id,
+            "name": attachment.name,
+            "size": attachment.size,
+            "content_type": attachment.content_type,
+            "formatted_size": attachment.formatted_size,
+        }
+
+    def _feature_to_dict(self, feature: Feature) -> dict[str, Any]:
+        """Convert a Feature to a dictionary.
+
+        Args:
+            feature: The feature to convert.
+
+        Returns:
+            Dictionary representation.
+        """
+        return {
+            "object_id": feature.object_id,
+            "formatted_id": feature.formatted_id,
+            "name": feature.name,
+            "state": feature.state,
+            "owner": feature.owner,
+            "release": feature.release,
+            "story_count": feature.story_count,
+            "description": feature.description,
         }
 
     def _json_serializer(self, obj: Any) -> Any:

@@ -5,7 +5,7 @@ import os
 import re
 
 from rally_tui.cli.formatters.base import BaseFormatter, CLIResult
-from rally_tui.models import Discussion, Iteration, Owner, Release, Tag, Ticket
+from rally_tui.models import Attachment, Discussion, Feature, Iteration, Owner, Release, Tag, Ticket
 
 
 class TextFormatter(BaseFormatter):
@@ -547,6 +547,213 @@ class TextFormatter(BaseFormatter):
                 return f"Tag '{tag_name}' removed from {ticket_id}"
 
         return "Tag operation completed"
+
+    def format_attachment_action(self, result: CLIResult) -> str:
+        """Format attachment action result (download/upload).
+
+        Args:
+            result: CLIResult containing attachment action data.
+
+        Returns:
+            Formatted action confirmation string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data
+        if isinstance(data, dict):
+            action = data.get("action", "")
+            ticket_id = data.get("ticket_id", "")
+
+            if action == "uploaded":
+                attachment = data.get("attachment")
+                name = attachment.name if attachment else ""
+                return f"Uploaded '{name}' to {ticket_id}"
+            elif action == "downloaded":
+                filename = data.get("filename", "")
+                dest = data.get("dest", filename)
+                return f"Downloaded '{filename}' from {ticket_id} -> {dest}"
+            elif action == "downloaded_all":
+                downloaded = data.get("downloaded", [])
+                count = data.get("count", len(downloaded))
+                if count == 0:
+                    return f"No attachments to download from {ticket_id}."
+                lines = [f"Downloaded {count} attachment(s) from {ticket_id}:"]
+                for name in downloaded:
+                    lines.append(f"  - {name}")
+                return "\n".join(lines)
+
+        return "Attachment operation completed"
+
+    def format_attachments(self, result: CLIResult) -> str:
+        """Format attachment list as a human-readable table.
+
+        Args:
+            result: CLIResult containing attachment data. The data field
+                should contain a dict with 'attachments', 'formatted_id', 'count'.
+
+        Returns:
+            Formatted attachment table.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data
+        if isinstance(data, dict):
+            attachments: list[Attachment] = data.get("attachments", [])
+            formatted_id = data.get("formatted_id", "")
+            count = data.get("count", len(attachments))
+        else:
+            attachments = data if data else []
+            formatted_id = ""
+            count = len(attachments)
+
+        if not attachments:
+            return "No attachments found."
+
+        lines: list[str] = []
+
+        # Header
+        if formatted_id:
+            header = f"Attachments for {formatted_id} ({count} files)"
+            lines.append(header)
+            lines.append("=" * len(header))
+
+        # Column widths
+        name_w = max(max(len(a.name) for a in attachments), 4)
+        name_w = min(name_w, 30)
+
+        col_header = f"{'#':<4}  {'Name':<{name_w}}  {'Size':>10}  {'Type'}"
+        lines.append(col_header)
+        lines.append("-" * len(col_header))
+
+        for i, att in enumerate(attachments, 1):
+            name_display = self._truncate(att.name, name_w).ljust(name_w)
+            lines.append(f"{i:<4}  {name_display}  {att.formatted_size:>10}  {att.short_type}")
+
+        return "\n".join(lines)
+
+    def format_features(self, result: CLIResult) -> str:
+        """Format feature list as a human-readable table.
+
+        Args:
+            result: CLIResult containing feature data. The data field
+                should contain a list of Feature objects.
+
+        Returns:
+            Formatted feature table.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        features: list[Feature] = result.data
+        if not features:
+            return "No features found."
+
+        lines: list[str] = []
+        lines.append("Features")
+        lines.append("========")
+
+        # Column widths
+        id_w = max(max(len(f.formatted_id) for f in features), 2)
+        id_w = min(id_w, 10)
+        name_w = max(max(len(f.name) for f in features), 4)
+        name_w = min(name_w, 30)
+        state_w = (
+            max(max(len(f.state) for f in features if f.state), 5)
+            if any(f.state for f in features)
+            else 5
+        )
+        state_w = min(state_w, 15)
+        owner_w = (
+            max(max(len(f.owner) for f in features if f.owner), 5)
+            if any(f.owner for f in features)
+            else 5
+        )
+        owner_w = min(owner_w, 15)
+
+        header = (
+            f"{'ID':<{id_w}}  {'Name':<{name_w}}  {'State':<{state_w}}  "
+            f"{'Owner':<{owner_w}}  {'Stories'}"
+        )
+        lines.append(header)
+        lines.append("-" * len(header))
+
+        for f in features:
+            id_display = self._truncate(f.formatted_id, id_w).ljust(id_w)
+            name_display = self._truncate(f.name, name_w).ljust(name_w)
+            state_display = self._truncate(f.state or "-", state_w).ljust(state_w)
+            owner_display = self._truncate(f.owner or "-", owner_w).ljust(owner_w)
+            lines.append(
+                f"{id_display}  {name_display}  {state_display}  {owner_display}  {f.story_count}"
+            )
+
+        return "\n".join(lines)
+
+    def format_feature_detail(self, result: CLIResult) -> str:
+        """Format a single feature with full details.
+
+        Args:
+            result: CLIResult containing a dict with 'feature' and optionally 'children'.
+
+        Returns:
+            Multi-line formatted string with feature details and child stories.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data
+        if isinstance(data, dict):
+            feature: Feature | None = data.get("feature")
+            children: list[Ticket] = data.get("children", [])
+        elif isinstance(data, Feature):
+            feature = data
+            children = []
+        else:
+            return "No feature found."
+
+        if feature is None:
+            return "No feature found."
+
+        # Header line
+        header = f"{feature.formatted_id} - {feature.name}"
+        try:
+            import os
+
+            terminal_width = os.get_terminal_size().columns
+        except (ValueError, OSError):
+            terminal_width = 80
+        separator = "=" * min(len(header), terminal_width)
+
+        lines = [header, separator]
+
+        label_width = 12
+        lines.append(f"{'State:':<{label_width}}{feature.state or '-'}")
+        lines.append(f"{'Owner:':<{label_width}}{feature.owner or '-'}")
+        lines.append(f"{'Release:':<{label_width}}{feature.release or '-'}")
+        lines.append(f"{'Stories:':<{label_width}}{feature.story_count}")
+
+        if feature.description:
+            lines.append("")
+            lines.append("Description:")
+            for desc_line in feature.description.splitlines():
+                lines.append(f"  {desc_line}")
+
+        if children:
+            lines.append("")
+            lines.append("Child Stories:")
+            for child in children:
+                if isinstance(child, dict):
+                    fid = child.get("formatted_id", "")
+                    state_display = child.get("state", "-") or "-"
+                    name = child.get("name", "")
+                else:
+                    fid = child.formatted_id
+                    state_display = child.state or "-"
+                    name = child.name
+                lines.append(f"  {fid}  {state_display:<15}  {name}")
+
+        return "\n".join(lines)
 
     def _truncate(self, text: str, max_length: int) -> str:
         """Truncate text to max length with ellipsis.
