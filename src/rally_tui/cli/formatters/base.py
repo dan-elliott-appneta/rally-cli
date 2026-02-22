@@ -106,3 +106,43 @@ class BaseFormatter(ABC):
             Formatted string output confirming deletion.
         """
         pass
+
+    @abstractmethod
+    def format_discussions(self, result: CLIResult) -> str:
+        """Format discussion list output.
+
+        Args:
+            result: CLIResult containing discussion data. The data field
+                should contain a dict with 'discussions' (list[Discussion]),
+                'formatted_id' (str), and 'count' (int).
+
+        Returns:
+            Formatted string output.
+        """
+        pass
+
+    @abstractmethod
+    def format_iterations(self, result: CLIResult) -> str:
+        """Format iteration list output.
+
+        Args:
+            result: CLIResult containing iteration data. The data field
+                should contain a list of Iteration objects.
+
+        Returns:
+            Formatted string output.
+        """
+        pass
+
+    @abstractmethod
+    def format_users(self, result: CLIResult) -> str:
+        """Format user list output.
+
+        Args:
+            result: CLIResult containing user data. The data field
+                should contain a list of Owner objects.
+
+        Returns:
+            Formatted string output.
+        """
+        pass

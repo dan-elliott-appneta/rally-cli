@@ -1003,27 +1003,37 @@ class AsyncRallyClient:
     # Iteration Operations
     # -------------------------------------------------------------------------
 
-    async def get_iterations(self, count: int = 5) -> list[Iteration]:
+    async def get_iterations(self, count: int = 5, state: str | None = None) -> list[Iteration]:
         """Fetch recent iterations from Rally.
 
         Args:
             count: Maximum number of iterations to return.
+            state: Optional state filter (Planning, Committed, Accepted).
 
         Returns:
             List of Iteration objects with current sprint first.
         """
-        _log.debug(f"Fetching {count} recent iterations")
+        _log.debug(f"Fetching {count} recent iterations (state={state})")
         iterations: list[Iteration] = []
 
         try:
             today = datetime.now(UTC).strftime("%Y-%m-%d")
+
+            # Build queries with optional state filter
+            current_query = f'((StartDate <= "{today}") AND (EndDate >= "{today}"))'
+            past_query = f'(EndDate < "{today}")'
+
+            if state:
+                sanitized_state = self._sanitize_query_value(state)
+                current_query = f'({current_query} AND (State = "{sanitized_state}"))'
+                past_query = f'({past_query} AND (State = "{sanitized_state}"))'
 
             # Fetch current and past iterations concurrently
             current_task = self._get(
                 "/iteration",
                 params={
                     "fetch": "ObjectID,Name,StartDate,EndDate,State",
-                    "query": f'((StartDate <= "{today}") AND (EndDate >= "{today}"))',
+                    "query": current_query,
                     "pagesize": 1,
                 },
             )
@@ -1031,7 +1041,7 @@ class AsyncRallyClient:
                 "/iteration",
                 params={
                     "fetch": "ObjectID,Name,StartDate,EndDate,State",
-                    "query": f'(EndDate < "{today}")',
+                    "query": past_query,
                     "order": "StartDate desc",
                     "pagesize": count,
                 },
@@ -1059,6 +1069,48 @@ class AsyncRallyClient:
             _log.debug(f"Fetched {len(iterations)} iterations")
         except Exception as e:
             _log.error(f"Error fetching iterations: {e}")
+
+        return iterations
+
+    async def get_future_iterations(self, count: int = 5) -> list[Iteration]:
+        """Fetch future iterations from Rally.
+
+        Queries iterations where StartDate is after today and returns them
+        sorted by start date ascending (soonest first).
+
+        Args:
+            count: Maximum number of iterations to return.
+
+        Returns:
+            List of future Iteration objects sorted by start date ascending.
+        """
+        _log.debug(f"Fetching {count} future iterations")
+        iterations: list[Iteration] = []
+
+        try:
+            today = datetime.now(UTC).strftime("%Y-%m-%d")
+
+            response = await self._get(
+                "/iteration",
+                params={
+                    "fetch": "ObjectID,Name,StartDate,EndDate,State",
+                    "query": f'(StartDate > "{today}")',
+                    "order": "StartDate asc",
+                    "pagesize": count,
+                },
+            )
+            results, _ = parse_query_result(response)
+
+            for item in results:
+                if len(iterations) >= count:
+                    break
+                iteration = self._to_iteration(item)
+                if iteration:
+                    iterations.append(iteration)
+
+            _log.debug(f"Fetched {len(iterations)} future iterations")
+        except Exception as e:
+            _log.error(f"Error fetching future iterations: {e}")
 
         return iterations
 
