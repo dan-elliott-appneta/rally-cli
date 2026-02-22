@@ -556,6 +556,95 @@ class CSVFormatter(BaseFormatter):
 
         return output.getvalue().rstrip("\n")
 
+    def format_config(self, result: CLIResult) -> str:
+        """Format CLI configuration as CSV.
+
+        Args:
+            result: CLIResult containing configuration data.
+
+        Returns:
+            CSV string with key/value rows.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data or {}
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["setting", "value"])
+
+        for key in ("server", "workspace", "project", "apikey"):
+            writer.writerow([key, data.get(key, "")])
+
+        return output.getvalue().rstrip("\n")
+
+    def format_summary(self, result: CLIResult) -> str:
+        """Format sprint summary as CSV.
+
+        Outputs three sections: totals, by_state, and by_owner as separate
+        CSV tables separated by blank rows, followed by blocked tickets.
+
+        Args:
+            result: CLIResult containing sprint summary data.
+
+        Returns:
+            CSV string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data or {}
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+
+        # Totals section
+        writer.writerow(
+            ["section", "iteration", "start_date", "end_date", "total_tickets", "total_points"]
+        )
+        writer.writerow(
+            [
+                "summary",
+                data.get("iteration_name", ""),
+                data.get("start_date", "") or "",
+                data.get("end_date", "") or "",
+                data.get("total_tickets", 0),
+                data.get("total_points", 0),
+            ]
+        )
+
+        # By state section
+        by_state: list[dict] = data.get("by_state", [])
+        if by_state:
+            writer.writerow([])
+            writer.writerow(["section", "state", "count", "points"])
+            for entry in by_state:
+                writer.writerow(["by_state", entry["state"], entry["count"], entry["points"]])
+
+        # By owner section
+        by_owner: list[dict] = data.get("by_owner", [])
+        if by_owner:
+            writer.writerow([])
+            writer.writerow(["section", "owner", "count", "points"])
+            for entry in by_owner:
+                writer.writerow(["by_owner", entry["owner"], entry["count"], entry["points"]])
+
+        # Blocked section
+        blocked: list[dict] = data.get("blocked", [])
+        if blocked:
+            writer.writerow([])
+            writer.writerow(["section", "formatted_id", "name", "blocked_reason"])
+            for item in blocked:
+                writer.writerow(
+                    [
+                        "blocked",
+                        item["formatted_id"],
+                        item.get("name", ""),
+                        item.get("blocked_reason", ""),
+                    ]
+                )
+
+        return output.getvalue().rstrip("\n")
+
     def _get_field_value(self, ticket: Ticket, field: str) -> Any:
         """Extract a field value from a ticket.
 

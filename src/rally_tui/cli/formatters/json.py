@@ -478,6 +478,36 @@ class JSONFormatter(BaseFormatter):
             "description": feature.description,
         }
 
+    def format_config(self, result: CLIResult) -> str:
+        """Format CLI configuration as JSON.
+
+        Args:
+            result: CLIResult containing configuration data.
+
+        Returns:
+            JSON string.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            data = result.data
+            if isinstance(data, dict):
+                output["data"] = data
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
+    def format_summary(self, result: CLIResult) -> str:
+        """Format sprint summary as JSON.
+
+        Args:
+            result: CLIResult containing sprint summary data.
+
+        Returns:
+            JSON string.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            output["data"] = result.data
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
     def _json_serializer(self, obj: Any) -> Any:
         """Custom JSON serializer for non-standard types.
 

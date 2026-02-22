@@ -471,6 +471,27 @@ class CachingRallyClient:
             return None
         return self._client.create_tag(name)
 
+    def search_tickets(
+        self,
+        text: str,
+        ticket_type: str | None = None,
+        state: str | None = None,
+        current_iteration: bool = False,
+        limit: int = 50,
+    ) -> list[Ticket]:
+        """Search tickets by full-text. Passthrough to underlying client."""
+        return self._client.search_tickets(
+            text=text,
+            ticket_type=ticket_type,
+            state=state,
+            current_iteration=current_iteration,
+            limit=limit,
+        )
+
+    def get_sprint_summary(self, iteration_name: str | None = None) -> dict:
+        """Fetch sprint summary. Passthrough to underlying client."""
+        return self._client.get_sprint_summary(iteration_name)
+
     def _update_ticket_in_cache(self, updated_ticket: Ticket) -> None:
         """Update a ticket in the cache after a mutation.
 

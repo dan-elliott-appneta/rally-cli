@@ -421,7 +421,7 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
 
 
 @tickets.command("update")
-@click.argument("ticket_id")
+@click.argument("ticket_ids", nargs=-1, required=True)
 @click.option("--state", default=None, help="Workflow state.")
 @click.option("--owner", "new_owner", default=None, help="Owner display name.")
 @click.option("--iteration", default=None, help="Iteration name.")
@@ -478,7 +478,7 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
 @pass_context
 def tickets_update(
     ctx: CLIContext,
-    ticket_id: str,
+    ticket_ids: tuple[str, ...],
     sub_format: str | None,
     state: str | None,
     new_owner: str | None,
@@ -505,9 +505,10 @@ def tickets_update(
     priority: str | None,
     target_date: str | None,
 ) -> None:
-    """Update fields on an existing ticket.
+    """Update fields on one or more existing tickets.
 
-    TICKET_ID is the formatted ID (e.g., US12345, DE67890).
+    TICKET_IDS are the formatted IDs (e.g., US12345, DE67890).
+    Provide multiple IDs to bulk-update tickets with the same changes.
 
     Examples:
 
@@ -520,6 +521,7 @@ def tickets_update(
         rally-cli tickets update US12345 --no-release
         rally-cli tickets update US12345 --add-tag "sprint-goal"
         rally-cli tickets update US12345 --remove-tag "backlog"
+        rally-cli tickets update US12345 US12346 US12347 --state "Completed"
     """
     if sub_format:
         from rally_tui.cli.formatters.base import OutputFormat
@@ -536,15 +538,17 @@ def tickets_update(
         click.echo(ctx.formatter.format_error(result), err=True)
         sys.exit(4)
 
-    if not _is_valid_ticket_id(ticket_id):
-        result = CLIResult(
-            success=False,
-            data=None,
-            error=f"Invalid ticket ID format: {ticket_id}. "
-            "Ticket ID must match pattern US/S/DE/TA/TC/F followed by digits.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(2)
+    # Validate all ticket IDs up front
+    for ticket_id in ticket_ids:
+        if not _is_valid_ticket_id(ticket_id):
+            result = CLIResult(
+                success=False,
+                data=None,
+                error=f"Invalid ticket ID format: {ticket_id}. "
+                "Ticket ID must match pattern US/S/DE/TA/TC/F followed by digits.",
+            )
+            click.echo(ctx.formatter.format_error(result), err=True)
+            sys.exit(2)
 
     # Read file-based options
     if description_file:
@@ -634,52 +638,104 @@ def tickets_update(
         click.echo(ctx.formatter.format_error(result), err=True)
         sys.exit(2)
 
-    async def _do_update() -> Ticket | None:
-        config = RallyConfig(
-            server=ctx.server,
-            apikey=ctx.apikey,
-            workspace=ctx.workspace,
-            project=ctx.project,
-        )
-        async with AsyncRallyClient(config) as client:
-            ticket = await client.get_ticket(ticket_id)
-            if not ticket:
-                return None
-            return await client.update_ticket(ticket, fields)
+    # Single ticket: use original behaviour with single-ticket formatting
+    if len(ticket_ids) == 1:
+        ticket_id = ticket_ids[0]
 
-    try:
-        updated_ticket = asyncio.run(_do_update())
-    except Exception as exc:
-        error_msg = str(exc)
-        if "401" in error_msg or "unauthorized" in error_msg.lower():
-            error_msg = "Authentication failed: Invalid API key"
-        result = CLIResult(
-            success=False,
-            data=None,
-            error=f"Failed to update ticket: {error_msg}",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(1)
+        async def _do_update_single() -> Ticket | None:
+            config = RallyConfig(
+                server=ctx.server,
+                apikey=ctx.apikey,
+                workspace=ctx.workspace,
+                project=ctx.project,
+            )
+            async with AsyncRallyClient(config) as client:
+                ticket = await client.get_ticket(ticket_id)
+                if not ticket:
+                    return None
+                return await client.update_ticket(ticket, fields)
 
-    if updated_ticket:
-        result = CLIResult(
-            success=True,
-            data={
-                "formatted_id": updated_ticket.formatted_id,
-                "ticket": updated_ticket,
-                "changes": changes,
-            },
-        )
-        click.echo(ctx.formatter.format_update_result(result))
-        sys.exit(0)
-    else:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error=f"Ticket {ticket_id} not found or update failed.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
+        try:
+            updated_ticket = asyncio.run(_do_update_single())
+        except Exception as exc:
+            error_msg = str(exc)
+            if "401" in error_msg or "unauthorized" in error_msg.lower():
+                error_msg = "Authentication failed: Invalid API key"
+            result = CLIResult(
+                success=False,
+                data=None,
+                error=f"Failed to update ticket: {error_msg}",
+            )
+            click.echo(ctx.formatter.format_error(result), err=True)
+            sys.exit(1)
+
+        if updated_ticket:
+            result = CLIResult(
+                success=True,
+                data={
+                    "formatted_id": updated_ticket.formatted_id,
+                    "ticket": updated_ticket,
+                    "changes": changes,
+                },
+            )
+            click.echo(ctx.formatter.format_update_result(result))
+            sys.exit(0)
+        else:
+            result = CLIResult(
+                success=False,
+                data=None,
+                error=f"Ticket {ticket_id} not found or update failed.",
+            )
+            click.echo(ctx.formatter.format_error(result), err=True)
+            sys.exit(1)
+
+    # Multiple tickets: loop and report per-ticket results
+    successes: list[str] = []
+    failures: list[tuple[str, str]] = []
+
+    for ticket_id in ticket_ids:
+
+        async def _do_update_one(tid: str = ticket_id) -> Ticket | None:
+            config = RallyConfig(
+                server=ctx.server,
+                apikey=ctx.apikey,
+                workspace=ctx.workspace,
+                project=ctx.project,
+            )
+            async with AsyncRallyClient(config) as client:
+                ticket = await client.get_ticket(tid)
+                if not ticket:
+                    return None
+                return await client.update_ticket(ticket, fields)
+
+        try:
+            updated_ticket = asyncio.run(_do_update_one())
+        except Exception as exc:
+            error_msg = str(exc)
+            if "401" in error_msg or "unauthorized" in error_msg.lower():
+                error_msg = "Authentication failed: Invalid API key"
+            failures.append((ticket_id, error_msg))
+            continue
+
+        if updated_ticket:
+            successes.append(ticket_id)
+        else:
+            failures.append((ticket_id, "not found or update failed"))
+
+    # Print summary
+    total = len(ticket_ids)
+    success_count = len(successes)
+    failure_count = len(failures)
+
+    if successes:
+        click.echo(f"Updated {success_count}/{total} tickets: {', '.join(successes)}")
+    if failures:
+        for fid, err in failures:
+            click.echo(f"Failed {fid}: {err}", err=True)
+
+    if failure_count == total:
         sys.exit(1)
+    sys.exit(0)
 
 
 @tickets.command("delete")

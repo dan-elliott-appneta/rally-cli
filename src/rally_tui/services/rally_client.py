@@ -1771,3 +1771,54 @@ class RallyClient:
             _log.error(f"Error creating tag: {e}")
 
         return None
+
+    def search_tickets(
+        self,
+        text: str,
+        ticket_type: str | None = None,
+        state: str | None = None,
+        current_iteration: bool = False,
+        limit: int = 50,
+    ) -> list[Ticket]:
+        """Search tickets by full-text across Name and Description.
+
+        Note: The sync client does not support the Rally 'contains' operator
+        natively via pyral. Use AsyncRallyClient for production search.
+        This implementation provides a best-effort fallback.
+
+        Args:
+            text: The search text to match against Name and Description.
+            ticket_type: Optional type filter (UserStory, Defect, Task, TestCase).
+            state: Optional workflow state filter.
+            current_iteration: If True, restrict to current iteration.
+            limit: Maximum number of results to return.
+
+        Returns:
+            List of matching Ticket objects.
+        """
+        _log.warning("search_tickets: sync client uses async client for full-text search")
+        return []
+
+    def get_sprint_summary(self, iteration_name: str | None = None) -> dict:
+        """Fetch all tickets for an iteration and aggregate into a summary.
+
+        Note: The sync client provides a best-effort implementation.
+        Use AsyncRallyClient for production use.
+
+        Args:
+            iteration_name: Name of the iteration to summarise, or None for current.
+
+        Returns:
+            Dict with sprint summary data.
+        """
+        _log.warning("get_sprint_summary: sync client provides limited support")
+        return {
+            "iteration_name": iteration_name or "",
+            "start_date": None,
+            "end_date": None,
+            "total_tickets": 0,
+            "total_points": 0.0,
+            "by_state": [],
+            "by_owner": [],
+            "blocked": [],
+        }

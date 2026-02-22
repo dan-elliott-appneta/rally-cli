@@ -238,3 +238,30 @@ class BaseFormatter(ABC):
             Formatted string output with full feature details.
         """
         pass
+
+    @abstractmethod
+    def format_config(self, result: CLIResult) -> str:
+        """Format CLI configuration output.
+
+        Args:
+            result: CLIResult containing a dict with configuration values:
+                'server', 'workspace', 'project', 'apikey'.
+
+        Returns:
+            Formatted string output showing current configuration.
+        """
+        pass
+
+    @abstractmethod
+    def format_summary(self, result: CLIResult) -> str:
+        """Format sprint summary output.
+
+        Args:
+            result: CLIResult containing a dict with sprint summary data:
+                'iteration_name', 'start_date', 'end_date', 'total_tickets',
+                'total_points', 'by_state', 'by_owner', 'blocked'.
+
+        Returns:
+            Formatted string output showing sprint summary.
+        """
+        pass

@@ -2289,3 +2289,206 @@ class AsyncRallyClient:
 
         _log.info(f"Bulk assign: {result.success_count} success, {result.failed_count} failed")
         return result
+
+    # -------------------------------------------------------------------------
+    # Search Operations
+    # -------------------------------------------------------------------------
+
+    async def search_tickets(
+        self,
+        text: str,
+        ticket_type: str | None = None,
+        state: str | None = None,
+        current_iteration: bool = False,
+        limit: int = 50,
+    ) -> list[Ticket]:
+        """Search tickets by full-text across Name and Description.
+
+        Uses Rally WSAPI 'contains' operator to search Name and Description
+        fields, then applies optional filters for type, state, and iteration.
+
+        Args:
+            text: The search text to match against Name and Description.
+            ticket_type: Optional type filter (UserStory, Defect, Task, TestCase).
+            state: Optional workflow state filter.
+            current_iteration: If True, restrict to the current iteration.
+            limit: Maximum number of results to return (default 50).
+
+        Returns:
+            List of matching Ticket objects, up to ``limit`` results.
+        """
+        _log.debug(f"Searching tickets for: {text!r}")
+        sanitized_text = self._sanitize_query_value(text)
+
+        # Build the text-search clause using OR across Name and Description
+        text_clause = (
+            f'((Name contains "{sanitized_text}") OR (Description contains "{sanitized_text}"))'
+        )
+
+        # Build additional filter conditions
+        conditions: list[str] = [text_clause]
+
+        if self._project:
+            sanitized_proj = self._sanitize_query_value(self._project)
+            conditions.append(f'(Project.Name = "{sanitized_proj}")')
+
+        if state:
+            sanitized_state = self._sanitize_query_value(state)
+            conditions.append(f'(FlowState.Name = "{sanitized_state}")')
+
+        if current_iteration and self._current_iteration:
+            sanitized_iter = self._sanitize_query_value(self._current_iteration)
+            conditions.append(f'(Iteration.Name = "{sanitized_iter}")')
+
+        # Combine all conditions with AND
+        if len(conditions) == 1:
+            query = conditions[0]
+        else:
+            query = conditions[0]
+            for cond in conditions[1:]:
+                query = f"({query} AND {cond})"
+
+        # Determine which entity types to search
+        type_map = {
+            "userstory": ["HierarchicalRequirement"],
+            "defect": ["Defect"],
+            "task": ["Task"],
+            "testcase": ["TestCase"],
+        }
+        if ticket_type:
+            entity_types = type_map.get(ticket_type.lower(), ["HierarchicalRequirement"])
+        else:
+            entity_types = ["HierarchicalRequirement", "Defect", "Task"]
+
+        # Fetch entity types concurrently
+        tasks = [self._fetch_entity_type(entity_type, query) for entity_type in entity_types]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        tickets: list[Ticket] = []
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                _log.warning(f"Failed to search {entity_types[i]}: {result}")
+            elif isinstance(result, list):
+                tickets.extend(result)
+
+        # Apply limit
+        tickets = tickets[:limit]
+        _log.info(f"Search returned {len(tickets)} tickets for: {text!r}")
+        return tickets
+
+    # -------------------------------------------------------------------------
+    # Sprint Summary Operations
+    # -------------------------------------------------------------------------
+
+    async def get_sprint_summary(self, iteration_name: str | None = None) -> dict:
+        """Fetch all tickets for an iteration and aggregate into a summary.
+
+        If iteration_name is None, uses the current iteration.
+
+        Args:
+            iteration_name: Name of the iteration to summarise, or None for current.
+
+        Returns:
+            Dict with keys:
+                iteration_name (str),
+                start_date (str | None),
+                end_date (str | None),
+                total_tickets (int),
+                total_points (float),
+                by_state (list[dict{state, count, points}]),
+                by_owner (list[dict{owner, count, points}]),
+                blocked (list[dict{formatted_id, name, blocked_reason}])
+        """
+        target_iteration = iteration_name or self._current_iteration
+        _log.debug(f"Fetching sprint summary for iteration: {target_iteration!r}")
+
+        # Resolve iteration dates
+        start_date: str | None = None
+        end_date: str | None = None
+        if target_iteration:
+            try:
+                sanitized_iter = self._sanitize_query_value(target_iteration)
+                iter_response = await self._get(
+                    "/iteration",
+                    params={
+                        "fetch": "Name,StartDate,EndDate",
+                        "query": f'(Name = "{sanitized_iter}")',
+                        "pagesize": 1,
+                    },
+                )
+                iter_results, _ = parse_query_result(iter_response)
+                if iter_results:
+                    raw_start = iter_results[0].get("StartDate", "")
+                    raw_end = iter_results[0].get("EndDate", "")
+                    if raw_start:
+                        start_date = raw_start[:10]
+                    if raw_end:
+                        end_date = raw_end[:10]
+            except Exception as e:
+                _log.warning(f"Could not fetch iteration dates: {e}")
+
+        # Fetch tickets for the iteration
+        if target_iteration:
+            sanitized_iter = self._sanitize_query_value(target_iteration)
+            query = f'(Iteration.Name = "{sanitized_iter}")'
+            if self._project:
+                sanitized_proj = self._sanitize_query_value(self._project)
+                query = f'({query} AND (Project.Name = "{sanitized_proj}"))'
+        else:
+            query = None
+
+        tickets = await self.get_tickets(query)
+
+        # Aggregate
+        total_tickets = len(tickets)
+        total_points = sum(float(t.points or 0) for t in tickets)
+
+        # By state
+        state_counts: dict[str, dict[str, float]] = {}
+        for t in tickets:
+            state = t.state or "Unknown"
+            if state not in state_counts:
+                state_counts[state] = {"count": 0, "points": 0.0}
+            state_counts[state]["count"] += 1
+            state_counts[state]["points"] += float(t.points or 0)
+
+        by_state = [
+            {"state": s, "count": int(v["count"]), "points": v["points"]}
+            for s, v in sorted(state_counts.items())
+        ]
+
+        # By owner
+        owner_counts: dict[str, dict[str, float]] = {}
+        for t in tickets:
+            owner = t.owner or "Unassigned"
+            if owner not in owner_counts:
+                owner_counts[owner] = {"count": 0, "points": 0.0}
+            owner_counts[owner]["count"] += 1
+            owner_counts[owner]["points"] += float(t.points or 0)
+
+        by_owner = [
+            {"owner": o, "count": int(v["count"]), "points": v["points"]}
+            for o, v in sorted(owner_counts.items())
+        ]
+
+        # Blocked tickets
+        blocked = [
+            {
+                "formatted_id": t.formatted_id,
+                "name": t.name,
+                "blocked_reason": t.blocked_reason or "",
+            }
+            for t in tickets
+            if t.blocked
+        ]
+
+        return {
+            "iteration_name": target_iteration or "",
+            "start_date": start_date,
+            "end_date": end_date,
+            "total_tickets": total_tickets,
+            "total_points": total_points,
+            "by_state": by_state,
+            "by_owner": by_owner,
+            "blocked": blocked,
+        }
