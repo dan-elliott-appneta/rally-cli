@@ -322,3 +322,28 @@ class AsyncMockRallyClient:
             True on success, False on failure.
         """
         return self._sync_client.delete_ticket(formatted_id)
+
+    # -------------------------------------------------------------------------
+    # Async Search Operations
+    # -------------------------------------------------------------------------
+
+    async def search_tickets(
+        self,
+        text: str,
+        ticket_type: str | None = None,
+        state: str | None = None,
+        current_iteration: bool = False,
+        limit: int = 50,
+    ) -> list[Ticket]:
+        """Search tickets by full-text across Name and Description."""
+        return self._sync_client.search_tickets(
+            text=text,
+            ticket_type=ticket_type,
+            state=state,
+            current_iteration=current_iteration,
+            limit=limit,
+        )
+
+    async def get_sprint_summary(self, iteration_name: str | None = None) -> dict:
+        """Fetch all tickets for an iteration and aggregate into a summary."""
+        return self._sync_client.get_sprint_summary(iteration_name)

@@ -1154,3 +1154,131 @@ class MockRallyClient:
                 del self._tickets[i]
                 return True
         return False
+
+    def search_tickets(
+        self,
+        text: str,
+        ticket_type: str | None = None,
+        state: str | None = None,
+        current_iteration: bool = False,
+        limit: int = 50,
+    ) -> list[Ticket]:
+        """Search tickets by full-text across Name and Description.
+
+        Args:
+            text: The search text to match against Name and Description.
+            ticket_type: Optional type filter (UserStory, Defect, Task, TestCase).
+            state: Optional workflow state filter.
+            current_iteration: If True, restrict to current iteration.
+            limit: Maximum number of results to return.
+
+        Returns:
+            List of matching Ticket objects.
+        """
+        text_lower = text.lower()
+
+        type_map = {
+            "userstory": "UserStory",
+            "defect": "Defect",
+            "task": "Task",
+            "testcase": "TestCase",
+        }
+        normalized_type = type_map.get(ticket_type.lower(), ticket_type) if ticket_type else None
+
+        results: list[Ticket] = []
+        for t in self._tickets:
+            # Text match
+            if text_lower not in t.name.lower() and text_lower not in (t.description or "").lower():
+                continue
+            # Type filter
+            if normalized_type and t.ticket_type != normalized_type:
+                continue
+            # State filter
+            if state and t.state != state:
+                continue
+            # Iteration filter
+            if current_iteration and self._current_iteration:
+                if t.iteration != self._current_iteration:
+                    continue
+            results.append(t)
+
+        return results[:limit]
+
+    def get_sprint_summary(self, iteration_name: str | None = None) -> dict:
+        """Fetch all tickets for an iteration and aggregate into a summary.
+
+        Args:
+            iteration_name: Name of the iteration to summarise, or None for current.
+
+        Returns:
+            Dict with iteration summary data.
+        """
+        target_iteration = iteration_name or self._current_iteration
+
+        # Resolve iteration dates from mock iterations
+        start_date: str | None = None
+        end_date: str | None = None
+        for it in self._iterations:
+            if it.name == target_iteration:
+                start_date = it.start_date.isoformat()
+                end_date = it.end_date.isoformat()
+                break
+
+        # Filter tickets for the iteration
+        if target_iteration:
+            tickets = [t for t in self._tickets if t.iteration == target_iteration]
+        else:
+            tickets = list(self._tickets)
+
+        total_tickets = len(tickets)
+        total_points = sum(float(t.points or 0) for t in tickets)
+
+        # By state
+        state_counts: dict[str, dict[str, float]] = {}
+        for t in tickets:
+            s = t.state or "Unknown"
+            if s not in state_counts:
+                state_counts[s] = {"count": 0, "points": 0.0}
+            state_counts[s]["count"] += 1
+            state_counts[s]["points"] += float(t.points or 0)
+
+        by_state = [
+            {"state": s, "count": int(v["count"]), "points": v["points"]}
+            for s, v in sorted(state_counts.items())
+        ]
+
+        # By owner
+        owner_counts: dict[str, dict[str, float]] = {}
+        for t in tickets:
+            owner = t.owner or "Unassigned"
+            if owner not in owner_counts:
+                owner_counts[owner] = {"count": 0, "points": 0.0}
+            owner_counts[owner]["count"] += 1
+            owner_counts[owner]["points"] += float(t.points or 0)
+
+        by_owner = [
+            {"owner": o, "count": int(v["count"]), "points": v["points"]}
+            for o, v in sorted(owner_counts.items())
+        ]
+
+        # Blocked tickets
+        blocked = [
+            {
+                "formatted_id": t.formatted_id,
+                "name": t.name,
+                "blocked_reason": t.blocked_reason or "",
+            }
+            for t in tickets
+            if t.blocked
+        ]
+
+        return {
+            "iteration_name": target_iteration or "",
+            "start_date": start_date,
+            "end_date": end_date,
+            "total_tickets": total_tickets,
+            "total_points": total_points,
+            "by_state": by_state,
+            "by_owner": by_owner,
+            "blocked": blocked,
+        }

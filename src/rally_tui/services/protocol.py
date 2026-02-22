@@ -462,3 +462,37 @@ class RallyClientProtocol(Protocol):
             True on success, False on failure.
         """
         ...
+
+    def search_tickets(
+        self,
+        text: str,
+        ticket_type: str | None = None,
+        state: str | None = None,
+        current_iteration: bool = False,
+        limit: int = 50,
+    ) -> list[Ticket]:
+        """Search tickets by full-text across Name and Description.
+
+        Args:
+            text: The search text to match against Name and Description.
+            ticket_type: Optional type filter (UserStory, Defect, Task, TestCase).
+            state: Optional workflow state filter.
+            current_iteration: If True, restrict to current iteration.
+            limit: Maximum number of results to return.
+
+        Returns:
+            List of matching Ticket objects.
+        """
+        ...
+
+    def get_sprint_summary(self, iteration_name: str | None = None) -> dict:
+        """Fetch all tickets for an iteration and aggregate into a summary.
+
+        Args:
+            iteration_name: Name of the iteration to summarise, or None for current.
+
+        Returns:
+            Dict with iteration_name, start_date, end_date, total_tickets,
+            total_points, by_state, by_owner, blocked fields.
+        """
+        ...
