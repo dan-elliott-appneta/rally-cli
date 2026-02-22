@@ -21,7 +21,7 @@ from tenacity import (
 )
 
 from rally_tui.config import RallyConfig
-from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Owner, Release, Tag, Ticket
 from rally_tui.services.protocol import BulkResult
 from rally_tui.services.rally_api import (
     DEFAULT_TIMEOUT,
@@ -495,6 +495,33 @@ class AsyncRallyClient:
         creation_date = item.get("CreationDate")
         last_update_date = item.get("LastUpdateDate")
 
+        # Extract Release name
+        release_name = ""
+        release_obj = item.get("Release")
+        if release_obj and isinstance(release_obj, dict):
+            release_name = release_obj.get("_refObjectName") or release_obj.get("Name") or ""
+
+        # Extract Tags (collection reference with inline items)
+        tag_names: list[str] = []
+        tags_obj = item.get("Tags")
+        if tags_obj and isinstance(tags_obj, dict):
+            tag_count = tags_obj.get("Count", 0)
+            if tag_count > 0:
+                # Tags may be inlined in _tagsNameArray or in items
+                tags_name_array = item.get("_tagsNameArray")
+                if tags_name_array and isinstance(tags_name_array, list):
+                    tag_names = [t.get("Name", "") for t in tags_name_array if isinstance(t, dict)]
+                else:
+                    # Try inline items from the Tags collection
+                    tag_items = tags_obj.get("_tagsNameArray", [])
+                    if not tag_items:
+                        tag_items = tags_obj.get("Results", [])
+                    for tag_item in tag_items:
+                        if isinstance(tag_item, dict):
+                            name = tag_item.get("Name") or tag_item.get("_refObjectName") or ""
+                            if name:
+                                tag_names.append(name)
+
         return Ticket(
             formatted_id=item.get("FormattedID", ""),
             name=item.get("Name", ""),
@@ -518,6 +545,8 @@ class AsyncRallyClient:
             target_date=target_date,
             creation_date=creation_date,
             last_update_date=last_update_date,
+            release=release_name,
+            tags=tuple(tag_names),
         )
 
     # -------------------------------------------------------------------------
@@ -858,18 +887,59 @@ class AsyncRallyClient:
                         feature_oid = feature_results[0].get("ObjectID")
                         rally_data["PortfolioItem"] = f"/portfolioitem/feature/{feature_oid}"
 
+                elif key == "release":
+                    # Look up Release by name; None removes the release
+                    if value is None:
+                        rally_data["Release"] = None
+                    else:
+                        sanitized_release = self._sanitize_query_value(str(value))
+                        release_response = await self._get(
+                            "/release",
+                            params={
+                                "fetch": "Name,ObjectID",
+                                "query": f'(Name = "{sanitized_release}")',
+                                "pagesize": 1,
+                            },
+                        )
+                        release_results, _ = parse_query_result(release_response)
+                        if not release_results:
+                            raise ValueError(f"Release '{value}' not found")
+                        rally_data["Release"] = f"/release/{release_results[0].get('ObjectID')}"
+
+                elif key == "release_remove":
+                    # Explicitly remove release assignment
+                    rally_data["Release"] = None
+
+                elif key in ("add_tag", "remove_tag"):
+                    # Tag operations are handled separately via collection endpoints
+                    # after the main update; skip adding to rally_data
+                    pass
+
                 else:
                     # Pass field directly to Rally (Name, Description, Notes,
                     # c_AcceptanceCriteria, Blocked, BlockedReason, Ready,
                     # Expedite, TargetDate, PlanEstimate, ScheduleState, etc.)
                     rally_data[key] = value
 
-            if not rally_data:
+            # Check for tag operations (handled via collection endpoints)
+            has_tag_ops = "add_tag" in fields or "remove_tag" in fields
+
+            if not rally_data and not has_tag_ops:
                 _log.warning(f"No Rally fields to update for {ticket.formatted_id}")
                 return ticket
 
-            path = f"/{get_url_path(entity_type)}/{ticket.object_id}"
-            await self._post(path, data={entity_type: rally_data})
+            if rally_data:
+                path = f"/{get_url_path(entity_type)}/{ticket.object_id}"
+                await self._post(path, data={entity_type: rally_data})
+
+            # Handle tag add/remove via collection endpoints
+            if "add_tag" in fields:
+                tag_name = str(fields["add_tag"])
+                await self.add_tag(ticket, tag_name)
+
+            if "remove_tag" in fields:
+                tag_name = str(fields["remove_tag"])
+                await self.remove_tag(ticket, tag_name)
 
             # Re-fetch to get the authoritative updated state
             updated = await self.get_ticket(ticket.formatted_id)
@@ -881,6 +951,315 @@ class AsyncRallyClient:
             raise  # Let lookup errors propagate with descriptive messages
         except Exception as e:
             _log.error(f"Error updating ticket {ticket.formatted_id}: {e}")
+
+        return None
+
+    # -------------------------------------------------------------------------
+    # Release Operations
+    # -------------------------------------------------------------------------
+
+    async def get_releases(self, count: int = 10, state: str | None = None) -> list[Release]:
+        """Fetch releases from Rally, optionally filtered by state.
+
+        Args:
+            count: Maximum number of releases to return.
+            state: Optional state filter (Planning, Active, Locked).
+
+        Returns:
+            List of Release objects sorted by start date descending.
+        """
+        _log.debug(f"Fetching {count} releases (state={state})")
+
+        try:
+            params: dict[str, Any] = {
+                "fetch": "ObjectID,Name,ReleaseStartDate,ReleaseDate,State,Theme,Notes",
+                "order": "ReleaseStartDate desc",
+                "pagesize": count,
+            }
+            if state:
+                sanitized_state = self._sanitize_query_value(state)
+                params["query"] = f'(State = "{sanitized_state}")'
+
+            response = await self._get("/release", params)
+            results, _ = parse_query_result(response)
+
+            releases: list[Release] = []
+            for item in results:
+                release = self._to_release(item)
+                if release:
+                    releases.append(release)
+                if len(releases) >= count:
+                    break
+
+            _log.debug(f"Fetched {len(releases)} releases")
+            return releases
+        except Exception as e:
+            _log.error(f"Error fetching releases: {e}")
+            return []
+
+    async def get_release(self, name: str) -> Release | None:
+        """Fetch a single release by name.
+
+        Args:
+            name: The release name to search for.
+
+        Returns:
+            The Release if found, None otherwise.
+        """
+        _log.debug(f"Fetching release: {name}")
+
+        try:
+            sanitized_name = self._sanitize_query_value(name)
+            response = await self._get(
+                "/release",
+                params={
+                    "fetch": "ObjectID,Name,ReleaseStartDate,ReleaseDate,State,Theme,Notes",
+                    "query": f'(Name = "{sanitized_name}")',
+                    "pagesize": 1,
+                },
+            )
+            results, _ = parse_query_result(response)
+            if results:
+                return self._to_release(results[0])
+        except Exception as e:
+            _log.error(f"Error fetching release {name}: {e}")
+
+        return None
+
+    async def set_release(self, ticket: Ticket, release_name: str | None) -> Ticket | None:
+        """Set or remove release assignment on a ticket.
+
+        Args:
+            ticket: The ticket to update.
+            release_name: The release name to assign, or None to remove.
+
+        Returns:
+            The updated Ticket, or None on failure.
+        """
+        if not ticket.object_id:
+            _log.warning(f"Cannot set release: no object_id for {ticket.formatted_id}")
+            return None
+
+        _log.info(f"Setting release on {ticket.formatted_id} to {release_name}")
+
+        try:
+            entity_type = get_entity_type_from_prefix(ticket.formatted_id)
+            path = f"/{get_url_path(entity_type)}/{ticket.object_id}"
+
+            if release_name is None:
+                # Remove release
+                await self._post(path, data={entity_type: {"Release": None}})
+            else:
+                # Look up release by name
+                release = await self.get_release(release_name)
+                if not release:
+                    _log.error(f"Release not found: {release_name}")
+                    return None
+                await self._post(
+                    path,
+                    data={entity_type: {"Release": f"/release/{release.object_id}"}},
+                )
+
+            # Re-fetch for authoritative state
+            return await self.get_ticket(ticket.formatted_id)
+        except Exception as e:
+            _log.error(f"Error setting release for {ticket.formatted_id}: {e}")
+
+        return None
+
+    def _to_release(self, item: dict[str, Any]) -> Release | None:
+        """Convert Rally API response to Release model."""
+        try:
+            start_date = self._parse_rally_date(item.get("ReleaseStartDate"))
+            end_date = self._parse_rally_date(item.get("ReleaseDate"))
+
+            if not start_date or not end_date:
+                _log.warning(f"Missing dates for release: {item.get('Name')}")
+                return None
+
+            return Release(
+                object_id=str(item.get("ObjectID", "")),
+                name=item.get("Name", ""),
+                start_date=start_date,
+                end_date=end_date,
+                state=item.get("State") or "Planning",
+                theme=item.get("Theme") or "",
+                notes=item.get("Notes") or "",
+            )
+        except Exception as e:
+            _log.warning(f"Failed to convert release: {e}")
+            return None
+
+    # -------------------------------------------------------------------------
+    # Tag Operations
+    # -------------------------------------------------------------------------
+
+    async def get_tags(self) -> list[Tag]:
+        """Fetch all tags in the workspace.
+
+        Returns:
+            List of Tag objects sorted by name.
+        """
+        _log.debug("Fetching tags")
+
+        try:
+            response = await self._get(
+                "/tag",
+                params={
+                    "fetch": "ObjectID,Name",
+                    "order": "Name asc",
+                    "pagesize": MAX_PAGE_SIZE,
+                },
+            )
+            results, _ = parse_query_result(response)
+
+            tags = [
+                Tag(
+                    object_id=str(item.get("ObjectID", "")),
+                    name=item.get("Name", ""),
+                )
+                for item in results
+            ]
+            _log.debug(f"Fetched {len(tags)} tags")
+            return tags
+        except Exception as e:
+            _log.error(f"Error fetching tags: {e}")
+            return []
+
+    async def add_tag(self, ticket: Ticket, tag_name: str) -> bool:
+        """Add a tag to a ticket. Creates the tag if it doesn't exist.
+
+        Args:
+            ticket: The ticket to tag.
+            tag_name: The tag name to add.
+
+        Returns:
+            True on success, False on failure.
+        """
+        if not ticket.object_id:
+            _log.warning(f"Cannot add tag: no object_id for {ticket.formatted_id}")
+            return False
+
+        _log.info(f"Adding tag '{tag_name}' to {ticket.formatted_id}")
+
+        try:
+            # Find or create the tag
+            tag = await self._find_tag(tag_name)
+            if not tag:
+                tag = await self.create_tag(tag_name)
+                if not tag:
+                    _log.error(f"Failed to create tag: {tag_name}")
+                    return False
+
+            # Add the tag via collection endpoint
+            entity_type = get_entity_type_from_prefix(ticket.formatted_id)
+            url_path = get_url_path(entity_type)
+            path = f"/{url_path}/{ticket.object_id}/Tags/add"
+
+            await self._post(
+                path,
+                data={"CollectionItems": [{"_ref": f"/tag/{tag.object_id}"}]},
+            )
+            _log.info(f"Tag '{tag_name}' added to {ticket.formatted_id}")
+            return True
+        except Exception as e:
+            _log.error(f"Error adding tag to {ticket.formatted_id}: {e}")
+            return False
+
+    async def remove_tag(self, ticket: Ticket, tag_name: str) -> bool:
+        """Remove a tag from a ticket.
+
+        Args:
+            ticket: The ticket to untag.
+            tag_name: The tag name to remove.
+
+        Returns:
+            True on success, False on failure.
+        """
+        if not ticket.object_id:
+            _log.warning(f"Cannot remove tag: no object_id for {ticket.formatted_id}")
+            return False
+
+        _log.info(f"Removing tag '{tag_name}' from {ticket.formatted_id}")
+
+        try:
+            # Find the tag
+            tag = await self._find_tag(tag_name)
+            if not tag:
+                _log.warning(f"Tag not found: {tag_name}")
+                return False
+
+            # Remove the tag via collection endpoint
+            entity_type = get_entity_type_from_prefix(ticket.formatted_id)
+            url_path = get_url_path(entity_type)
+            path = f"/{url_path}/{ticket.object_id}/Tags/remove"
+
+            await self._post(
+                path,
+                data={"CollectionItems": [{"_ref": f"/tag/{tag.object_id}"}]},
+            )
+            _log.info(f"Tag '{tag_name}' removed from {ticket.formatted_id}")
+            return True
+        except Exception as e:
+            _log.error(f"Error removing tag from {ticket.formatted_id}: {e}")
+            return False
+
+    async def create_tag(self, name: str) -> Tag | None:
+        """Create a new tag.
+
+        Args:
+            name: The tag name.
+
+        Returns:
+            The created Tag, or None on failure.
+        """
+        _log.info(f"Creating tag: {name}")
+
+        try:
+            response = await self._post(
+                "/tag/create",
+                data={"Tag": {"Name": name}},
+            )
+            results, _ = parse_query_result(response)
+
+            if results:
+                _log.info(f"Tag created: {name}")
+                return Tag(
+                    object_id=str(results[0].get("ObjectID", "")),
+                    name=results[0].get("Name", name),
+                )
+        except Exception as e:
+            _log.error(f"Error creating tag: {e}")
+
+        return None
+
+    async def _find_tag(self, name: str) -> Tag | None:
+        """Find a tag by name.
+
+        Args:
+            name: The tag name to search for.
+
+        Returns:
+            The Tag if found, None otherwise.
+        """
+        try:
+            sanitized_name = self._sanitize_query_value(name)
+            response = await self._get(
+                "/tag",
+                params={
+                    "fetch": "ObjectID,Name",
+                    "query": f'(Name = "{sanitized_name}")',
+                    "pagesize": 1,
+                },
+            )
+            results, _ = parse_query_result(response)
+            if results:
+                return Tag(
+                    object_id=str(results[0].get("ObjectID", "")),
+                    name=results[0].get("Name", ""),
+                )
+        except Exception as e:
+            _log.warning(f"Error finding tag '{name}': {e}")
 
         return None
 

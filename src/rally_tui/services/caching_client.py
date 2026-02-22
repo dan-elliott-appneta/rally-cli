@@ -7,7 +7,7 @@ from collections.abc import Callable
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Owner, Release, Tag, Ticket
 from rally_tui.services.cache_manager import CacheManager
 from rally_tui.services.protocol import BulkResult, RallyClientProtocol
 
@@ -424,6 +424,44 @@ class CachingRallyClient:
             for updated_ticket in result.updated_tickets:
                 self._update_ticket_in_cache(updated_ticket)
         return result
+
+    # Release & Tag pass-through methods
+
+    def get_releases(self, count: int = 10, state: str | None = None) -> list[Release]:
+        """Fetch releases (not cached)."""
+        return self._client.get_releases(count, state)
+
+    def get_release(self, name: str) -> Release | None:
+        """Fetch a single release by name (not cached)."""
+        return self._client.get_release(name)
+
+    def set_release(self, ticket: Ticket, release_name: str | None) -> Ticket | None:
+        """Set or remove release assignment on a ticket."""
+        if self._is_offline:
+            return None
+        return self._client.set_release(ticket, release_name)
+
+    def get_tags(self) -> list[Tag]:
+        """Fetch all tags (not cached)."""
+        return self._client.get_tags()
+
+    def add_tag(self, ticket: Ticket, tag_name: str) -> bool:
+        """Add a tag to a ticket."""
+        if self._is_offline:
+            return False
+        return self._client.add_tag(ticket, tag_name)
+
+    def remove_tag(self, ticket: Ticket, tag_name: str) -> bool:
+        """Remove a tag from a ticket."""
+        if self._is_offline:
+            return False
+        return self._client.remove_tag(ticket, tag_name)
+
+    def create_tag(self, name: str) -> Tag | None:
+        """Create a new tag."""
+        if self._is_offline:
+            return None
+        return self._client.create_tag(name)
 
     def _update_ticket_in_cache(self, updated_ticket: Ticket) -> None:
         """Update a ticket in the cache after a mutation.

@@ -31,6 +31,8 @@ ENTITY_TYPES = {
     "AttachmentContent": "attachmentcontent",
     "User": "user",
     "PortfolioItem/Feature": "portfolioitem/feature",
+    "Release": "release",
+    "Tag": "tag",
 }
 
 # Formatted ID prefix to entity type mapping
@@ -65,6 +67,8 @@ DEFAULT_FETCH_FIELDS = {
         "TargetDate",
         "CreationDate",
         "LastUpdateDate",
+        "Release",
+        "Tags",
     ],
     "Defect": [
         "FormattedID",
@@ -88,6 +92,8 @@ DEFAULT_FETCH_FIELDS = {
         "LastUpdateDate",
         "Severity",
         "Priority",
+        "Release",
+        "Tags",
     ],
     "Task": [
         "FormattedID",
@@ -130,6 +136,19 @@ DEFAULT_FETCH_FIELDS = {
         "FormattedID",
         "Name",
         "ObjectID",
+    ],
+    "Release": [
+        "ObjectID",
+        "Name",
+        "ReleaseStartDate",
+        "ReleaseDate",
+        "State",
+        "Theme",
+        "Notes",
+    ],
+    "Tag": [
+        "ObjectID",
+        "Name",
     ],
 }
 

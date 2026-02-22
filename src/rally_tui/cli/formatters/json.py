@@ -6,7 +6,7 @@ from datetime import date, datetime
 from typing import Any
 
 from rally_tui.cli.formatters.base import BaseFormatter, CLIResult
-from rally_tui.models import Discussion, Iteration, Owner, Ticket
+from rally_tui.models import Discussion, Iteration, Owner, Release, Tag, Ticket
 
 
 class JSONFormatter(BaseFormatter):
@@ -256,6 +256,94 @@ class JSONFormatter(BaseFormatter):
             "object_id": owner.object_id,
             "display_name": owner.display_name,
             "user_name": owner.user_name,
+        }
+
+    def format_releases(self, result: CLIResult) -> str:
+        """Format release list as JSON.
+
+        Args:
+            result: CLIResult containing release data.
+
+        Returns:
+            JSON string.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            releases: list[Release] = result.data
+            output["data"] = [self._release_to_dict(r) for r in releases]
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
+    def format_tags(self, result: CLIResult) -> str:
+        """Format tag list as JSON.
+
+        Args:
+            result: CLIResult containing tag data.
+
+        Returns:
+            JSON string.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            tags: list[Tag] = result.data
+            output["data"] = [self._tag_to_dict(t) for t in tags]
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
+    def format_tag_action(self, result: CLIResult) -> str:
+        """Format tag action result as JSON.
+
+        Args:
+            result: CLIResult containing tag action data.
+
+        Returns:
+            JSON string with success wrapper and action data.
+        """
+        output = self._prepare_output(result)
+        if result.success and result.data is not None:
+            data = result.data
+            if isinstance(data, dict):
+                action_data: dict[str, Any] = {"action": data.get("action", "")}
+                tag = data.get("tag")
+                if tag and isinstance(tag, Tag):
+                    action_data["tag"] = self._tag_to_dict(tag)
+                if "ticket_id" in data:
+                    action_data["ticket_id"] = data["ticket_id"]
+                if "tag_name" in data:
+                    action_data["tag_name"] = data["tag_name"]
+                output["data"] = action_data
+        return json.dumps(output, indent=2, default=self._json_serializer)
+
+    def _release_to_dict(self, release: Release) -> dict[str, Any]:
+        """Convert a Release to a dictionary.
+
+        Args:
+            release: The release to convert.
+
+        Returns:
+            Dictionary representation.
+        """
+        return {
+            "object_id": release.object_id,
+            "name": release.name,
+            "start_date": release.start_date.isoformat(),
+            "end_date": release.end_date.isoformat(),
+            "state": release.state,
+            "theme": release.theme,
+            "notes": release.notes,
+            "is_current": release.is_current,
+        }
+
+    def _tag_to_dict(self, tag: Tag) -> dict[str, Any]:
+        """Convert a Tag to a dictionary.
+
+        Args:
+            tag: The tag to convert.
+
+        Returns:
+            Dictionary representation.
+        """
+        return {
+            "object_id": tag.object_id,
+            "name": tag.name,
         }
 
     def _json_serializer(self, obj: Any) -> Any:

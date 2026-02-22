@@ -5,7 +5,7 @@ import io
 from typing import Any
 
 from rally_tui.cli.formatters.base import BaseFormatter, CLIResult
-from rally_tui.models import Discussion, Iteration, Owner, Ticket
+from rally_tui.models import Discussion, Iteration, Owner, Release, Tag, Ticket
 
 
 class CSVFormatter(BaseFormatter):
@@ -303,6 +303,93 @@ class CSVFormatter(BaseFormatter):
                     u.object_id,
                 ]
             )
+
+        return output.getvalue().rstrip("\n")
+
+    def format_releases(self, result: CLIResult) -> str:
+        """Format release list as CSV.
+
+        Args:
+            result: CLIResult containing release data.
+
+        Returns:
+            CSV string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        releases: list[Release] = result.data
+        if not releases:
+            return ""
+
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["name", "start_date", "end_date", "state", "theme", "is_current"])
+
+        for r in releases:
+            writer.writerow(
+                [
+                    r.name,
+                    r.start_date.isoformat(),
+                    r.end_date.isoformat(),
+                    r.state,
+                    r.theme,
+                    r.is_current,
+                ]
+            )
+
+        return output.getvalue().rstrip("\n")
+
+    def format_tags(self, result: CLIResult) -> str:
+        """Format tag list as CSV.
+
+        Args:
+            result: CLIResult containing tag data.
+
+        Returns:
+            CSV string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        tags: list[Tag] = result.data
+        if not tags:
+            return ""
+
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["name", "object_id"])
+
+        for t in tags:
+            writer.writerow([t.name, t.object_id])
+
+        return output.getvalue().rstrip("\n")
+
+    def format_tag_action(self, result: CLIResult) -> str:
+        """Format tag action result as CSV.
+
+        Args:
+            result: CLIResult containing tag action data.
+
+        Returns:
+            CSV string.
+        """
+        if not result.success:
+            return self.format_error(result)
+
+        data = result.data
+        output = io.StringIO()
+        writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["action", "tag_name", "ticket_id"])
+
+        if isinstance(data, dict):
+            action = data.get("action", "")
+            tag_name = data.get("tag_name", "")
+            ticket_id = data.get("ticket_id", "")
+            if action == "created":
+                tag = data.get("tag")
+                tag_name = tag.name if tag else tag_name
+            writer.writerow([action, tag_name, ticket_id])
 
         return output.getvalue().rstrip("\n")
 

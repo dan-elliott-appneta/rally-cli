@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
+from rally_tui.models import Attachment, Discussion, Iteration, Owner, Release, Tag, Ticket
 from rally_tui.services.mock_client import MockRallyClient
 from rally_tui.services.protocol import BulkResult
 
@@ -34,6 +34,8 @@ class AsyncMockRallyClient:
         iterations: list[Iteration] | None = None,
         features: dict[str, str] | None = None,
         attachments: dict[str, list[Attachment]] | None = None,
+        releases: list[Release] | None = None,
+        tags: list[Tag] | None = None,
         workspace: str = "My Workspace",
         project: str = "My Project",
         current_user: str | None = None,
@@ -47,6 +49,8 @@ class AsyncMockRallyClient:
             iterations: List of iterations to use.
             features: Dict mapping feature ID to name.
             attachments: Dict mapping formatted_id to attachments.
+            releases: List of releases to use.
+            tags: List of tags to use.
             workspace: Workspace name to report.
             project: Project name to report.
             current_user: Current user's display name.
@@ -58,6 +62,8 @@ class AsyncMockRallyClient:
             iterations=iterations,
             features=features,
             attachments=attachments,
+            releases=releases,
+            tags=tags,
             workspace=workspace,
             project=project,
             current_user=current_user,
@@ -261,6 +267,42 @@ class AsyncMockRallyClient:
             The updated Ticket, or None on failure.
         """
         return self._sync_client.update_ticket(ticket, fields)
+
+    # -------------------------------------------------------------------------
+    # Async Release Operations
+    # -------------------------------------------------------------------------
+
+    async def get_releases(self, count: int = 10, state: str | None = None) -> list[Release]:
+        """Fetch releases, optionally filtered by state."""
+        return self._sync_client.get_releases(count, state)
+
+    async def get_release(self, name: str) -> Release | None:
+        """Fetch a single release by name."""
+        return self._sync_client.get_release(name)
+
+    async def set_release(self, ticket: Ticket, release_name: str | None) -> Ticket | None:
+        """Set or remove release assignment on a ticket."""
+        return self._sync_client.set_release(ticket, release_name)
+
+    # -------------------------------------------------------------------------
+    # Async Tag Operations
+    # -------------------------------------------------------------------------
+
+    async def get_tags(self) -> list[Tag]:
+        """Fetch all tags in the workspace."""
+        return self._sync_client.get_tags()
+
+    async def add_tag(self, ticket: Ticket, tag_name: str) -> bool:
+        """Add a tag to a ticket."""
+        return self._sync_client.add_tag(ticket, tag_name)
+
+    async def remove_tag(self, ticket: Ticket, tag_name: str) -> bool:
+        """Remove a tag from a ticket."""
+        return self._sync_client.remove_tag(ticket, tag_name)
+
+    async def create_tag(self, name: str) -> Tag | None:
+        """Create a new tag."""
+        return self._sync_client.create_tag(name)
 
     async def delete_ticket(self, formatted_id: str) -> bool:
         """Delete a ticket from Rally.
