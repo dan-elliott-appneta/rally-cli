@@ -1,7 +1,7 @@
 """Protocol defining the Rally client interface."""
 
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Any, Protocol
 
 from rally_tui.models import Attachment, Discussion, Iteration, Owner, Ticket
 
@@ -318,5 +318,34 @@ class RallyClientProtocol(Protocol):
 
         Returns:
             BulkResult with success/failure counts and updated tickets.
+        """
+        ...
+
+    def update_ticket(self, ticket: Ticket, fields: dict[str, Any]) -> Ticket | None:
+        """Update arbitrary fields on a ticket.
+
+        Special field handling:
+        - 'state'     -> looks up FlowState reference by name
+        - 'owner'     -> looks up Owner user by display name
+        - 'iteration' -> looks up Iteration by name (None removes iteration)
+        - 'parent'    -> looks up Feature by formatted ID
+
+        Args:
+            ticket: The ticket to update.
+            fields: Dict of field names/aliases to new values.
+
+        Returns:
+            The updated Ticket (re-fetched from Rally), or None on failure.
+        """
+        ...
+
+    def delete_ticket(self, formatted_id: str) -> bool:
+        """Delete a ticket from Rally.
+
+        Args:
+            formatted_id: The ticket's formatted ID (e.g., "US1234").
+
+        Returns:
+            True on success, False on failure.
         """
         ...
