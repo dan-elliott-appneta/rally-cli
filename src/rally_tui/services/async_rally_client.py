@@ -424,7 +424,7 @@ class AsyncRallyClient:
                 path,
                 params={
                     "fetch": build_fetch_string(entity_type),
-                    "query": f'FormattedID = "{formatted_id}"',
+                    "query": f'(FormattedID = "{formatted_id}")',
                 },
             )
             results, _ = parse_query_result(response)
