@@ -431,26 +431,32 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
 @click.option("--points", type=float, default=None, help="Story points.")
 @click.option("--parent", default=None, help="Parent Feature ID.")
 @click.option("--name", "new_name", default=None, help="Rename ticket.")
-@click.option("--description", default=None, help="Set description.")
+@click.option("--description", default=None, help="Append to description (or set if empty).")
 @click.option(
     "--description-file",
     type=click.Path(exists=True),
     default=None,
-    help="Set description from file.",
+    help="Append description from file.",
 )
-@click.option("--notes", default=None, help="Set notes.")
+@click.option("--notes", default=None, help="Append to notes (or set if empty).")
 @click.option(
     "--notes-file",
     type=click.Path(exists=True),
     default=None,
-    help="Set notes from file.",
+    help="Append notes from file.",
 )
-@click.option("--ac", default=None, help="Set acceptance criteria.")
+@click.option("--ac", default=None, help="Append to acceptance criteria (or set if empty).")
 @click.option(
     "--ac-file",
     type=click.Path(exists=True),
     default=None,
-    help="Set acceptance criteria from file.",
+    help="Append acceptance criteria from file.",
+)
+@click.option(
+    "--overwrite",
+    is_flag=True,
+    default=False,
+    help="Overwrite description/notes/ac instead of appending.",
 )
 @click.option("--release", default=None, help="Release name to schedule into.")
 @click.option("--no-release", is_flag=True, default=False, help="Remove from release (unschedule).")
@@ -493,6 +499,7 @@ def tickets_update(
     notes_file: str | None,
     ac: str | None,
     ac_file: str | None,
+    overwrite: bool,
     release: str | None,
     no_release: bool,
     add_tag: str | None,
@@ -638,6 +645,22 @@ def tickets_update(
         click.echo(ctx.formatter.format_error(result), err=True)
         sys.exit(2)
 
+    # Helper to append rich text fields to existing content
+    def _append_rich_text(ticket: Ticket, update_fields: dict) -> dict:
+        """Append new content to existing rich text fields instead of overwriting."""
+        if overwrite:
+            return update_fields
+        merged = dict(update_fields)
+        field_map = {
+            "Description": ticket.description,
+            "Notes": ticket.notes,
+            "c_AcceptanceCriteria": ticket.acceptance_criteria,
+        }
+        for field_name, existing in field_map.items():
+            if field_name in merged and existing:
+                merged[field_name] = existing + "<br/>" + merged[field_name]
+        return merged
+
     # Single ticket: use original behaviour with single-ticket formatting
     if len(ticket_ids) == 1:
         ticket_id = ticket_ids[0]
@@ -653,7 +676,8 @@ def tickets_update(
                 ticket = await client.get_ticket(ticket_id)
                 if not ticket:
                     return None
-                return await client.update_ticket(ticket, fields)
+                merged_fields = _append_rich_text(ticket, fields)
+                return await client.update_ticket(ticket, merged_fields)
 
         try:
             updated_ticket = asyncio.run(_do_update_single())
@@ -706,7 +730,8 @@ def tickets_update(
                 ticket = await client.get_ticket(tid)
                 if not ticket:
                     return None
-                return await client.update_ticket(ticket, fields)
+                merged_fields = _append_rich_text(ticket, fields)
+                return await client.update_ticket(ticket, merged_fields)
 
         try:
             updated_ticket = asyncio.run(_do_update_one())

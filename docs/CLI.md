@@ -446,12 +446,13 @@ rally-cli tickets update TICKET_IDS... [OPTIONS]
 | `--points FLOAT` | Set story points |
 | `--parent TEXT` | Set parent Feature ID |
 | `--name TEXT` | Rename ticket |
-| `--description TEXT` | Set description |
-| `--description-file PATH` | Set description from file |
-| `--notes TEXT` | Set notes |
-| `--notes-file PATH` | Set notes from file |
-| `--ac TEXT` | Set acceptance criteria |
-| `--ac-file PATH` | Set acceptance criteria from file |
+| `--description TEXT` | Append to description (or set if empty) |
+| `--description-file PATH` | Append description from file |
+| `--notes TEXT` | Append to notes (or set if empty) |
+| `--notes-file PATH` | Append notes from file |
+| `--ac TEXT` | Append to acceptance criteria (or set if empty) |
+| `--ac-file PATH` | Append acceptance criteria from file |
+| `--overwrite` | Overwrite description/notes/ac instead of appending |
 | `--blocked / --no-blocked` | Set/clear blocked status |
 | `--blocked-reason TEXT` | Set blocked reason |
 | `--ready / --no-ready` | Set/clear ready status |
@@ -473,7 +474,13 @@ rally-cli tickets update DE67890 --owner "Jane Smith"
 # Move to backlog
 rally-cli tickets update US12345 --no-iteration
 
-# Set description from file
+# Append to notes (existing content preserved)
+rally-cli tickets update US12345 --notes "Added deployment link"
+
+# Overwrite description instead of appending
+rally-cli tickets update US12345 --description "New description" --overwrite
+
+# Set description from file (appends by default)
 rally-cli tickets update US12345 --description-file desc.txt
 
 # Set multiple fields at once

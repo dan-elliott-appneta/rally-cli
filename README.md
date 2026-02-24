@@ -55,7 +55,17 @@ A terminal user interface (TUI) and command-line interface (CLI) for browsing an
 
 ## Status
 
-**Version 0.8.2** - CLI ticket creation, owner assignment, project logo.
+**Version 1.1.0** - Full CLI v1.0, append-by-default for rich text fields, query fix.
+
+### What's New in 1.1.0
+- **Append by Default**: `--notes`, `--description`, and `--ac` now append to existing content instead of overwriting
+- **Overwrite Flag**: `--overwrite` flag for explicit replacement of rich text fields
+- **Query Fix**: Fixed `tickets show` query requiring parentheses for Rally WSAPI
+
+### What's New in 1.0.0
+- **Full CLI**: `tickets show`, `tickets update`, `tickets delete`, `tickets search`, `tickets summary`
+- **Rich Subcommands**: `features`, `iterations`, `releases`, `tags`, `attachments`, `users`, `open`
+- **Shell Completions**: `rally-cli completions` for bash/zsh/fish
 
 ### What's New in 0.8.2
 - **CLI Ticket Creation**: `rally-cli tickets create "Title" --type UserStory --points 3`
@@ -63,14 +73,8 @@ A terminal user interface (TUI) and command-line interface (CLI) for browsing an
 - **Project Logo**: Added project branding
 - **PyPI Release Workflow**: Automated publishing on version tags
 
-### What's New in 0.8.1
-- **Owner Assignment**: Press `a` to assign tickets to team members
-- **Bulk Owner Assignment**: Select multiple tickets and assign owner via bulk actions
-- **Team Breakdown**: Press `b` to view ticket count and points by owner for a sprint
-- **Wide View**: Press `v` to toggle expanded list with owner, points, and parent columns
-
 ### Feature Summary
-- **CLI Interface**: `rally-cli tickets`, `rally-cli comment`, `rally-cli tickets create`
+- **CLI Interface**: `rally-cli tickets`, `rally-cli comment`, `rally-cli tickets create`, `rally-cli tickets update/delete/show/search/summary`
 - **TUI**: Two-panel layout with vim navigation, themes, and keyboard customization
 - **Bulk Operations**: Multi-select with `Space`, bulk actions with `m` (parent, state, iteration, points, owner, yank)
 - **Local Caching**: Stale-while-revalidate for instant startup, press `r` to refresh
@@ -122,7 +126,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 0.8.2
+# Output: rally-tui 1.1.0
 ```
 
 ### Running with Rally API
