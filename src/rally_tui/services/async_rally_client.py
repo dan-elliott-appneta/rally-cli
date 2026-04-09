@@ -253,14 +253,18 @@ class AsyncRallyClient:
             return self._current_user
 
         try:
-            # Query /user - Rally typically returns the API key owner first
+            # GET /user returns the API key owner as a single User object,
+            # not wrapped in QueryResult like collection endpoints.
             response = await self._get(
                 "/user",
                 params={
                     "fetch": "DisplayName,UserName",
-                    "pagesize": 1,
                 },
             )
+            # Handle direct User object response (e.g. {"User": {...}})
+            if "User" in response:
+                return response["User"].get("DisplayName")
+            # Fallback: try parsing as QueryResult in case API format changes
             results, _ = parse_query_result(response)
             if results:
                 return results[0].get("DisplayName")
