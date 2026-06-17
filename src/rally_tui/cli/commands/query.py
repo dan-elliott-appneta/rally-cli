@@ -469,6 +469,19 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
 @click.option("--severity", default=None, help="Severity (Defect only).")
 @click.option("--priority", default=None, help="Priority (Defect only).")
 @click.option(
+    "--defect-state",
+    type=click.Choice(["Submitted", "Open", "Fixed", "Closed"], case_sensitive=False),
+    default=None,
+    help="Defect State field (Defect only): Submitted, Open, Fixed, Closed. "
+    "Distinct from --state, which sets the schedule/flow state.",
+)
+@click.option(
+    "--resolution",
+    default=None,
+    help="Defect Resolution field (Defect only), e.g. 'Code Change'. "
+    "Free text; must match a value configured in the workspace.",
+)
+@click.option(
     "--target-date",
     default=None,
     callback=_validate_date,
@@ -510,6 +523,8 @@ def tickets_update(
     expedite: bool | None,
     severity: str | None,
     priority: str | None,
+    defect_state: str | None,
+    resolution: str | None,
     target_date: str | None,
 ) -> None:
     """Update fields on one or more existing tickets.
@@ -529,6 +544,7 @@ def tickets_update(
         rally-cli tickets update US12345 --add-tag "sprint-goal"
         rally-cli tickets update US12345 --remove-tag "backlog"
         rally-cli tickets update US12345 US12346 US12347 --state "Completed"
+        rally-cli tickets update DE67890 --defect-state "Closed"
     """
     if sub_format:
         from rally_tui.cli.formatters.base import OutputFormat
@@ -632,6 +648,16 @@ def tickets_update(
     if priority is not None:
         fields["Priority"] = priority
         changes["priority"] = priority
+    if defect_state is not None:
+        # Rally's native Defect "State" attribute (Submitted/Open/Fixed/Closed),
+        # passed through directly. Distinct from FlowState ("state") and
+        # ScheduleState. Capitalised key avoids the "state" FlowState alias.
+        fields["State"] = defect_state
+        changes["defect_state"] = defect_state
+    if resolution is not None:
+        # Rally's native Defect "Resolution" attribute, passed through directly.
+        fields["Resolution"] = resolution
+        changes["resolution"] = resolution
     if target_date is not None:
         fields["TargetDate"] = target_date
         changes["target_date"] = target_date
