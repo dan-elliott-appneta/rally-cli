@@ -425,8 +425,9 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
 @click.option(
     "--state",
     default=None,
-    help="Schedule state (Defined/In-Progress/Completed/Accepted). Sets Rally's"
-    " standard ScheduleState field directly.",
+    help="Schedule state (e.g. Idea/Defined/In-Progress/Completed/Accepted/"
+    "Released). Sets Rally's standard ScheduleState field directly; valid"
+    " values may vary by workspace.",
 )
 @click.option("--owner", "new_owner", default=None, help="Owner display name.")
 @click.option("--iteration", default=None, help="Iteration name.")
