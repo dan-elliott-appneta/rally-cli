@@ -422,7 +422,12 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
 
 @tickets.command("update")
 @click.argument("ticket_ids", nargs=-1, required=True)
-@click.option("--state", default=None, help="Workflow state.")
+@click.option(
+    "--state",
+    default=None,
+    help="Schedule state (Defined/In-Progress/Completed/Accepted). Sets Rally's"
+    " standard ScheduleState field directly.",
+)
 @click.option("--owner", "new_owner", default=None, help="Owner display name.")
 @click.option("--iteration", default=None, help="Iteration name.")
 @click.option(
@@ -589,7 +594,10 @@ def tickets_update(
     changes: dict = {}
 
     if state is not None:
-        fields["state"] = state
+        # Sets Rally's standard ScheduleState field directly (Defined/In-Progress/
+        # Completed/Accepted). Distinct from the Kanban FlowState custom field,
+        # which is project-scoped and not what most tickets need updated.
+        fields["ScheduleState"] = state
         changes["state"] = state
     if new_owner is not None:
         fields["owner"] = new_owner
