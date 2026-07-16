@@ -55,7 +55,13 @@ A terminal user interface (TUI) and command-line interface (CLI) for browsing an
 
 ## Status
 
-**Version 1.1.0** - Full CLI v1.0, append-by-default for rich text fields, query fix.
+**Version 1.2.0** - Schedule state fixes, defect fields, owner filter fix.
+
+### What's New in 1.2.0
+- **`--state` Fix**: `tickets update --state` now sets Rally's standard `ScheduleState` field directly instead of failing on a project-scoped `FlowState` lookup
+- **Error Surfacing**: `tickets update` now raises on Rally-side rejections (e.g. an invalid `--state` value) instead of silently reporting success with no change
+- **Defect Fields**: `--defect-state` and `--resolution` options for `tickets update` (Defect only)
+- **Owner Filter Fix**: Fixed `--my-tickets` not filtering by owner
 
 ### What's New in 1.1.0
 - **Append by Default**: `--notes`, `--description`, and `--ac` now append to existing content instead of overwriting
@@ -82,7 +88,7 @@ A terminal user interface (TUI) and command-line interface (CLI) for browsing an
 - **Discussions & Comments**: View (`d`) and add comments (`c`) on tickets
 - **Attachments**: View, download, upload with `A` (Shift+a)
 - **Configurable Keybindings**: Vim/Emacs profiles, press `F3` to customize
-- **904+ tests** passing across Python 3.11, 3.12, 3.13
+- **1200+ tests** passing across Python 3.11, 3.12, 3.13
 
 See [docs/PLAN.md](docs/PLAN.md) for the full roadmap.
 
@@ -126,7 +132,7 @@ pip install -e ".[dev]"
 
 ```bash
 rally-tui --version
-# Output: rally-tui 1.1.0
+# Output: rally-tui 1.2.0
 ```
 
 ### Running with Rally API
