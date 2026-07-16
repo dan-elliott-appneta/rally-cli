@@ -943,7 +943,16 @@ class AsyncRallyClient:
 
             if rally_data:
                 path = f"/{get_url_path(entity_type)}/{ticket.object_id}"
-                await self._post(path, data={entity_type: rally_data})
+                response = await self._post(path, data={entity_type: rally_data})
+
+                # Rally returns HTTP 200 even when it rejects an update; the
+                # failure only shows up in the response body. Without this
+                # check, an invalid passthrough value (e.g. a typo'd --state)
+                # silently no-ops while the CLI reports success.
+                op_result = response.get("OperationResult", {})
+                errors = op_result.get("Errors", [])
+                if errors:
+                    raise ValueError(f"Rally rejected update for {ticket.formatted_id}: {errors}")
 
             # Handle tag add/remove via collection endpoints
             if "add_tag" in fields:

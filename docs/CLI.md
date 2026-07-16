@@ -439,7 +439,7 @@ rally-cli tickets update TICKET_IDS... [OPTIONS]
 
 | Option | Description |
 |--------|-------------|
-| `--state TEXT` | Set workflow state |
+| `--state TEXT` | Set schedule state (e.g. Idea/Defined/In-Progress/Completed/Accepted/Released — valid values may vary by workspace). Sets Rally's standard ScheduleState field directly. Distinct from the `tickets`/`search` `--state` filter, which matches the Kanban FlowState field instead. |
 | `--owner TEXT` | Set owner by display name |
 | `--iteration TEXT` | Set iteration by name |
 | `--no-iteration` | Remove from iteration (move to backlog) |
@@ -459,6 +459,8 @@ rally-cli tickets update TICKET_IDS... [OPTIONS]
 | `--expedite / --no-expedite` | Set/clear expedite flag |
 | `--severity TEXT` | Set severity (Defect only) |
 | `--priority TEXT` | Set priority (Defect only) |
+| `--defect-state [submitted\|open\|fixed\|closed]` | Set the Defect State field (Defect only). Distinct from `--state`, which sets ScheduleState. |
+| `--resolution TEXT` | Set the Defect Resolution field (Defect only) |
 | `--target-date TEXT` | Set target date (YYYY-MM-DD) |
 | `--format [text\|json\|csv]` | Output format |
 
@@ -492,7 +494,12 @@ rally-cli tickets update US12345 US12346 US12347 --state "Completed"
 # Bulk move multiple tickets to a sprint
 rally-cli tickets update US100 US101 US102 --iteration "FY26-Q1 PI Sprint 8"
 
-# Pipe from search for bulk operations
+# Close a defect (Defect State field, distinct from --state/ScheduleState)
+rally-cli tickets update DE67890 --defect-state "closed" --resolution "Code Change"
+
+# Pipe from search for bulk operations. Note: the filter --state below matches
+# FlowState (Kanban board), while the update --state sets ScheduleState — the
+# same flag name, but two different Rally fields depending on the command.
 rally-cli --format json tickets --current-iteration --state "Defined" | \
   jq -r '.data[].formatted_id' | \
   xargs rally-cli tickets update --state "In-Progress"

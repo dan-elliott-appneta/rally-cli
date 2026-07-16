@@ -72,6 +72,32 @@ class TestBulkUpdateHelp:
         assert result.exit_code == 0
 
 
+class TestStateFlagMapsToScheduleState:
+    """Regression test for --state routing to ScheduleState, not FlowState.
+
+    --state previously sent fields={"state": value}, which triggered a
+    project-scoped FlowState lookup that failed for standard values like
+    "Accepted" in projects without a matching FlowState board config. It
+    must send fields={"ScheduleState": value} instead, which Rally accepts
+    as a plain enum with no reference lookup.
+    """
+
+    @patch("rally_tui.cli.commands.query.AsyncRallyClient")
+    def test_state_sends_schedulestate_key(self, mock_client_cls):
+        """--state "Accepted" must produce fields={"ScheduleState": "Accepted"}."""
+        ticket = _make_ticket("US12345")
+        mock_client_cls.return_value = _mock_client_for_update({"US12345": ticket})
+
+        runner = CliRunner(env={"RALLY_APIKEY": "test_key"})
+        result = runner.invoke(cli, ["tickets", "update", "US12345", "--state", "Accepted"])
+
+        assert result.exit_code == 0
+        mock_client = mock_client_cls.return_value
+        _, call_fields = mock_client.update_ticket.call_args.args
+        assert call_fields.get("ScheduleState") == "Accepted"
+        assert "state" not in call_fields
+
+
 class TestBulkUpdateMultipleIds:
     """Tests for updating multiple tickets at once."""
 
