@@ -106,21 +106,3 @@ def get_logger(name: str | None = None) -> logging.Logger:
     if name is None:
         return logger
     return logging.getLogger(name)
-
-
-def set_log_level(level: str) -> None:
-    """Change the log level at runtime.
-
-    Args:
-        level: New log level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-    """
-    level_value = getattr(logging, level.upper(), logging.INFO)
-    logger.setLevel(level_value)
-
-    # Update file handler level (first handler)
-    for handler in logger.handlers:
-        if isinstance(handler, RotatingFileHandler):
-            handler.setLevel(level_value)
-            break
-
-    logger.info(f"Log level changed to {level.upper()}")

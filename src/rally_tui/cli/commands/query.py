@@ -4,20 +4,22 @@ This module implements the 'tickets' command for querying Rally work items.
 """
 
 import asyncio
-import re
 import sys
 from datetime import date as date_type
 
 import click
 
+from rally_tui.cli.commands._common import (
+    apply_format_override,
+    format_option,
+    require_apikey,
+    require_valid_ticket_id,
+)
 from rally_tui.cli.formatters.base import CLIResult
 from rally_tui.cli.main import CLIContext, cli, pass_context
 from rally_tui.config import RallyConfig
 from rally_tui.models import Ticket
 from rally_tui.services.async_rally_client import AsyncRallyClient
-
-# Pattern matching valid Rally ticket IDs (case-insensitive)
-_TICKET_ID_RE = re.compile(r"^(US|S|DE|TA|TC|F)\d+$", re.IGNORECASE)
 
 
 def _sanitize_query_value(value: str) -> str:
@@ -57,18 +59,6 @@ def _validate_date(ctx: click.Context, param: click.Parameter, value: str | None
     return value
 
 
-def _is_valid_ticket_id(ticket_id: str) -> bool:
-    """Validate that a ticket ID matches the expected Rally format.
-
-    Args:
-        ticket_id: The ticket ID string to validate.
-
-    Returns:
-        True if the format is valid, False otherwise.
-    """
-    return bool(_TICKET_ID_RE.match(ticket_id))
-
-
 # Map CLI type names to Rally entity types
 CREATE_TYPE_MAP = {
     "userstory": "HierarchicalRequirement",
@@ -77,13 +67,7 @@ CREATE_TYPE_MAP = {
 
 
 @click.group("tickets", invoke_without_command=True)
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format (overrides global --format).",
-)
+@format_option
 @click.option(
     "--current-iteration",
     is_flag=True,
@@ -175,10 +159,7 @@ def tickets(
 
     # Apply sub-format override before any subcommand or list runs so that
     # subcommands that inherit the context also see the updated formatter.
-    if sub_format:
-        from rally_tui.cli.formatters.base import OutputFormat
-
-        ctx.set_format(OutputFormat(sub_format.lower()))
+    apply_format_override(ctx, sub_format)
 
     if click_ctx.invoked_subcommand is not None:
         return
@@ -210,15 +191,7 @@ def _tickets_list(
     sort_by: str,
 ) -> None:
     """Run the list-tickets flow (default when no subcommand)."""
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
+    require_apikey(ctx)
 
     field_list = None
     if fields:
@@ -295,15 +268,7 @@ def tickets_create(
         rally-cli tickets create "Bug in login" --type Defect --description "Repro steps..."
         rally-cli tickets create "Future idea" --backlog
     """
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
+    require_apikey(ctx)
 
     entity_type = CREATE_TYPE_MAP.get(ticket_type.lower(), "HierarchicalRequirement")
     config = RallyConfig(
@@ -340,13 +305,7 @@ def tickets_create(
 
 @tickets.command("show")
 @click.argument("ticket_id")
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format.",
-)
+@format_option
 @pass_context
 def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> None:
     """Show detailed information for a single ticket.
@@ -359,30 +318,9 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
         rally-cli tickets show US12345
         rally-cli tickets show DE67890 --format json
     """
-    if sub_format:
-        from rally_tui.cli.formatters.base import OutputFormat
-
-        ctx.set_format(OutputFormat(sub_format.lower()))
-
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
-
-    if not _is_valid_ticket_id(ticket_id):
-        result = CLIResult(
-            success=False,
-            data=None,
-            error=f"Invalid ticket ID format: {ticket_id}. "
-            "Ticket ID must match pattern US/S/DE/TA/TC/F followed by digits.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(2)
+    apply_format_override(ctx, sub_format)
+    require_apikey(ctx)
+    require_valid_ticket_id(ctx, ticket_id)
 
     async def _do_show() -> Ticket | None:
         config = RallyConfig(
@@ -493,13 +431,7 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
     callback=_validate_date,
     help="Target date (YYYY-MM-DD).",
 )
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format.",
-)
+@format_option
 @pass_context
 def tickets_update(
     ctx: CLIContext,
@@ -552,32 +484,12 @@ def tickets_update(
         rally-cli tickets update US12345 US12346 US12347 --state "Completed"
         rally-cli tickets update DE67890 --defect-state "Closed"
     """
-    if sub_format:
-        from rally_tui.cli.formatters.base import OutputFormat
-
-        ctx.set_format(OutputFormat(sub_format.lower()))
-
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
+    apply_format_override(ctx, sub_format)
+    require_apikey(ctx)
 
     # Validate all ticket IDs up front
     for ticket_id in ticket_ids:
-        if not _is_valid_ticket_id(ticket_id):
-            result = CLIResult(
-                success=False,
-                data=None,
-                error=f"Invalid ticket ID format: {ticket_id}. "
-                "Ticket ID must match pattern US/S/DE/TA/TC/F followed by digits.",
-            )
-            click.echo(ctx.formatter.format_error(result), err=True)
-            sys.exit(2)
+        require_valid_ticket_id(ctx, ticket_id)
 
     # Read file-based options
     if description_file:
@@ -806,13 +718,7 @@ def tickets_update(
     required=True,
     help="Required safety flag - must be provided to confirm deletion.",
 )
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format.",
-)
+@format_option
 @pass_context
 def tickets_delete(ctx: CLIContext, ticket_id: str, confirm: bool, sub_format: str | None) -> None:
     """Delete a ticket from Rally.
@@ -825,30 +731,9 @@ def tickets_delete(ctx: CLIContext, ticket_id: str, confirm: bool, sub_format: s
     \b
         rally-cli tickets delete US12345 --confirm
     """
-    if sub_format:
-        from rally_tui.cli.formatters.base import OutputFormat
-
-        ctx.set_format(OutputFormat(sub_format.lower()))
-
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
-
-    if not _is_valid_ticket_id(ticket_id):
-        result = CLIResult(
-            success=False,
-            data=None,
-            error=f"Invalid ticket ID format: {ticket_id}. "
-            "Ticket ID must match pattern US/S/DE/TA/TC/F followed by digits.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(2)
+    apply_format_override(ctx, sub_format)
+    require_apikey(ctx)
+    require_valid_ticket_id(ctx, ticket_id)
 
     async def _do_delete() -> bool:
         config = RallyConfig(

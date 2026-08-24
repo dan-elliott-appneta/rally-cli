@@ -5,29 +5,25 @@ discussion posts (comments) on a Rally ticket.
 """
 
 import asyncio
-import re
 import sys
 
 import click
 
-from rally_tui.cli.formatters.base import CLIResult, OutputFormat
+from rally_tui.cli.commands._common import (
+    apply_format_override,
+    format_option,
+    require_apikey,
+    require_valid_ticket_id,
+)
+from rally_tui.cli.formatters.base import CLIResult
 from rally_tui.cli.main import CLIContext, cli, pass_context
 from rally_tui.config import RallyConfig
 from rally_tui.services.async_rally_client import AsyncRallyClient
 
-# Pattern matching valid Rally ticket IDs (case-insensitive)
-_TICKET_ID_RE = re.compile(r"^(US|S|DE|TA|TC|F)\d+$", re.IGNORECASE)
-
 
 @click.command("discussions")
 @click.argument("ticket_id")
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format (overrides global --format).",
-)
+@format_option
 @pass_context
 def discussions(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> None:
     """Show discussion thread for a ticket.
@@ -41,28 +37,9 @@ def discussions(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> None
         rally-cli discussions US12345 --format json
         rally-cli discussions US12345 --format json | jq '.data[].text'
     """
-    if sub_format:
-        ctx.set_format(OutputFormat(sub_format.lower()))
-
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
-
-    if not _TICKET_ID_RE.match(ticket_id):
-        result = CLIResult(
-            success=False,
-            data=None,
-            error=f"Invalid ticket ID format: {ticket_id}. "
-            "Ticket ID must match pattern US/S/DE/TA/TC/F followed by digits.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(2)
+    apply_format_override(ctx, sub_format)
+    require_apikey(ctx)
+    require_valid_ticket_id(ctx, ticket_id)
 
     result = asyncio.run(_fetch_discussions(ctx, ticket_id))
 

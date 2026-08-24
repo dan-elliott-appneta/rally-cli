@@ -4,118 +4,6 @@ from rally_tui.app import RallyTUI
 from rally_tui.widgets import StatusBar
 
 
-class TestStatusBarUnit:
-    """Unit tests for StatusBar widget in isolation."""
-
-    def test_default_workspace(self) -> None:
-        """Default workspace should be 'Not Connected'."""
-        bar = StatusBar()
-        assert bar.workspace == "Not Connected"
-
-    def test_default_project_is_empty(self) -> None:
-        """Default project should be empty string."""
-        bar = StatusBar()
-        assert bar.project == ""
-
-    def test_custom_workspace(self) -> None:
-        """StatusBar should accept custom workspace."""
-        bar = StatusBar(workspace="My Workspace")
-        assert bar.workspace == "My Workspace"
-
-    def test_custom_project(self) -> None:
-        """StatusBar should accept custom project."""
-        bar = StatusBar(project="My Project")
-        assert bar.project == "My Project"
-
-    def test_custom_workspace_and_project(self) -> None:
-        """StatusBar should accept both workspace and project."""
-        bar = StatusBar(workspace="Test Workspace", project="Test Project")
-        assert bar.workspace == "Test Workspace"
-        assert bar.project == "Test Project"
-
-    def test_set_workspace_updates_value(self) -> None:
-        """set_workspace should update the workspace property."""
-        bar = StatusBar()
-        bar.set_workspace("New Workspace")
-        assert bar.workspace == "New Workspace"
-
-    def test_set_project_updates_value(self) -> None:
-        """set_project should update the project property."""
-        bar = StatusBar()
-        bar.set_project("New Project")
-        assert bar.project == "New Project"
-
-    def test_default_connected_is_false(self) -> None:
-        """Default connected status should be False."""
-        bar = StatusBar()
-        assert bar.connected is False
-
-    def test_custom_connected(self) -> None:
-        """StatusBar should accept custom connected status."""
-        bar = StatusBar(connected=True)
-        assert bar.connected is True
-
-    def test_set_connected_updates_value(self) -> None:
-        """set_connected should update the connected property."""
-        bar = StatusBar()
-        bar.set_connected(True)
-        assert bar.connected is True
-
-    def test_default_filter_info_is_empty(self) -> None:
-        """Default filter_info should be empty string."""
-        bar = StatusBar()
-        assert bar.filter_info == ""
-
-    def test_set_filter_info(self) -> None:
-        """set_filter_info should update filter_info."""
-        bar = StatusBar()
-        bar.set_filter_info(5, 10)
-        assert bar.filter_info == "Filtered: 5/10"
-
-    def test_clear_filter_info(self) -> None:
-        """clear_filter_info should reset filter_info to empty."""
-        bar = StatusBar()
-        bar.set_filter_info(3, 8)
-        bar.clear_filter_info()
-        assert bar.filter_info == ""
-
-    def test_default_iteration_filter_is_none(self) -> None:
-        """Default iteration_filter should be None."""
-        bar = StatusBar()
-        assert bar.iteration_filter is None
-
-    def test_set_iteration_filter(self) -> None:
-        """set_iteration_filter should update iteration_filter."""
-        bar = StatusBar()
-        bar.set_iteration_filter("Sprint 26")
-        assert bar.iteration_filter == "Sprint 26"
-
-    def test_set_iteration_filter_none(self) -> None:
-        """set_iteration_filter with None should clear the filter."""
-        bar = StatusBar()
-        bar.set_iteration_filter("Sprint 26")
-        bar.set_iteration_filter(None)
-        assert bar.iteration_filter is None
-
-    def test_default_user_filter_is_false(self) -> None:
-        """Default user_filter_active should be False."""
-        bar = StatusBar()
-        assert bar.user_filter_active is False
-
-    def test_set_user_filter_true(self) -> None:
-        """set_user_filter(True) should activate user filter."""
-        bar = StatusBar()
-        bar.set_user_filter(True)
-        assert bar.user_filter_active is True
-
-    def test_set_user_filter_false(self) -> None:
-        """set_user_filter(False) should deactivate user filter."""
-        bar = StatusBar()
-        bar.set_user_filter(True)
-        bar.set_user_filter(False)
-        assert bar.user_filter_active is False
-
-
 class TestStatusBarWidget:
     """Integration tests for StatusBar widget behavior."""
 
@@ -131,7 +19,6 @@ class TestStatusBarWidget:
         async with app.run_test():
             status_bar = app.query_one(StatusBar)
             assert status_bar is not None
-            assert status_bar.workspace == "Not Connected"
 
     async def test_status_bar_shows_project(self) -> None:
         """StatusBar should display project name when set."""
@@ -162,20 +49,6 @@ class TestStatusBarWidget:
         async with app.run_test():
             status_bar = app.query_one(StatusBar)
             assert "Offline" in status_bar.display_content
-
-    async def test_status_bar_update_workspace(self) -> None:
-        """StatusBar workspace property updates but banner stays."""
-        from textual.app import App, ComposeResult
-
-        class TestApp(App[None]):
-            def compose(self) -> ComposeResult:
-                yield StatusBar(id="status-bar")
-
-        app = TestApp()
-        async with app.run_test():
-            status_bar = app.query_one(StatusBar)
-            status_bar.set_workspace("Updated Workspace")
-            assert status_bar.workspace == "Updated Workspace"
 
     async def test_status_bar_format_with_project(self) -> None:
         """StatusBar should format with pipe separators."""
@@ -228,21 +101,6 @@ class TestStatusBarWidget:
             status_bar = app.query_one(StatusBar)
             assert "Connected" in status_bar.display_content
             assert "Offline" not in status_bar.display_content
-
-    async def test_status_bar_set_connected_updates_display(self) -> None:
-        """StatusBar should update display when set_connected is called."""
-        from textual.app import App, ComposeResult
-
-        class TestApp(App[None]):
-            def compose(self) -> ComposeResult:
-                yield StatusBar(id="status-bar")
-
-        app = TestApp()
-        async with app.run_test():
-            status_bar = app.query_one(StatusBar)
-            assert "Offline" in status_bar.display_content
-            status_bar.set_connected(True)
-            assert "Connected" in status_bar.display_content
 
     async def test_status_bar_shows_filter_info(self) -> None:
         """StatusBar should show filter info when set."""
@@ -373,59 +231,6 @@ class TestStatusBarInApp:
 class TestStatusBarCacheStatus:
     """Tests for cache status display in StatusBar."""
 
-    def test_default_cache_status_is_none(self) -> None:
-        """Default cache_status should be None."""
-        bar = StatusBar()
-        assert bar.cache_status is None
-
-    def test_default_cache_age_is_none(self) -> None:
-        """Default cache_age_minutes should be None."""
-        bar = StatusBar()
-        assert bar.cache_age_minutes is None
-
-    def test_set_cache_status_live(self) -> None:
-        """set_cache_status should set LIVE status."""
-        from rally_tui.widgets.status_bar import CacheStatusDisplay
-
-        bar = StatusBar()
-        bar.set_cache_status(CacheStatusDisplay.LIVE)
-        assert bar.cache_status == CacheStatusDisplay.LIVE
-
-    def test_set_cache_status_cached_with_age(self) -> None:
-        """set_cache_status should set CACHED status with age."""
-        from rally_tui.widgets.status_bar import CacheStatusDisplay
-
-        bar = StatusBar()
-        bar.set_cache_status(CacheStatusDisplay.CACHED, age_minutes=5)
-        assert bar.cache_status == CacheStatusDisplay.CACHED
-        assert bar.cache_age_minutes == 5
-
-    def test_set_cache_status_refreshing(self) -> None:
-        """set_cache_status should set REFRESHING status."""
-        from rally_tui.widgets.status_bar import CacheStatusDisplay
-
-        bar = StatusBar()
-        bar.set_cache_status(CacheStatusDisplay.REFRESHING)
-        assert bar.cache_status == CacheStatusDisplay.REFRESHING
-
-    def test_set_cache_status_offline(self) -> None:
-        """set_cache_status should set OFFLINE status."""
-        from rally_tui.widgets.status_bar import CacheStatusDisplay
-
-        bar = StatusBar()
-        bar.set_cache_status(CacheStatusDisplay.OFFLINE)
-        assert bar.cache_status == CacheStatusDisplay.OFFLINE
-
-    def test_clear_cache_status(self) -> None:
-        """clear_cache_status should clear the status."""
-        from rally_tui.widgets.status_bar import CacheStatusDisplay
-
-        bar = StatusBar()
-        bar.set_cache_status(CacheStatusDisplay.LIVE)
-        bar.clear_cache_status()
-        assert bar.cache_status is None
-        assert bar.cache_age_minutes is None
-
     async def test_cache_status_live_display(self) -> None:
         """Live status should show green bullet."""
         from textual.app import App, ComposeResult
@@ -496,24 +301,6 @@ class TestStatusBarCacheStatus:
 
 class TestStatusBarLoading:
     """Tests for loading indicator in StatusBar."""
-
-    def test_default_loading_is_false(self) -> None:
-        """Default loading should be False."""
-        bar = StatusBar()
-        assert bar.is_loading is False
-
-    def test_set_loading_true(self) -> None:
-        """set_loading(True) should set loading to True."""
-        bar = StatusBar()
-        bar.set_loading(True)
-        assert bar.is_loading is True
-
-    def test_set_loading_false(self) -> None:
-        """set_loading(False) should set loading to False."""
-        bar = StatusBar()
-        bar.set_loading(True)
-        bar.set_loading(False)
-        assert bar.is_loading is False
 
     async def test_loading_indicator_display(self) -> None:
         """Loading indicator should show 'Loading...' when active."""

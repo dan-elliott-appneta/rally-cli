@@ -13,7 +13,7 @@ class RallyConfig(BaseSettings):
         RALLY_SERVER: Rally server hostname (default: rally1.rallydev.com)
         RALLY_APIKEY: Rally API key (required for real API access)
         RALLY_WORKSPACE: Workspace name to connect to
-        RALLY_PROJECT: Project name to connect to
+        RALLY_PROJECT: Project name or numeric ObjectID to connect to
     """
 
     model_config = SettingsConfigDict(

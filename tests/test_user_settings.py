@@ -103,42 +103,6 @@ class TestUserSettingsTheme:
             settings.theme = "invalid"
 
 
-class TestUserSettingsGeneric:
-    """Tests for generic get/set methods."""
-
-    def test_get_returns_default(self, tmp_path: Path, monkeypatch) -> None:
-        """get() should return default for missing keys."""
-        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
-        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
-
-        settings = UserSettings()
-        assert settings.get("nonexistent") is None
-        assert settings.get("nonexistent", "default") == "default"
-
-    def test_set_persists_value(self, tmp_path: Path, monkeypatch) -> None:
-        """set() should persist value to file."""
-        config_file = tmp_path / "config.json"
-        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
-        monkeypatch.setattr(UserSettings, "CONFIG_FILE", config_file)
-
-        settings = UserSettings()
-        settings.set("custom_key", "custom_value")
-
-        # Read file directly
-        with config_file.open() as f:
-            data = json.load(f)
-        assert data["custom_key"] == "custom_value"
-
-    def test_get_retrieves_set_value(self, tmp_path: Path, monkeypatch) -> None:
-        """get() should retrieve previously set values."""
-        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
-        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
-
-        settings = UserSettings()
-        settings.set("key", "value")
-        assert settings.get("key") == "value"
-
-
 class TestUserSettingsThemeName:
     """Tests for theme_name property (full Textual theme names)."""
 

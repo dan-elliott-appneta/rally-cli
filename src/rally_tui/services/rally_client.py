@@ -42,16 +42,23 @@ class RallyClient:
         _log.debug(f"Initializing Rally client for server: {config.server}")
         self._config = config
 
+        # A numeric Project ObjectID isn't a name pyral can resolve directly;
+        # connect without it and look up the name by ID below instead.
+        project_id = config.project if config.project.isdigit() else None
+
         try:
             self._rally = Rally(
                 config.server,
                 apikey=config.apikey,
                 workspace=config.workspace or None,
-                project=config.project or None,
+                project=None if project_id else (config.project or None),
             )
             # Cache workspace/project names from connection
             self._workspace = config.workspace or self._rally.getWorkspace().Name
-            self._project = config.project or self._rally.getProject().Name
+            if project_id:
+                self._project = self._resolve_project_name_by_id(project_id) or project_id
+            else:
+                self._project = config.project or self._rally.getProject().Name
             _log.info(f"Connected to Rally workspace: {self._workspace}, project: {self._project}")
         except Exception as e:
             _log.error(f"Failed to initialize Rally connection: {e}")
@@ -64,6 +71,28 @@ class RallyClient:
         # Get current iteration from API
         self._current_iteration = self._fetch_current_iteration()
         _log.debug(f"Current iteration: {self._current_iteration}")
+
+    def _resolve_project_name_by_id(self, object_id: str) -> str | None:
+        """Resolve a Rally Project ObjectID to its Name.
+
+        Args:
+            object_id: The project's numeric ObjectID (digits only).
+
+        Returns:
+            The project's Name, or None if not found.
+        """
+        try:
+            response = self._rally.get(
+                "Project",
+                fetch="Name",
+                query=f"(ObjectID = {object_id})",
+                pagesize=1,
+            )
+            for project in response:
+                return project.Name
+        except Exception as e:
+            _log.warning(f"Failed to resolve project ID {object_id}: {e}")
+        return None
 
     def _fetch_current_user(self) -> str | None:
         """Fetch the current user's display name from the API.

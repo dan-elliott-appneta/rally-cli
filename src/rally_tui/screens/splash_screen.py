@@ -1,7 +1,6 @@
 """Splash screen with ASCII art title."""
 
 from textual.app import ComposeResult
-from textual.binding import Binding
 from textual.containers import Center, Middle
 from textual.screen import Screen
 from textual.widgets import Static
@@ -32,10 +31,6 @@ def get_splash_text() -> str:
 
 class SplashScreen(Screen[None]):
     """Splash screen displayed on application startup."""
-
-    BINDINGS = [
-        Binding("any", "dismiss_splash", "Continue", show=False),
-    ]
 
     DEFAULT_CSS = """
     SplashScreen {

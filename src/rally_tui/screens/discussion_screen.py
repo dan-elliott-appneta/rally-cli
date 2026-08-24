@@ -7,10 +7,10 @@ from textual.screen import Screen
 from textual.widgets import Footer, Header, Static
 
 from rally_tui.models import Discussion, Ticket
+from rally_tui.screens.keybinding_mixin import KeybindingMixin
 from rally_tui.services.protocol import RallyClientProtocol
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils import html_to_text
-from rally_tui.utils.keybindings import VIM_KEYBINDINGS
 
 
 class DiscussionItem(Static):
@@ -44,7 +44,7 @@ class DiscussionItem(Static):
         yield Static(text, classes="discussion-text")
 
 
-class DiscussionScreen(Screen[None]):
+class DiscussionScreen(KeybindingMixin, Screen[None]):
     """Screen for viewing ticket discussions."""
 
     BINDINGS = [
@@ -106,27 +106,15 @@ class DiscussionScreen(Screen[None]):
 
     def on_mount(self) -> None:
         """Load discussions when screen mounts."""
-        self._apply_keybindings()
+        self._apply_keybindings(
+            {
+                "navigation.down": "scroll_down",
+                "navigation.up": "scroll_up",
+                "navigation.top": "scroll_top",
+                "navigation.bottom": "scroll_bottom",
+            }
+        )
         self._load_discussions()
-
-    def _apply_keybindings(self) -> None:
-        """Apply vim-style keybindings for navigation."""
-        if self._user_settings:
-            keybindings = self._user_settings.keybindings
-        else:
-            keybindings = VIM_KEYBINDINGS
-
-        navigation_bindings = {
-            "navigation.down": "scroll_down",
-            "navigation.up": "scroll_up",
-            "navigation.top": "scroll_top",
-            "navigation.bottom": "scroll_bottom",
-        }
-
-        for action_id, handler in navigation_bindings.items():
-            if action_id in keybindings:
-                key = keybindings[action_id]
-                self._bindings.bind(key, handler, show=False)
 
     def action_scroll_down(self) -> None:
         """Scroll discussion container down."""

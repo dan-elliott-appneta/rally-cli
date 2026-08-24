@@ -57,7 +57,7 @@ export RALLY_PROJECT="Your Project"
 | `RALLY_SERVER` | Rally server hostname | `rally1.rallydev.com` |
 | `RALLY_APIKEY` | Rally API key (required) | (none) |
 | `RALLY_WORKSPACE` | Workspace name | (from API) |
-| `RALLY_PROJECT` | Project name | (from API) |
+| `RALLY_PROJECT` | Project name or numeric ObjectID | (from API) |
 
 ### Running Rally TUI
 

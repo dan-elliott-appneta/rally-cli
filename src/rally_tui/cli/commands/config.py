@@ -8,7 +8,8 @@ import sys
 
 import click
 
-from rally_tui.cli.formatters.base import CLIResult, OutputFormat
+from rally_tui.cli.commands._common import apply_format_override, format_option
+from rally_tui.cli.formatters.base import CLIResult
 from rally_tui.cli.main import CLIContext, cli, pass_context
 
 
@@ -29,13 +30,7 @@ def _mask_apikey(apikey: str) -> str:
 
 
 @click.command("config")
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format (overrides global --format).",
-)
+@format_option
 @pass_context
 def config(ctx: CLIContext, sub_format: str | None) -> None:
     """Show current Rally CLI configuration.
@@ -51,8 +46,7 @@ def config(ctx: CLIContext, sub_format: str | None) -> None:
         rally-cli config --format json
         rally-cli config --format csv
     """
-    if sub_format:
-        ctx.set_format(OutputFormat(sub_format.lower()))
+    apply_format_override(ctx, sub_format)
 
     # Determine the source of the API key
     apikey_display = _mask_apikey(ctx.apikey)

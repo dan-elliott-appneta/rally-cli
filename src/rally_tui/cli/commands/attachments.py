@@ -6,56 +6,20 @@ downloading, and uploading file attachments on Rally tickets.
 
 import asyncio
 import os
-import re
 import sys
 
 import click
 
-from rally_tui.cli.formatters.base import CLIResult, OutputFormat
+from rally_tui.cli.commands._common import (
+    apply_format_override,
+    format_option,
+    require_apikey,
+    require_valid_ticket_id,
+)
+from rally_tui.cli.formatters.base import CLIResult
 from rally_tui.cli.main import CLIContext, cli, pass_context
 from rally_tui.config import RallyConfig
 from rally_tui.services.async_rally_client import AsyncRallyClient
-
-# Pattern matching valid Rally ticket IDs (case-insensitive)
-_TICKET_ID_RE = re.compile(r"^(US|S|DE|TA|TC|F)\d+$", re.IGNORECASE)
-
-
-def _validate_ticket_id(ticket_id: str) -> CLIResult | None:
-    """Validate a ticket ID and return an error CLIResult if invalid.
-
-    Args:
-        ticket_id: The ticket ID to validate.
-
-    Returns:
-        CLIResult with error if invalid, None if valid.
-    """
-    if not _TICKET_ID_RE.match(ticket_id):
-        return CLIResult(
-            success=False,
-            data=None,
-            error=f"Invalid ticket ID format: {ticket_id}. "
-            "Ticket ID must match pattern US/S/DE/TA/TC/F followed by digits.",
-        )
-    return None
-
-
-def _check_apikey(ctx: CLIContext) -> CLIResult | None:
-    """Check for API key and return error CLIResult if missing.
-
-    Args:
-        ctx: CLI context.
-
-    Returns:
-        CLIResult with error if missing, None if present.
-    """
-    if not ctx.apikey:
-        return CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-    return None
 
 
 @click.group("attachments", invoke_without_command=True)
@@ -79,13 +43,7 @@ def attachments(click_ctx: click.Context) -> None:
 
 @attachments.command("list")
 @click.argument("ticket_id")
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format (overrides global --format).",
-)
+@format_option
 @pass_context
 def attachments_list(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> None:
     """List attachments on a ticket.
@@ -98,18 +56,9 @@ def attachments_list(ctx: CLIContext, ticket_id: str, sub_format: str | None) ->
         rally-cli attachments list US12345
         rally-cli attachments list US12345 --format json
     """
-    if sub_format:
-        ctx.set_format(OutputFormat(sub_format.lower()))
-
-    error = _check_apikey(ctx)
-    if error:
-        click.echo(ctx.formatter.format_error(error), err=True)
-        sys.exit(4)
-
-    error = _validate_ticket_id(ticket_id)
-    if error:
-        click.echo(ctx.formatter.format_error(error), err=True)
-        sys.exit(2)
+    apply_format_override(ctx, sub_format)
+    require_apikey(ctx)
+    require_valid_ticket_id(ctx, ticket_id)
 
     result = asyncio.run(_fetch_attachments(ctx, ticket_id))
 
@@ -145,13 +94,7 @@ def attachments_list(ctx: CLIContext, ticket_id: str, sub_format: str | None) ->
     default=None,
     help="Output directory for --all downloads.",
 )
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format.",
-)
+@format_option
 @pass_context
 def attachments_download(
     ctx: CLIContext,
@@ -176,18 +119,9 @@ def attachments_download(
         rally-cli attachments download US12345 requirements.pdf --output /tmp/req.pdf
         rally-cli attachments download US12345 --all --output-dir ./attachments/
     """
-    if sub_format:
-        ctx.set_format(OutputFormat(sub_format.lower()))
-
-    error = _check_apikey(ctx)
-    if error:
-        click.echo(ctx.formatter.format_error(error), err=True)
-        sys.exit(4)
-
-    error = _validate_ticket_id(ticket_id)
-    if error:
-        click.echo(ctx.formatter.format_error(error), err=True)
-        sys.exit(2)
+    apply_format_override(ctx, sub_format)
+    require_apikey(ctx)
+    require_valid_ticket_id(ctx, ticket_id)
 
     if not download_all and not filename:
         result = CLIResult(
@@ -216,13 +150,7 @@ def attachments_download(
 @attachments.command("upload")
 @click.argument("ticket_id")
 @click.argument("file_path", type=click.Path(exists=True))
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format.",
-)
+@format_option
 @pass_context
 def attachments_upload(
     ctx: CLIContext,
@@ -241,18 +169,9 @@ def attachments_upload(
         rally-cli attachments upload US12345 ./screenshot.png
         rally-cli attachments upload US12345 ./screenshot.png --format json
     """
-    if sub_format:
-        ctx.set_format(OutputFormat(sub_format.lower()))
-
-    error = _check_apikey(ctx)
-    if error:
-        click.echo(ctx.formatter.format_error(error), err=True)
-        sys.exit(4)
-
-    error = _validate_ticket_id(ticket_id)
-    if error:
-        click.echo(ctx.formatter.format_error(error), err=True)
-        sys.exit(2)
+    apply_format_override(ctx, sub_format)
+    require_apikey(ctx)
+    require_valid_ticket_id(ctx, ticket_id)
 
     result = asyncio.run(_upload_attachment(ctx, ticket_id, file_path))
 

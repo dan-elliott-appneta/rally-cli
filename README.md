@@ -183,7 +183,7 @@ See [docs/CLI.md](docs/CLI.md) for full CLI documentation.
 | `RALLY_SERVER` | Rally server hostname | `rally1.rallydev.com` |
 | `RALLY_APIKEY` | Rally API key (required for API access) | (none) |
 | `RALLY_WORKSPACE` | Workspace name | (from API) |
-| `RALLY_PROJECT` | Project name | (from API) |
+| `RALLY_PROJECT` | Project name or numeric ObjectID | (from API) |
 
 ### Keyboard Navigation
 
@@ -308,7 +308,6 @@ rally-cli/
 │       ├── async_rally_client.py  # Async Rally API client (httpx)
 │       ├── rally_api.py     # Rally WSAPI constants and helpers
 │       ├── mock_client.py   # MockRallyClient for testing
-│       ├── async_mock_client.py   # AsyncMockRallyClient for testing
 │       ├── cache_manager.py # Local file caching for tickets
 │       ├── caching_client.py      # CachingRallyClient wrapper (sync)
 │       └── async_caching_client.py # AsyncCachingRallyClient wrapper
@@ -346,7 +345,6 @@ rally-cli/
 │   ├── test_cache_manager.py     # CacheManager tests
 │   ├── test_caching_client.py    # CachingRallyClient tests
 │   ├── test_rally_api.py         # Rally API helpers tests
-│   ├── test_async_mock_client.py # AsyncMockRallyClient tests
 │   ├── test_app_async_integration.py # App async integration tests
 │   └── test_snapshots.py         # Visual regression tests
 └── docs/

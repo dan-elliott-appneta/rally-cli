@@ -7,91 +7,16 @@ providing the same caching behavior as CachingRallyClient but for async operatio
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
-from enum import Enum
-from typing import TYPE_CHECKING, Protocol
 
 from rally_tui.models import Attachment, Discussion, Feature, Iteration, Owner, Ticket
-from rally_tui.services.cache_manager import CacheManager
+from rally_tui.services.async_rally_client import AsyncRallyClient
+from rally_tui.services.caching_base import BaseCachingClient, CacheStatus
 from rally_tui.services.protocol import BulkResult
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
 
-class AsyncRallyClientProtocol(Protocol):
-    """Protocol for async Rally clients."""
-
-    @property
-    def workspace(self) -> str: ...
-
-    @property
-    def project(self) -> str: ...
-
-    @property
-    def current_user(self) -> str | None: ...
-
-    @property
-    def current_iteration(self) -> str | None: ...
-
-    async def get_tickets(self, query: str | None = None) -> list[Ticket]: ...
-    async def get_ticket(self, formatted_id: str) -> Ticket | None: ...
-    async def get_discussions(self, ticket: Ticket) -> list[Discussion]: ...
-    async def add_comment(self, ticket: Ticket, text: str) -> Discussion | None: ...
-    async def update_points(self, ticket: Ticket, points: float) -> Ticket | None: ...
-    async def update_state(self, ticket: Ticket, state: str) -> Ticket | None: ...
-    async def create_ticket(
-        self,
-        title: str,
-        ticket_type: str,
-        description: str = "",
-        points: float | None = None,
-        backlog: bool = False,
-    ) -> Ticket | None: ...
-    async def get_iterations(self, count: int = 5, state: str | None = None) -> list[Iteration]: ...
-    async def get_future_iterations(self, count: int = 5) -> list[Iteration]: ...
-    async def get_feature(self, formatted_id: str) -> tuple[str, str] | None: ...
-    async def get_features(self, query: str | None = None, count: int = 50) -> list[Feature]: ...
-    async def get_feature_children(self, feature_id: str) -> list[Ticket]: ...
-    async def set_parent(self, ticket: Ticket, parent_id: str) -> Ticket | None: ...
-    async def bulk_set_parent(self, tickets: list[Ticket], parent_id: str) -> BulkResult: ...
-    async def bulk_update_state(self, tickets: list[Ticket], state: str) -> BulkResult: ...
-    async def bulk_set_iteration(
-        self, tickets: list[Ticket], iteration_name: str | None
-    ) -> BulkResult: ...
-    async def bulk_update_points(self, tickets: list[Ticket], points: float) -> BulkResult: ...
-    async def get_attachments(self, ticket: Ticket) -> list[Attachment]: ...
-    async def download_attachment(
-        self, ticket: Ticket, attachment: Attachment, dest_path: str
-    ) -> bool: ...
-    async def upload_attachment(self, ticket: Ticket, file_path: str) -> Attachment | None: ...
-    async def download_embedded_image(self, url: str, dest_path: str) -> bool: ...
-    async def get_users(self, display_names: list[str] | None = None) -> list[Owner]: ...
-    async def assign_owner(self, ticket: Ticket, owner: Owner) -> Ticket | None: ...
-    async def bulk_assign_owner(self, tickets: list[Ticket], owner: Owner) -> BulkResult: ...
-    async def search_tickets(
-        self,
-        text: str,
-        ticket_type: str | None = None,
-        state: str | None = None,
-        current_iteration: bool = False,
-        limit: int = 50,
-    ) -> list[Ticket]: ...
-    async def get_sprint_summary(self, iteration_name: str | None = None) -> dict: ...
-
-
-class CacheStatus(Enum):
-    """Status of cached data."""
-
-    LIVE = "live"  # Fresh data from API
-    CACHED = "cached"  # Showing cached data
-    REFRESHING = "refreshing"  # Background refresh in progress
-    OFFLINE = "offline"  # No network, using cache
-
-
-class AsyncCachingRallyClient:
+class AsyncCachingRallyClient(BaseCachingClient):
     """Async caching wrapper for Rally client.
 
     Implements stale-while-revalidate caching with async operations:
@@ -102,89 +27,7 @@ class AsyncCachingRallyClient:
     All write operations are passed through to the underlying client.
     """
 
-    def __init__(
-        self,
-        client: AsyncRallyClientProtocol,
-        cache_manager: CacheManager,
-        cache_enabled: bool = True,
-        ttl_minutes: int = 15,
-        auto_refresh: bool = True,
-    ) -> None:
-        """Initialize the async caching client wrapper.
-
-        Args:
-            client: The underlying async Rally client to wrap
-            cache_manager: CacheManager instance for persistence
-            cache_enabled: Whether caching is enabled
-            ttl_minutes: Time-to-live for cache in minutes
-            auto_refresh: Whether to auto-refresh when cache is stale
-        """
-        self._client = client
-        self._cache = cache_manager
-        self._enabled = cache_enabled
-        self._ttl = ttl_minutes
-        self._auto_refresh = auto_refresh
-        self._is_offline = False
-        self._cache_status = CacheStatus.LIVE
-        self._on_status_change: Callable[[CacheStatus, int | None], None] | None = None
-        self._on_tickets_updated: Callable[[list[Ticket]], None] | None = None
-
-    # Pass-through properties
-
-    @property
-    def workspace(self) -> str:
-        """Get the current workspace name."""
-        return self._client.workspace
-
-    @property
-    def project(self) -> str:
-        """Get the current project name."""
-        return self._client.project
-
-    @property
-    def current_user(self) -> str | None:
-        """Get the current user's display name."""
-        return self._client.current_user
-
-    @property
-    def current_iteration(self) -> str | None:
-        """Get the current iteration name."""
-        return self._client.current_iteration
-
-    # Cache-specific properties
-
-    @property
-    def is_offline(self) -> bool:
-        """Whether the client is in offline mode."""
-        return self._is_offline
-
-    @property
-    def cache_status(self) -> CacheStatus:
-        """Current cache status."""
-        return self._cache_status
-
-    @property
-    def cache_age_minutes(self) -> int | None:
-        """Age of the cache in minutes, or None if no cache."""
-        return self._cache.get_cache_age_minutes()
-
-    # Event handlers
-
-    def set_on_status_change(
-        self, callback: Callable[[CacheStatus, int | None], None] | None
-    ) -> None:
-        """Set callback for cache status changes."""
-        self._on_status_change = callback
-
-    def set_on_tickets_updated(self, callback: Callable[[list[Ticket]], None] | None) -> None:
-        """Set callback for when tickets are refreshed from API."""
-        self._on_tickets_updated = callback
-
-    def _set_status(self, status: CacheStatus) -> None:
-        """Update cache status and notify listener."""
-        self._cache_status = status
-        if self._on_status_change:
-            self._on_status_change(status, self.cache_age_minutes)
+    _client: AsyncRallyClient
 
     # Core caching methods
 
@@ -275,10 +118,6 @@ class AsyncCachingRallyClient:
     async def refresh_cache(self) -> list[Ticket]:
         """Force refresh tickets from API and update cache."""
         return await self._fetch_from_api()
-
-    def is_cache_stale(self) -> bool:
-        """Check if cache is stale and needs refresh."""
-        return not self._cache.is_cache_valid(self._ttl)
 
     # Pass-through methods (no caching)
 
@@ -496,29 +335,3 @@ class AsyncCachingRallyClient:
             Dict with sprint summary data.
         """
         return await self._client.get_sprint_summary(iteration_name)
-
-    def _update_ticket_in_cache(self, updated_ticket: Ticket) -> None:
-        """Update a ticket in the cache after a mutation.
-
-        Args:
-            updated_ticket: The updated ticket to store in cache.
-        """
-        cached_tickets, metadata = self._cache.get_cached_tickets()
-        if cached_tickets:
-            found = False
-            # Find and replace the ticket in cached list
-            for i, cached_ticket in enumerate(cached_tickets):
-                if cached_ticket.formatted_id == updated_ticket.formatted_id:
-                    cached_tickets[i] = updated_ticket
-                    found = True
-                    break
-
-            # Only save if ticket was found in cache
-            if found:
-                self._cache.save_tickets(
-                    cached_tickets,
-                    workspace=self.workspace,
-                    project=self.project,
-                )
-            else:
-                logger.debug(f"Ticket {updated_ticket.formatted_id} not in cache, skipping save")

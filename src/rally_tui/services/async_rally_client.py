@@ -117,8 +117,10 @@ class AsyncRallyClient:
         _log.debug(f"Initializing async Rally client for server: {self._config.server}")
 
         try:
-            # Fetch workspace and project info if not provided
-            if not self._workspace or not self._project:
+            # Fetch workspace and project info if not provided, or if the
+            # project was given as a numeric ObjectID that still needs
+            # resolving to a Name.
+            if not self._workspace or not self._project or self._project.isdigit():
                 await self._fetch_workspace_info()
 
             # Fetch current user and iteration concurrently
@@ -233,6 +235,14 @@ class AsyncRallyClient:
         if results:
             self._workspace = results[0].get("Name", "")
 
+        # A numeric Project ObjectID needs resolving to a Name; every query
+        # filter elsewhere assumes self._project is a Name.
+        if self._project and self._project.isdigit():
+            resolved = await self._resolve_project_name_by_id(self._project)
+            if resolved:
+                self._project = resolved
+            return
+
         # Get project
         response = await self._get(
             "/project",
@@ -241,6 +251,27 @@ class AsyncRallyClient:
         results, _ = parse_query_result(response)
         if results:
             self._project = results[0].get("Name", "")
+
+    async def _resolve_project_name_by_id(self, object_id: str) -> str | None:
+        """Resolve a Rally Project ObjectID to its Name.
+
+        Args:
+            object_id: The project's numeric ObjectID (digits only).
+
+        Returns:
+            The project's Name, or None if not found.
+        """
+        try:
+            response = await self._get(
+                "/project",
+                params={"fetch": "Name", "query": f"(ObjectID = {object_id})", "pagesize": 1},
+            )
+            results, _ = parse_query_result(response)
+            if results:
+                return results[0].get("Name")
+        except Exception as e:
+            _log.warning(f"Failed to resolve project ID {object_id}: {e}")
+        return None
 
     async def _fetch_current_user(self) -> str | None:
         """Fetch the current user's display name.

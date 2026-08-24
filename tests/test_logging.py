@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 
 from rally_tui.user_settings import UserSettings
-from rally_tui.utils.logging import get_logger, set_log_level, setup_logging
+from rally_tui.utils.logging import get_logger, setup_logging
 
 
 class TestSetupLogging:
@@ -84,41 +84,3 @@ class TestGetLogger:
         """Child loggers should inherit from rally_tui."""
         logger = get_logger("rally_tui.services.client")
         assert "rally_tui" in logger.name
-
-
-class TestSetLogLevel:
-    """Tests for set_log_level function."""
-
-    def test_changes_log_level(self, tmp_path: Path, monkeypatch) -> None:
-        """set_log_level should change the logger level."""
-        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
-        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
-        monkeypatch.setattr(UserSettings, "LOG_FILE", tmp_path / "rally-tui.log")
-
-        # Reset initialization flag
-        import rally_tui.utils.logging as logging_module
-
-        logging_module._initialized = False
-
-        settings = UserSettings()
-        logger = setup_logging(settings)
-
-        set_log_level("ERROR")
-        assert logger.level == logging.ERROR
-
-    def test_accepts_lowercase(self, tmp_path: Path, monkeypatch) -> None:
-        """set_log_level should accept lowercase level names."""
-        monkeypatch.setattr(UserSettings, "CONFIG_DIR", tmp_path)
-        monkeypatch.setattr(UserSettings, "CONFIG_FILE", tmp_path / "config.json")
-        monkeypatch.setattr(UserSettings, "LOG_FILE", tmp_path / "rally-tui.log")
-
-        # Reset initialization flag
-        import rally_tui.utils.logging as logging_module
-
-        logging_module._initialized = False
-
-        settings = UserSettings()
-        logger = setup_logging(settings)
-
-        set_log_level("warning")
-        assert logger.level == logging.WARNING

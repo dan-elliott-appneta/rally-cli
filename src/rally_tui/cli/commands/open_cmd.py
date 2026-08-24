@@ -5,19 +5,16 @@ in the default web browser by constructing the correct Rally URL.
 """
 
 import asyncio
-import re
 import sys
 import webbrowser
 
 import click
 
+from rally_tui.cli.commands._common import require_apikey, require_valid_ticket_id
 from rally_tui.cli.formatters.base import CLIResult
 from rally_tui.cli.main import CLIContext, cli, pass_context
 from rally_tui.config import RallyConfig
 from rally_tui.services.async_rally_client import AsyncRallyClient
-
-# Pattern matching valid Rally ticket IDs (case-insensitive)
-_TICKET_ID_RE = re.compile(r"^(US|S|DE|TA|TC|F)\d+$", re.IGNORECASE)
 
 
 @click.command("open")
@@ -37,25 +34,8 @@ def open_ticket(ctx: CLIContext, ticket_id: str) -> None:
         rally-cli open DE67890
         rally-cli open F59625
     """
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
-
-    if not _TICKET_ID_RE.match(ticket_id):
-        result = CLIResult(
-            success=False,
-            data=None,
-            error=f"Invalid ticket ID format: {ticket_id}. "
-            "Ticket ID must match pattern US/S/DE/TA/TC/F followed by digits.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(2)
+    require_apikey(ctx)
+    require_valid_ticket_id(ctx, ticket_id)
 
     async def _do_open() -> str | None:
         config = RallyConfig(

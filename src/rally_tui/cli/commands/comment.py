@@ -8,6 +8,7 @@ import sys
 
 import click
 
+from rally_tui.cli.commands._common import require_apikey
 from rally_tui.cli.formatters.base import CLIResult
 from rally_tui.cli.main import CLIContext, cli, pass_context
 from rally_tui.config import RallyConfig
@@ -52,16 +53,7 @@ def comment(
         # Add comment from stdin
         echo "Deployment complete" | rally-cli comment US12345 --message-file -
     """
-    # Check for API key
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
+    require_apikey(ctx)
 
     # Validate ticket ID format
     if not _is_valid_ticket_id(ticket_id):

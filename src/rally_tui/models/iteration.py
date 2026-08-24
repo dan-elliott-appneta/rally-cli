@@ -3,9 +3,11 @@
 from dataclasses import dataclass
 from datetime import date
 
+from rally_tui.models.date_range import DateRangeMixin
+
 
 @dataclass(frozen=True)
-class Iteration:
+class Iteration(DateRangeMixin):
     """Represents a Rally iteration (sprint).
 
     Maps to Rally's Iteration entity.
@@ -16,24 +18,6 @@ class Iteration:
     start_date: date
     end_date: date
     state: str = "Planning"  # Planning, Committed, Accepted
-
-    @property
-    def is_current(self) -> bool:
-        """Check if this iteration is currently active."""
-        today = date.today()
-        return self.start_date <= today <= self.end_date
-
-    @property
-    def formatted_dates(self) -> str:
-        """Format date range for display: 'Dec 2 - Dec 15'."""
-        start = self.start_date.strftime("%b %d")
-        end = self.end_date.strftime("%b %d")
-        return f"{start} - {end}"
-
-    @property
-    def display_name(self) -> str:
-        """Format for display: 'Sprint 3 (Dec 2 - Dec 15)'."""
-        return f"{self.name} ({self.formatted_dates})"
 
     @property
     def short_name(self) -> str:
