@@ -9,6 +9,16 @@ from rally_tui.services import MockRallyClient
 from rally_tui.widgets import StatusBar, TicketList
 
 
+def _close_work(work, **kwargs) -> None:
+    """Side effect for a mocked run_worker: close the coroutine it was handed.
+
+    Without this the coroutine is never awaited and pytest reports a warning.
+    """
+    close = getattr(work, "close", None)
+    if close is not None:
+        close()
+
+
 @pytest.fixture
 def tickets_with_iterations() -> list[Ticket]:
     """Sample tickets with different iterations and owners."""
@@ -330,7 +340,7 @@ class TestConnectedModeFiltering:
         app._iteration_filter = "Sprint 26"
 
         # Mock run_worker to track if it was called
-        with patch.object(app, "run_worker") as mock_worker:
+        with patch.object(app, "run_worker", side_effect=_close_work) as mock_worker:
             with patch.object(app, "query_one") as mock_query:
                 mock_status_bar = MagicMock()
                 mock_query.return_value = mock_status_bar
@@ -355,7 +365,7 @@ class TestConnectedModeFiltering:
         app._connected = True
         app._iteration_filter = FILTER_BACKLOG
 
-        with patch.object(app, "run_worker") as mock_worker:
+        with patch.object(app, "run_worker", side_effect=_close_work) as mock_worker:
             with patch.object(app, "query_one") as mock_query:
                 mock_status_bar = MagicMock()
                 mock_query.return_value = mock_status_bar
@@ -382,7 +392,7 @@ class TestConnectedModeFiltering:
         app._connected = True
         app._iteration_filter = None  # This is what "All" sets
 
-        with patch.object(app, "run_worker") as mock_worker:
+        with patch.object(app, "run_worker", side_effect=_close_work) as mock_worker:
             with patch.object(app, "query_one") as mock_query:
                 mock_status_bar = MagicMock()
                 mock_query.return_value = mock_status_bar
@@ -408,7 +418,7 @@ class TestConnectedModeFiltering:
         app._iteration_filter = "Sprint 26"
         app._all_tickets = tickets_with_iterations
 
-        with patch.object(app, "run_worker") as mock_worker:
+        with patch.object(app, "run_worker", side_effect=_close_work) as mock_worker:
             with patch.object(app, "query_one") as mock_query:
                 # Mock widgets that _apply_filters needs
                 mock_ticket_list = MagicMock()

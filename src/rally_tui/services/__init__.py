@@ -1,14 +1,15 @@
 """Rally TUI Services - Data access layer."""
 
+from .async_adapter import AsyncClientAdapter, as_async_client
 from .mock_client import MockRallyClient
 from .owner_utils import extract_owners_from_tickets
 from .protocol import BulkResult, RallyClientProtocol
-from .rally_client import RallyClient
 
 __all__ = [
+    "AsyncClientAdapter",
     "BulkResult",
     "MockRallyClient",
-    "RallyClient",
     "RallyClientProtocol",
+    "as_async_client",
     "extract_owners_from_tickets",
 ]

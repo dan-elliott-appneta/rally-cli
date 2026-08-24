@@ -10,7 +10,7 @@ TicketType = Literal["UserStory", "Defect", "Task", "TestCase"]
 class Ticket:
     """Represents a Rally work item.
 
-    This is an internal model, separate from pyral's response objects.
+    This is an internal model, separate from the Rally API's response payloads.
     Using a frozen dataclass provides immutability and easy equality checks.
     """
 

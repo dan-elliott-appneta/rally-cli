@@ -222,3 +222,28 @@ class StatusBar(Static):
             loading: Whether tickets are currently being loaded.
         """
         self._loading = loading
+
+    def set_connection(
+        self,
+        workspace: str,
+        project: str,
+        connected: bool,
+        current_user: str | None = None,
+    ) -> None:
+        """Update the connection info shown in the bar.
+
+        Connection details aren't known at compose() time because the Rally
+        client resolves workspace/project/user during async initialization.
+
+        Args:
+            workspace: Workspace name to display.
+            project: Project name to display.
+            connected: Whether connected to Rally API.
+            current_user: Name of the logged-in user (shown when connected).
+        """
+        self._workspace = workspace
+        self._project = project
+        self._connected = connected
+        self._current_user = current_user
+        # These are plain attributes, not reactives, so refresh explicitly.
+        self.refresh()
