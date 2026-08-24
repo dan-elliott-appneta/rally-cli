@@ -10,7 +10,8 @@ import sys
 
 import click
 
-from rally_tui.cli.formatters.base import CLIResult, OutputFormat
+from rally_tui.cli.commands._common import apply_format_override, format_option, require_apikey
+from rally_tui.cli.formatters.base import CLIResult
 from rally_tui.cli.main import CLIContext, cli, pass_context
 from rally_tui.config import RallyConfig
 from rally_tui.services.async_rally_client import AsyncRallyClient
@@ -20,13 +21,7 @@ _FEATURE_ID_RE = re.compile(r"^F\d+$", re.IGNORECASE)
 
 
 @click.group("features", invoke_without_command=True)
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format (overrides global --format).",
-)
+@format_option
 @click.option(
     "--query",
     "query_filter",
@@ -53,9 +48,7 @@ def features(
         rally-cli features show F59625 --children
     """
     ctx = click_ctx.obj
-
-    if sub_format:
-        ctx.set_format(OutputFormat(sub_format.lower()))
+    apply_format_override(ctx, sub_format)
 
     if click_ctx.invoked_subcommand is not None:
         return
@@ -66,15 +59,7 @@ def features(
 
 def _features_list(ctx: CLIContext, query_filter: str | None) -> None:
     """Run the list-features flow (default when no subcommand)."""
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
+    require_apikey(ctx)
 
     result = asyncio.run(_fetch_features(ctx, query_filter))
 
@@ -95,13 +80,7 @@ def _features_list(ctx: CLIContext, query_filter: str | None) -> None:
     default=False,
     help="Show child user stories.",
 )
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format.",
-)
+@format_option
 @pass_context
 def features_show(
     ctx: CLIContext,
@@ -120,18 +99,8 @@ def features_show(
         rally-cli features show F59625 --children
         rally-cli features show F59625 --format json
     """
-    if sub_format:
-        ctx.set_format(OutputFormat(sub_format.lower()))
-
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
+    apply_format_override(ctx, sub_format)
+    require_apikey(ctx)
 
     if not _FEATURE_ID_RE.match(feature_id):
         result = CLIResult(

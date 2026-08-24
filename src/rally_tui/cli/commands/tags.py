@@ -5,28 +5,24 @@ and managing Rally tags on tickets.
 """
 
 import asyncio
-import re
 import sys
 
 import click
 
-from rally_tui.cli.formatters.base import CLIResult, OutputFormat
+from rally_tui.cli.commands._common import (
+    apply_format_override,
+    format_option,
+    require_apikey,
+    require_valid_ticket_id,
+)
+from rally_tui.cli.formatters.base import CLIResult
 from rally_tui.cli.main import CLIContext, cli, pass_context
 from rally_tui.config import RallyConfig
 from rally_tui.services.async_rally_client import AsyncRallyClient
 
-# Pattern matching valid Rally ticket IDs (case-insensitive)
-_TICKET_ID_RE = re.compile(r"^(US|S|DE|TA|TC|F)\d+$", re.IGNORECASE)
-
 
 @click.group("tags", invoke_without_command=True)
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format (overrides global --format).",
-)
+@format_option
 @click.pass_context
 def tags(click_ctx: click.Context, sub_format: str | None) -> None:
     """Manage Rally tags.
@@ -44,9 +40,7 @@ def tags(click_ctx: click.Context, sub_format: str | None) -> None:
         rally-cli tags remove US12345 "sprint-goal"
     """
     ctx = click_ctx.obj
-
-    if sub_format:
-        ctx.set_format(OutputFormat(sub_format.lower()))
+    apply_format_override(ctx, sub_format)
 
     if click_ctx.invoked_subcommand is not None:
         return
@@ -57,15 +51,7 @@ def tags(click_ctx: click.Context, sub_format: str | None) -> None:
 
 def _tags_list(ctx: CLIContext) -> None:
     """Run the list-tags flow (default when no subcommand)."""
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
+    require_apikey(ctx)
 
     result = asyncio.run(_fetch_tags(ctx))
 
@@ -120,13 +106,7 @@ async def _fetch_tags(ctx: CLIContext) -> CLIResult:
 
 @tags.command("create")
 @click.argument("tag_name")
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format.",
-)
+@format_option
 @pass_context
 def tags_create(ctx: CLIContext, tag_name: str, sub_format: str | None) -> None:
     """Create a new tag in Rally.
@@ -139,18 +119,8 @@ def tags_create(ctx: CLIContext, tag_name: str, sub_format: str | None) -> None:
         rally-cli tags create "sprint-goal"
         rally-cli tags create "technical-debt"
     """
-    if sub_format:
-        ctx.set_format(OutputFormat(sub_format.lower()))
-
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
+    apply_format_override(ctx, sub_format)
+    require_apikey(ctx)
 
     config = RallyConfig(
         server=ctx.server,
@@ -195,13 +165,7 @@ def tags_create(ctx: CLIContext, tag_name: str, sub_format: str | None) -> None:
 @tags.command("add")
 @click.argument("ticket_id")
 @click.argument("tag_name")
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format.",
-)
+@format_option
 @pass_context
 def tags_add(ctx: CLIContext, ticket_id: str, tag_name: str, sub_format: str | None) -> None:
     """Add a tag to a ticket.
@@ -215,28 +179,9 @@ def tags_add(ctx: CLIContext, ticket_id: str, tag_name: str, sub_format: str | N
         rally-cli tags add US12345 "sprint-goal"
         rally-cli tags add DE67890 "technical-debt"
     """
-    if sub_format:
-        ctx.set_format(OutputFormat(sub_format.lower()))
-
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
-
-    if not _TICKET_ID_RE.match(ticket_id):
-        result = CLIResult(
-            success=False,
-            data=None,
-            error=f"Invalid ticket ID format: {ticket_id}. "
-            "Ticket ID must match pattern US/S/DE/TA/TC/F followed by digits.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(2)
+    apply_format_override(ctx, sub_format)
+    require_apikey(ctx)
+    require_valid_ticket_id(ctx, ticket_id)
 
     config = RallyConfig(
         server=ctx.server,
@@ -288,13 +233,7 @@ def tags_add(ctx: CLIContext, ticket_id: str, tag_name: str, sub_format: str | N
 @tags.command("remove")
 @click.argument("ticket_id")
 @click.argument("tag_name")
-@click.option(
-    "--format",
-    "sub_format",
-    type=click.Choice(["text", "json", "csv"], case_sensitive=False),
-    default=None,
-    help="Output format.",
-)
+@format_option
 @pass_context
 def tags_remove(ctx: CLIContext, ticket_id: str, tag_name: str, sub_format: str | None) -> None:
     """Remove a tag from a ticket.
@@ -308,28 +247,9 @@ def tags_remove(ctx: CLIContext, ticket_id: str, tag_name: str, sub_format: str 
         rally-cli tags remove US12345 "sprint-goal"
         rally-cli tags remove DE67890 "technical-debt"
     """
-    if sub_format:
-        ctx.set_format(OutputFormat(sub_format.lower()))
-
-    if not ctx.apikey:
-        result = CLIResult(
-            success=False,
-            data=None,
-            error="RALLY_APIKEY environment variable not set. "
-            "Set RALLY_APIKEY or use --apikey flag.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(4)
-
-    if not _TICKET_ID_RE.match(ticket_id):
-        result = CLIResult(
-            success=False,
-            data=None,
-            error=f"Invalid ticket ID format: {ticket_id}. "
-            "Ticket ID must match pattern US/S/DE/TA/TC/F followed by digits.",
-        )
-        click.echo(ctx.formatter.format_error(result), err=True)
-        sys.exit(2)
+    apply_format_override(ctx, sub_format)
+    require_apikey(ctx)
+    require_valid_ticket_id(ctx, ticket_id)
 
     config = RallyConfig(
         server=ctx.server,

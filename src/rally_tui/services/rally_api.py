@@ -317,9 +317,6 @@ def build_base_url(server: str) -> str:
         The base URL for API requests.
     """
     # Ensure server doesn't have protocol prefix
-    if server.startswith("https://"):
-        server = server[8:]
-    elif server.startswith("http://"):
-        server = server[7:]
+    server = server.removeprefix("https://").removeprefix("http://")
 
     return f"https://{server}/slm/webservice/{RALLY_WSAPI_VERSION}"

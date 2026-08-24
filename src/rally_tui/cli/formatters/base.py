@@ -22,14 +22,6 @@ class CLIResult:
     data: Any
     error: str | None = None
 
-    def to_dict(self) -> dict[str, Any]:
-        """Convert to dictionary for JSON serialization."""
-        return {
-            "success": self.success,
-            "data": self.data,
-            "error": self.error,
-        }
-
 
 class BaseFormatter(ABC):
     """Abstract base class for output formatters."""

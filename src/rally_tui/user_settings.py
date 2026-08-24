@@ -120,15 +120,6 @@ class UserSettings:
         self._settings["parent_options"] = value
         self._save()
 
-    def get(self, key: str, default: Any = None) -> Any:
-        """Get a setting value."""
-        return self._settings.get(key, default)
-
-    def set(self, key: str, value: Any) -> None:
-        """Set and persist a setting value."""
-        self._settings[key] = value
-        self._save()
-
     # Keybinding properties and methods
 
     @property

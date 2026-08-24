@@ -64,10 +64,12 @@ class TestSplashScreenDismissal:
             ticket_list = app.query_one(TicketList)
             assert len(ticket_list._tickets) > 0
 
-    async def test_key_press_dismisses_splash(self) -> None:
-        """Key press should also dismiss splash (if still showing)."""
-        # This test verifies the splash can be dismissed by keypress
-        # even before loading completes (splash accepts any key)
+    def test_key_press_dismisses_splash(self) -> None:
+        """Key press should dismiss the splash screen."""
         screen = SplashScreen()
-        # SplashScreen should have dismiss binding
-        assert any(b.key == "any" or b.action == "dismiss" for b in screen.BINDINGS)
+        calls = []
+        screen.dismiss = lambda *a, **kw: calls.append(True)
+
+        screen.on_key(None)
+
+        assert calls == [True]

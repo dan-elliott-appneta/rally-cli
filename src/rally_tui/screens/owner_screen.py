@@ -7,11 +7,11 @@ from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Input, ListItem, ListView, Static
 
 from rally_tui.models import Owner
+from rally_tui.screens.keybinding_mixin import KeybindingMixin
 from rally_tui.user_settings import UserSettings
-from rally_tui.utils.keybindings import VIM_KEYBINDINGS
 
 
-class OwnerSelectionScreen(Screen[Owner | None]):
+class OwnerSelectionScreen(KeybindingMixin, Screen[Owner | None]):
     """Screen for selecting an owner for ticket assignment.
 
     Returns the selected Owner object, or None if cancelled.
@@ -139,27 +139,14 @@ class OwnerSelectionScreen(Screen[Owner | None]):
 
     def on_mount(self) -> None:
         """Focus the owner list and apply keybindings."""
-        self._apply_keybindings()
+        self._apply_keybindings(
+            {
+                "navigation.down": "cursor_down",
+                "navigation.up": "cursor_up",
+            }
+        )
         list_view = self.query_one("#owner-list", ListView)
         list_view.focus()
-
-    def _apply_keybindings(self) -> None:
-        """Apply vim-style keybindings for list navigation."""
-        if self._user_settings:
-            keybindings = self._user_settings.keybindings
-        else:
-            keybindings = VIM_KEYBINDINGS
-
-        # Bind j/k for navigation
-        navigation_bindings = {
-            "navigation.down": "cursor_down",
-            "navigation.up": "cursor_up",
-        }
-
-        for action_id, handler in navigation_bindings.items():
-            if action_id in keybindings:
-                key = keybindings[action_id]
-                self._bindings.bind(key, handler, show=False)
 
     def action_cursor_down(self) -> None:
         """Move cursor down in list."""

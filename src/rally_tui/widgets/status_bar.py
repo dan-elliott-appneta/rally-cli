@@ -5,6 +5,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import TYPE_CHECKING
 
+from textual.reactive import reactive
 from textual.widgets import Static
 
 if TYPE_CHECKING:
@@ -25,6 +26,9 @@ class StatusBar(Static):
 
     Shows workspace name, project name, and connection status in a single line
     at the top of the application (below the header).
+
+    All mutable display state is held in `reactive` attributes; Textual
+    automatically re-renders (via `render()`) whenever one of them changes.
     """
 
     DEFAULT_CSS = """
@@ -36,6 +40,15 @@ class StatusBar(Static):
         padding: 0 1;
     }
     """
+
+    _filter_info: reactive[str] = reactive("")
+    _iteration_filter: reactive[str | None] = reactive(None)
+    _user_filter_active: reactive[bool] = reactive(False)
+    _sort_mode: reactive[str | None] = reactive(None)  # Display name of current sort mode
+    selection_count: reactive[int] = reactive(0)
+    _cache_status: reactive[CacheStatusDisplay | None] = reactive(None)
+    _cache_age_minutes: reactive[int | None] = reactive(None)
+    _loading: reactive[bool] = reactive(False)
 
     def __init__(
         self,
@@ -62,22 +75,9 @@ class StatusBar(Static):
         self._project = project
         self._connected = connected
         self._current_user = current_user
-        self._display_content = ""
-        self._filter_info = ""
-        self._iteration_filter: str | None = None
-        self._user_filter_active = False
-        self._sort_mode: str | None = None  # Display name of current sort mode
-        self._selection_count = 0  # Number of selected tickets
-        self._cache_status: CacheStatusDisplay | None = None
-        self._cache_age_minutes: int | None = None
-        self._loading = False
 
-    def on_mount(self) -> None:
-        """Set initial content when mounted."""
-        self._update_display()
-
-    def _update_display(self) -> None:
-        """Update the status bar content."""
+    def render(self) -> str:
+        """Compute the status bar content from current display state."""
         parts = []
         if self._project:
             parts.append(f"Project: {self._project}")
@@ -87,8 +87,8 @@ class StatusBar(Static):
             parts.append("[bold cyan]Loading...[/]")
 
         # Show selection count if any tickets selected
-        if self._selection_count > 0:
-            parts.append(f"[bold cyan]{self._selection_count} selected[/]")
+        if self.selection_count > 0:
+            parts.append(f"[bold cyan]{self.selection_count} selected[/]")
 
         # Build filter display
         filters = []
@@ -120,8 +120,7 @@ class StatusBar(Static):
         else:
             status = "Offline"
         parts.append(status)
-        self._display_content = " | ".join(parts)
-        self.update(self._display_content)
+        return " | ".join(parts)
 
     def _format_cache_status(self) -> str:
         """Format cache status for display.
@@ -146,49 +145,7 @@ class StatusBar(Static):
     @property
     def display_content(self) -> str:
         """Get the current display content string."""
-        return self._display_content
-
-    def set_workspace(self, workspace: str) -> None:
-        """Update the workspace name.
-
-        Args:
-            workspace: New workspace name.
-        """
-        self._workspace = workspace
-        self._update_display()
-
-    def set_project(self, project: str) -> None:
-        """Update the project name.
-
-        Args:
-            project: New project name.
-        """
-        self._project = project
-        self._update_display()
-
-    @property
-    def workspace(self) -> str:
-        """Get the current workspace name."""
-        return self._workspace
-
-    @property
-    def project(self) -> str:
-        """Get the current project name."""
-        return self._project
-
-    @property
-    def connected(self) -> bool:
-        """Get the current connection status."""
-        return self._connected
-
-    def set_connected(self, connected: bool) -> None:
-        """Update connection status.
-
-        Args:
-            connected: Whether connected to Rally API.
-        """
-        self._connected = connected
-        self._update_display()
+        return self.render()
 
     def set_filter_info(self, filtered: int, total: int, query: str = "") -> None:
         """Show filter count and search query in status bar.
@@ -202,17 +159,10 @@ class StatusBar(Static):
             self._filter_info = f"Search: [cyan]{query}[/] ({filtered}/{total})"
         else:
             self._filter_info = f"Filtered: {filtered}/{total}"
-        self._update_display()
 
     def clear_filter_info(self) -> None:
         """Clear filter info from status bar."""
         self._filter_info = ""
-        self._update_display()
-
-    @property
-    def filter_info(self) -> str:
-        """Get the current filter info string."""
-        return self._filter_info
 
     def set_iteration_filter(self, iteration_name: str | None) -> None:
         """Set the iteration filter display.
@@ -221,12 +171,6 @@ class StatusBar(Static):
             iteration_name: Name of the iteration to show, or None to clear.
         """
         self._iteration_filter = iteration_name
-        self._update_display()
-
-    @property
-    def iteration_filter(self) -> str | None:
-        """Get the current iteration filter."""
-        return self._iteration_filter
 
     def set_user_filter(self, active: bool) -> None:
         """Set whether the user filter (My Items) is active.
@@ -235,12 +179,6 @@ class StatusBar(Static):
             active: Whether the user filter is active.
         """
         self._user_filter_active = active
-        self._update_display()
-
-    @property
-    def user_filter_active(self) -> bool:
-        """Get whether the user filter is active."""
-        return self._user_filter_active
 
     def set_sort_mode(self, mode: SortMode) -> None:
         """Set the current sort mode display.
@@ -258,12 +196,6 @@ class StatusBar(Static):
             SortMode.PARENT: "Parent",
         }
         self._sort_mode = mode_names.get(mode)
-        self._update_display()
-
-    @property
-    def sort_mode_display(self) -> str | None:
-        """Get the current sort mode display string."""
-        return self._sort_mode
 
     def set_selection_count(self, count: int) -> None:
         """Set the number of selected tickets.
@@ -271,13 +203,7 @@ class StatusBar(Static):
         Args:
             count: Number of selected tickets.
         """
-        self._selection_count = count
-        self._update_display()
-
-    @property
-    def selection_count(self) -> int:
-        """Get the current selection count."""
-        return self._selection_count
+        self.selection_count = count
 
     def set_cache_status(self, status: CacheStatusDisplay, age_minutes: int | None = None) -> None:
         """Set the cache status display.
@@ -288,23 +214,6 @@ class StatusBar(Static):
         """
         self._cache_status = status
         self._cache_age_minutes = age_minutes
-        self._update_display()
-
-    @property
-    def cache_status(self) -> CacheStatusDisplay | None:
-        """Get the current cache status."""
-        return self._cache_status
-
-    @property
-    def cache_age_minutes(self) -> int | None:
-        """Get the current cache age in minutes."""
-        return self._cache_age_minutes
-
-    def clear_cache_status(self) -> None:
-        """Clear the cache status from display."""
-        self._cache_status = None
-        self._cache_age_minutes = None
-        self._update_display()
 
     def set_loading(self, loading: bool) -> None:
         """Set the loading indicator state.
@@ -313,9 +222,3 @@ class StatusBar(Static):
             loading: Whether tickets are currently being loaded.
         """
         self._loading = loading
-        self._update_display()
-
-    @property
-    def is_loading(self) -> bool:
-        """Get the current loading state."""
-        return self._loading

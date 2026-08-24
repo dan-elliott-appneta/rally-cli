@@ -22,7 +22,7 @@ rally-cli
 |----------|----------|-------------|
 | `RALLY_APIKEY` | Yes | Your Rally API key |
 | `RALLY_WORKSPACE` | No | Workspace name (uses default if not set) |
-| `RALLY_PROJECT` | No | Project name (uses default if not set) |
+| `RALLY_PROJECT` | No | Project name or numeric ObjectID (uses default if not set) |
 | `RALLY_SERVER` | No | Rally server hostname (default: `rally1.rallydev.com`) |
 
 ### Getting Your API Key

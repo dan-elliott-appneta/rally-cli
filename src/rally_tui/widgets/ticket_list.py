@@ -351,14 +351,6 @@ class TicketList(ListView):
             self.ticket = ticket
             super().__init__()
 
-    class FilterApplied(Message):
-        """Posted when filter is applied."""
-
-        def __init__(self, filtered: int, total: int) -> None:
-            self.filtered = filtered
-            self.total = total
-            super().__init__()
-
     class SelectionChanged(Message):
         """Posted when multi-select selection changes."""
 
@@ -648,8 +640,6 @@ class TicketList(ListView):
         for ticket in filtered:
             is_selected = ticket.formatted_id in self._selected_ids
             self.mount(self._create_list_item(ticket, selected=is_selected))
-
-        self.post_message(self.FilterApplied(len(filtered), len(self._all_tickets)))
 
     def _matches_query(self, ticket: Ticket, query: str) -> bool:
         """Check if ticket matches search query."""

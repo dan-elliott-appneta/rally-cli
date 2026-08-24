@@ -1,31 +1,19 @@
 """Owner model for Rally TUI ticket assignment."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
-@dataclass(frozen=True, eq=False)
+@dataclass(frozen=True)
 class Owner:
     """Represents a Rally user who can own tickets.
 
     Uses frozen=True for immutability (matching other models).
-    Uses eq=False with custom __eq__ to compare only by object_id,
-    enabling proper deduplication in owner cache sets.
+    display_name/user_name are excluded from equality/hash so two Owner
+    instances with the same object_id are treated as the same Rally user,
+    even if display_name differs (e.g., name update) — this enables proper
+    deduplication in owner cache sets.
     """
 
     object_id: str  # Rally ObjectID for API calls
-    display_name: str  # Full name for display
-    user_name: str | None = None  # Username/email for reference
-
-    def __hash__(self) -> int:
-        """Hash by object_id for set/dict operations."""
-        return hash(self.object_id)
-
-    def __eq__(self, other: object) -> bool:
-        """Equality based on object_id only.
-
-        Two Owner instances with the same object_id represent the same
-        Rally user, even if display_name differs (e.g., name update).
-        """
-        if not isinstance(other, Owner):
-            return False
-        return self.object_id == other.object_id
+    display_name: str = field(compare=False)  # Full name for display
+    user_name: str | None = field(default=None, compare=False)  # Username/email for reference

@@ -12,10 +12,10 @@ from textual.screen import ModalScreen
 from textual.widgets import Footer, Input, Label, Static
 
 from rally_tui.models import Attachment, Ticket
+from rally_tui.screens.keybinding_mixin import KeybindingMixin
 from rally_tui.services.protocol import RallyClientProtocol
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils import extract_images_from_html
-from rally_tui.utils.keybindings import VIM_KEYBINDINGS
 
 
 @dataclass(frozen=True)
@@ -161,7 +161,7 @@ class AttachmentsResult:
     file_path: str | None = None
 
 
-class AttachmentsScreen(ModalScreen[AttachmentsResult | None]):
+class AttachmentsScreen(KeybindingMixin, ModalScreen[AttachmentsResult | None]):
     """Screen for viewing and managing ticket attachments."""
 
     BINDINGS = [
@@ -293,28 +293,16 @@ class AttachmentsScreen(ModalScreen[AttachmentsResult | None]):
         # Initially hide upload container
         self.query_one("#upload-container").display = False
         # Apply vim keybindings
-        self._apply_keybindings()
+        self._apply_keybindings(
+            {
+                "navigation.down": "scroll_down",
+                "navigation.up": "scroll_up",
+                "navigation.top": "scroll_top",
+                "navigation.bottom": "scroll_bottom",
+            }
+        )
         # Load attachments
         self._load_attachments()
-
-    def _apply_keybindings(self) -> None:
-        """Apply vim-style keybindings for navigation."""
-        if self._user_settings:
-            keybindings = self._user_settings.keybindings
-        else:
-            keybindings = VIM_KEYBINDINGS
-
-        navigation_bindings = {
-            "navigation.down": "scroll_down",
-            "navigation.up": "scroll_up",
-            "navigation.top": "scroll_top",
-            "navigation.bottom": "scroll_bottom",
-        }
-
-        for action_id, handler in navigation_bindings.items():
-            if action_id in keybindings:
-                key = keybindings[action_id]
-                self._bindings.bind(key, handler, show=False)
 
     def action_scroll_down(self) -> None:
         """Scroll attachments container down."""

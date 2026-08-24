@@ -8,8 +8,8 @@ from textual.containers import Vertical
 from textual.screen import Screen
 from textual.widgets import Button, Footer, Header, Static
 
+from rally_tui.screens.keybinding_mixin import KeybindingMixin
 from rally_tui.user_settings import UserSettings
-from rally_tui.utils.keybindings import VIM_KEYBINDINGS
 
 
 class BulkAction(Enum):
@@ -23,7 +23,7 @@ class BulkAction(Enum):
     YANK = "yank"
 
 
-class BulkActionsScreen(Screen[BulkAction | None]):
+class BulkActionsScreen(KeybindingMixin, Screen[BulkAction | None]):
     """Screen for selecting a bulk action to perform on selected tickets.
 
     Shows available bulk operations:
@@ -128,25 +128,13 @@ class BulkActionsScreen(Screen[BulkAction | None]):
 
     def on_mount(self) -> None:
         """Focus first button and apply keybindings."""
-        self._apply_keybindings()
+        self._apply_keybindings(
+            {
+                "navigation.down": "focus_next_button",
+                "navigation.up": "focus_prev_button",
+            }
+        )
         self.query_one("#btn-parent", Button).focus()
-
-    def _apply_keybindings(self) -> None:
-        """Apply vim-style keybindings for button navigation."""
-        if self._user_settings:
-            keybindings = self._user_settings.keybindings
-        else:
-            keybindings = VIM_KEYBINDINGS
-
-        navigation_bindings = {
-            "navigation.down": "focus_next_button",
-            "navigation.up": "focus_prev_button",
-        }
-
-        for action_id, handler in navigation_bindings.items():
-            if action_id in keybindings:
-                key = keybindings[action_id]
-                self._bindings.bind(key, handler, show=False)
 
     def action_focus_next_button(self) -> None:
         """Move focus to the next button."""
