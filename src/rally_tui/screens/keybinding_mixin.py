@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from textual.binding import BindingsMap
+
 from rally_tui.utils.keybindings import VIM_KEYBINDINGS
 
 
@@ -11,6 +13,8 @@ class KeybindingMixin:
     Expects the including Screen to set `self._user_settings` (UserSettings |
     None) before calling `_apply_keybindings`.
     """
+
+    _bindings: BindingsMap
 
     def _apply_keybindings(self, navigation_bindings: dict[str, str]) -> None:
         """Bind navigation keys from user settings (or vim defaults).

@@ -37,8 +37,7 @@ def require_apikey(ctx: CLIContext) -> None:
     result = CLIResult(
         success=False,
         data=None,
-        error="RALLY_APIKEY environment variable not set. "
-        "Set RALLY_APIKEY or use --apikey flag.",
+        error="RALLY_APIKEY environment variable not set. Set RALLY_APIKEY or use --apikey flag.",
     )
     click.echo(ctx.formatter.format_error(result), err=True)
     sys.exit(4)
