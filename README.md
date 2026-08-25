@@ -304,12 +304,11 @@ rally-cli/
 │   │   └── keybindings.py   # Keybinding profiles and utilities
 │   └── services/            # Rally API client layer
 │       ├── protocol.py      # RallyClientProtocol interface
-│       ├── rally_client.py  # Real Rally API client (sync, pyral)
-│       ├── async_rally_client.py  # Async Rally API client (httpx)
+│       ├── async_rally_client.py  # Rally API client (async, httpx)
+│       ├── async_adapter.py # Adapts a sync client to the async interface
 │       ├── rally_api.py     # Rally WSAPI constants and helpers
 │       ├── mock_client.py   # MockRallyClient for testing
 │       ├── cache_manager.py # Local file caching for tickets
-│       ├── caching_client.py      # CachingRallyClient wrapper (sync)
 │       └── async_caching_client.py # AsyncCachingRallyClient wrapper
 ├── tests/
 │   ├── conftest.py               # Pytest fixtures
@@ -337,13 +336,12 @@ rally-cli/
 │   ├── test_mock_client_discussions.py  # MockClient discussion tests
 │   ├── test_config.py            # Configuration tests
 │   ├── test_user_settings.py     # User settings tests
-│   ├── test_rally_client.py      # RallyClient tests
 │   ├── test_html_to_text.py      # HTML conversion tests
 │   ├── test_logging.py           # Logging module tests
 │   ├── test_keybindings.py       # Keybinding utilities tests
 │   ├── test_keybindings_screen.py # KeybindingsScreen tests
 │   ├── test_cache_manager.py     # CacheManager tests
-│   ├── test_caching_client.py    # CachingRallyClient tests
+│   ├── test_caching_client.py    # AsyncCachingRallyClient tests
 │   ├── test_rally_api.py         # Rally API helpers tests
 │   ├── test_app_async_integration.py # App async integration tests
 │   └── test_snapshots.py         # Visual regression tests
@@ -399,7 +397,6 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 ## Technology Stack
 
 - **[Textual](https://textual.textualize.io/)** - Modern Python TUI framework
-- **[pyral](https://pyral.readthedocs.io/)** - Rally REST API toolkit (sync)
 - **[httpx](https://www.python-httpx.org/)** - Async HTTP client for Rally API
 - **[tenacity](https://tenacity.readthedocs.io/)** - Retry logic for API calls
 - **[pytest-textual-snapshot](https://github.com/Textualize/pytest-textual-snapshot)** - Visual regression testing

@@ -13,6 +13,7 @@ from textual.widgets import Footer, Input, Label, Static
 
 from rally_tui.models import Attachment, Ticket
 from rally_tui.screens.keybinding_mixin import KeybindingMixin
+from rally_tui.services.async_adapter import as_async_client
 from rally_tui.services.protocol import RallyClientProtocol
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils import extract_images_from_html
@@ -258,7 +259,7 @@ class AttachmentsScreen(KeybindingMixin, ModalScreen[AttachmentsResult | None]):
     ) -> None:
         super().__init__(name=name)
         self._ticket = ticket
-        self._client = client
+        self._client = as_async_client(client)
         self._attachments: list[Attachment] = []
         self._embedded_images: list[EmbeddedImage] = []
         self._all_items: list[Attachment | EmbeddedImage] = []
@@ -289,7 +290,7 @@ class AttachmentsScreen(KeybindingMixin, ModalScreen[AttachmentsResult | None]):
             )
         yield Footer()
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         # Initially hide upload container
         self.query_one("#upload-container").display = False
         # Apply vim keybindings
@@ -302,7 +303,7 @@ class AttachmentsScreen(KeybindingMixin, ModalScreen[AttachmentsResult | None]):
             }
         )
         # Load attachments
-        self._load_attachments()
+        await self._load_attachments()
 
     def action_scroll_down(self) -> None:
         """Scroll attachments container down."""
@@ -324,13 +325,13 @@ class AttachmentsScreen(KeybindingMixin, ModalScreen[AttachmentsResult | None]):
         container = self.query_one("#attachments-container", VerticalScroll)
         container.scroll_end()
 
-    def _load_attachments(self) -> None:
+    async def _load_attachments(self) -> None:
         """Load attachments and embedded images from the client."""
         container = self.query_one("#attachments-container")
         container.remove_children()
 
         # Load regular attachments
-        self._attachments = self._client.get_attachments(self._ticket)
+        self._attachments = await self._client.get_attachments(self._ticket)
 
         # Extract embedded images from description and notes
         self._embedded_images = []

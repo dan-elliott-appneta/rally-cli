@@ -8,6 +8,7 @@ from textual.widgets import Footer, Header, Static
 
 from rally_tui.models import Discussion, Ticket
 from rally_tui.screens.keybinding_mixin import KeybindingMixin
+from rally_tui.services.async_adapter import as_async_client
 from rally_tui.services.protocol import RallyClientProtocol
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils import html_to_text
@@ -86,7 +87,7 @@ class DiscussionScreen(KeybindingMixin, Screen[None]):
     ) -> None:
         super().__init__(name=name)
         self._ticket = ticket
-        self._client = client
+        self._client = as_async_client(client)
         self._discussions: list[Discussion] = []
         self._user_settings = user_settings
 
@@ -104,7 +105,7 @@ class DiscussionScreen(KeybindingMixin, Screen[None]):
         yield VerticalScroll(id="discussion-container")
         yield Footer()
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         """Load discussions when screen mounts."""
         self._apply_keybindings(
             {
@@ -114,7 +115,7 @@ class DiscussionScreen(KeybindingMixin, Screen[None]):
                 "navigation.bottom": "scroll_bottom",
             }
         )
-        self._load_discussions()
+        await self._load_discussions()
 
     def action_scroll_down(self) -> None:
         """Scroll discussion container down."""
@@ -136,12 +137,12 @@ class DiscussionScreen(KeybindingMixin, Screen[None]):
         container = self.query_one("#discussion-container", VerticalScroll)
         container.scroll_end()
 
-    def _load_discussions(self) -> None:
+    async def _load_discussions(self) -> None:
         """Fetch and display discussions."""
         container = self.query_one("#discussion-container", VerticalScroll)
         container.remove_children()
 
-        self._discussions = self._client.get_discussions(self._ticket)
+        self._discussions = await self._client.get_discussions(self._ticket)
 
         if not self._discussions:
             container.mount(Static("No discussions yet.", id="no-discussions"))
@@ -157,10 +158,15 @@ class DiscussionScreen(KeybindingMixin, Screen[None]):
         """Open comment input."""
         from rally_tui.screens.comment_screen import CommentScreen
 
+        # CommentScreen invokes on_submit synchronously, so hand the API call
+        # off to a worker rather than widening its callback type.
         def on_comment_submitted(text: str | None) -> None:
             if text:
-                result = self._client.add_comment(self._ticket, text)
-                if result:
-                    self._load_discussions()
+                self.run_worker(self._post_comment(text))
 
         self.app.push_screen(CommentScreen(self._ticket, on_submit=on_comment_submitted))
+
+    async def _post_comment(self, text: str) -> None:
+        """Add a comment to the ticket and reload the discussion list."""
+        if await self._client.add_comment(self._ticket, text):
+            await self._load_discussions()

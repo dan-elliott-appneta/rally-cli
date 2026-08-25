@@ -61,19 +61,19 @@ tests/
 ├── test_mock_client_discussions.py # MockClient discussion tests
 ├── test_config.py                 # Configuration tests
 ├── test_user_settings.py          # User settings tests
-├── test_rally_client.py           # RallyClient tests
 ├── test_html_to_text.py           # HTML conversion tests
 ├── test_logging.py                # Logging module tests
 ├── test_keybindings.py            # Keybinding utilities tests
 ├── test_filter_integration.py     # Filter integration tests
 ├── test_cache_manager.py          # CacheManager tests
-├── test_caching_client.py         # CachingRallyClient tests
+├── test_caching_client.py         # AsyncCachingRallyClient tests
+├── test_app_async_integration.py  # App/async client wiring tests
 ├── test_snapshots.py              # Visual regression tests
 └── __snapshots__/                 # SVG snapshot baselines
     └── test_snapshots/
 ```
 
-**Current Test Count: 737 tests**
+**Current Test Count: 1120 tests**
 
 ## Unit Tests
 

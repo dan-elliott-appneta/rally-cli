@@ -35,16 +35,11 @@ from rally_tui.screens import (
     StateScreen,
     TeamBreakdownScreen,
 )
-from rally_tui.services import BulkResult, MockRallyClient, RallyClient, RallyClientProtocol
-from rally_tui.services.async_caching_client import (
-    AsyncCachingRallyClient,
-)
-from rally_tui.services.async_caching_client import (
-    CacheStatus as AsyncCacheStatus,
-)
+from rally_tui.services import BulkResult, MockRallyClient, RallyClientProtocol
+from rally_tui.services.async_adapter import AsyncClientAdapter, as_async_client
+from rally_tui.services.async_caching_client import AsyncCachingRallyClient, CacheStatus
 from rally_tui.services.async_rally_client import AsyncRallyClient
 from rally_tui.services.cache_manager import CacheManager
-from rally_tui.services.caching_client import CacheStatus, CachingRallyClient
 from rally_tui.services.owner_utils import extract_owners_from_tickets
 from rally_tui.user_settings import UserSettings
 from rally_tui.utils import get_logger, setup_logging
@@ -94,55 +89,28 @@ class RallyTUI(App[None]):
         self._show_splash = show_splash
         self._user_settings = user_settings or UserSettings()
         self._server = config.server if config else "rally1.rallydev.com"
+        self._config = config  # Stored for async client initialization in on_mount
 
         _log.debug("Initializing RallyTUI application")
 
-        if client is not None:
-            # Explicit client provided (e.g., for testing)
-            self._client = client
-            self._connected = isinstance(client, RallyClient)
-            _log.debug("Using provided client (test mode)")
-        elif config is not None and config.is_configured:
-            # Try to connect with provided config
-            try:
-                _log.info(f"Connecting to Rally server: {config.server}")
-                self._client = RallyClient(config)
-                self._connected = True
-                _log.info(f"Connected to Rally as {self._client.current_user}")
-            except Exception as e:
-                # Fall back to mock client on connection failure
-                _log.error(f"Failed to connect to Rally: {e}")
-                self._client = MockRallyClient()
-                self._connected = False
-        else:
-            # No config or not configured - use mock client
-            _log.info("No Rally config provided, using offline mode")
-            self._client = MockRallyClient()
-            self._connected = False
-
-        # Wrap client with caching layer if enabled (only for real Rally connections)
-        # Don't cache MockRallyClient data to avoid test interference
+        # Connecting to Rally requires I/O, which can't happen here. on_mount
+        # does it and swaps in the real client; until then we serve mock data.
         self._cache_manager: CacheManager | None = None
-        self._caching_client: CachingRallyClient | None = None
-
-        # Async client for high-performance operations (ticket loading, bulk ops)
         self._async_client: AsyncRallyClient | None = None
         self._async_caching_client: AsyncCachingRallyClient | None = None
-        self._config = config  # Store config for async client initialization
-        self._use_async = False  # Flag to track if async mode is active
 
-        if self._user_settings.cache_enabled and self._connected:
-            self._cache_manager = CacheManager()
-            self._caching_client = CachingRallyClient(
-                client=self._client,
-                cache_manager=self._cache_manager,
-                cache_enabled=True,
-                ttl_minutes=self._user_settings.cache_ttl_minutes,
-                auto_refresh=self._user_settings.cache_auto_refresh,
-            )
-            # Use caching client as the main client
-            self._client = self._caching_client
-            _log.info("Caching enabled with TTL=%d minutes", self._user_settings.cache_ttl_minutes)
+        if client is not None:
+            # Explicit client provided (e.g., for testing)
+            self._client = as_async_client(client)
+            self._connected = isinstance(client, AsyncRallyClient)
+            if isinstance(client, AsyncRallyClient):
+                self._async_client = client
+            _log.debug("Using provided client (test mode)")
+        else:
+            self._client = AsyncClientAdapter(MockRallyClient())
+            self._connected = False
+            if config is None or not config.is_configured:
+                _log.info("No Rally config provided, using offline mode")
 
         # Filter state
         self._iteration_filter: str | None = None  # Iteration name or FILTER_BACKLOG
@@ -155,11 +123,14 @@ class RallyTUI(App[None]):
     def compose(self) -> ComposeResult:
         """Create the application layout."""
         yield Header()
+        # When a Rally connection is pending, workspace/project/user aren't
+        # resolved yet; on_mount fills them in via StatusBar.set_connection().
+        connecting = self._config is not None and self._config.is_configured and not self._connected
         yield StatusBar(
-            workspace=self._client.workspace,
-            project=self._client.project,
+            workspace="Connecting..." if connecting else self._client.workspace,
+            project="" if connecting else self._client.project,
             connected=self._connected,
-            current_user=self._client.current_user,
+            current_user=None if connecting else self._client.current_user,
             id="status-bar",
         )
         # Start with empty list - tickets loaded async after splash shows
@@ -230,8 +201,22 @@ class RallyTUI(App[None]):
         # Hide search input initially
         self.query_one("#search-input").display = False
 
-        # Set initial filter state for connected mode
         status_bar = self.query_one(StatusBar)
+
+        # Connect to Rally. On failure we stay on the offline mock client.
+        if self._config and self._config.is_configured and not self._connected:
+            try:
+                await self._connect()
+            except Exception as e:
+                _log.error(f"Failed to connect to Rally, staying offline: {e}")
+            status_bar.set_connection(
+                workspace=self._client.workspace,
+                project=self._client.project,
+                connected=self._connected,
+                current_user=self._client.current_user,
+            )
+
+        # Set initial filter state for connected mode
         if self._connected and self._client.current_iteration:
             self._iteration_filter = self._client.current_iteration
             self._user_filter_active = True
@@ -243,55 +228,33 @@ class RallyTUI(App[None]):
         ticket_list = self.query_one(TicketList)
         status_bar.set_sort_mode(ticket_list.sort_mode)
 
-        # Set up cache status callback if caching is enabled
-        if self._caching_client:
-            self._caching_client.set_on_status_change(self._on_cache_status_change)
-
-        # Initialize async client if connected with config
-        if self._connected and self._config and self._config.is_configured:
-            try:
-                await self._initialize_async_client()
-            except Exception as e:
-                _log.warning(f"Failed to initialize async client, using sync fallback: {e}")
-                self._use_async = False
-
-        # Set up async cache status callback if async caching is enabled
-        if self._async_caching_client:
-            self._async_caching_client.set_on_status_change(self._on_async_cache_status_change)
-
         # Focus the ticket list initially
         self.query_one(TicketList).focus()
 
-        # Show splash screen first, then load tickets async
-        # If no splash (test mode), load synchronously for predictable test behavior
+        # Show splash screen first, then load tickets in the background.
+        # Without a splash (test mode), load inline for predictable behavior.
         if self._show_splash:
             self.push_screen(SplashScreen())
-            # Start loading tickets using async client if available
-            if self._use_async:
-                self.run_worker(self._load_initial_tickets_async(), exclusive=True)
-            else:
-                self.run_worker(self._load_initial_tickets, thread=True, exclusive=True)
+            self.run_worker(self._load_initial_tickets(), exclusive=True)
         else:
-            # Synchronous load for tests
-            self._all_tickets = self._load_initial_tickets()
+            self._all_tickets = await self._load_initial_tickets()
             self._on_initial_tickets_loaded_sync()
 
         _log.info("Rally TUI started successfully")
 
-    async def _initialize_async_client(self) -> None:
-        """Initialize the async Rally client and caching layer."""
+    async def _connect(self) -> None:
+        """Connect to Rally and swap the mock client for the real one."""
         if not self._config:
             return
 
-        _log.info("Initializing async Rally client...")
+        _log.info(f"Connecting to Rally server: {self._config.server}")
         self._async_client = AsyncRallyClient(self._config)
-        # Pass sync client's user to async client (Rally API user lookup is complex)
-        if self._client and self._client.current_user:
-            self._async_client.set_current_user(self._client.current_user)
         await self._async_client.initialize()
+        self._client = self._async_client
+        self._connected = True
 
-        # Wrap with caching if enabled
-        if self._user_settings.cache_enabled and self._cache_manager:
+        if self._user_settings.cache_enabled:
+            self._cache_manager = CacheManager()
             self._async_caching_client = AsyncCachingRallyClient(
                 client=self._async_client,
                 cache_manager=self._cache_manager,
@@ -299,10 +262,11 @@ class RallyTUI(App[None]):
                 ttl_minutes=self._user_settings.cache_ttl_minutes,
                 auto_refresh=self._user_settings.cache_auto_refresh,
             )
-            _log.info("Async caching client initialized")
+            self._async_caching_client.set_on_status_change(self._on_cache_status_change)
+            self._client = self._async_caching_client
+            _log.info("Caching enabled with TTL=%d minutes", self._user_settings.cache_ttl_minutes)
 
-        self._use_async = True
-        _log.info(f"Async client ready: user={self._async_client.current_user}")
+        _log.info(f"Connected to Rally as {self._async_client.current_user}")
 
     async def on_unmount(self) -> None:
         """Clean up async resources when app closes."""
@@ -312,30 +276,13 @@ class RallyTUI(App[None]):
             self._async_client = None
             self._async_caching_client = None
 
-    def _load_initial_tickets(self) -> list:
-        """Load initial filtered tickets in a thread (sync fallback)."""
-        _log.debug("Loading initial tickets (sync)...")
+    async def _load_initial_tickets(self) -> list:
+        """Load initial filtered tickets (current iteration + user)."""
+        _log.debug("Loading initial tickets...")
         try:
-            # Load filtered tickets first (current iteration + user)
-            tickets = self._client.get_tickets()
-            return list(tickets)
+            return list(await self._client.get_tickets())
         except Exception as e:
             _log.error(f"Failed to load tickets: {e}")
-            return []
-
-    async def _load_initial_tickets_async(self) -> list:
-        """Load initial filtered tickets using async client."""
-        _log.debug("Loading initial tickets (async)...")
-        try:
-            client = self._async_caching_client or self._async_client
-            if not client:
-                _log.warning("No async client available, falling back to sync")
-                return self._load_initial_tickets()
-
-            tickets = await client.get_tickets()
-            return list(tickets)
-        except Exception as e:
-            _log.error(f"Failed to load tickets (async): {e}")
             return []
 
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
@@ -343,14 +290,9 @@ class RallyTUI(App[None]):
         _log.debug(f"Worker {event.worker.name} state: {event.state}")
 
         # Clear loading indicator on error or success for fetch workers
-        async_fetch_workers = (
-            "_fetch_filtered_tickets",
-            "_fetch_filtered_tickets_async",
-            "_refresh_all_tickets",
-            "_refresh_all_tickets_async",
-        )
+        fetch_workers = ("_fetch_filtered_tickets", "_refresh_all_tickets")
         if event.state in (WorkerState.ERROR, WorkerState.SUCCESS):
-            if event.worker.name in async_fetch_workers:
+            if event.worker.name in fetch_workers:
                 try:
                     status_bar = self.query_one(StatusBar)
                     status_bar.set_loading(False)
@@ -363,7 +305,7 @@ class RallyTUI(App[None]):
         if event.state != WorkerState.SUCCESS:
             return
 
-        if event.worker.name in ("_load_initial_tickets", "_load_initial_tickets_async"):
+        if event.worker.name == "_load_initial_tickets":
             # Initial tickets loaded - update UI
             tickets = event.worker.result
             if tickets is not None:
@@ -372,12 +314,9 @@ class RallyTUI(App[None]):
 
             # Now load ALL tickets in background for filter changes
             if self._connected:
-                if self._use_async:
-                    self.run_worker(self._load_all_tickets_async(), exclusive=False)
-                else:
-                    self.run_worker(self._load_all_tickets, thread=True, exclusive=False)
+                self.run_worker(self._load_all_tickets(), exclusive=False)
 
-        elif event.worker.name in ("_load_all_tickets", "_load_all_tickets_async"):
+        elif event.worker.name == "_load_all_tickets":
             # All tickets loaded - update cache
             tickets = event.worker.result
             if tickets:
@@ -385,76 +324,38 @@ class RallyTUI(App[None]):
                 self._all_tickets_loaded = True
                 _log.info(f"Background load complete: {len(self._all_tickets)} total tickets")
 
-        elif event.worker.name in ("_fetch_filtered_tickets", "_fetch_filtered_tickets_async"):
+        elif event.worker.name == "_fetch_filtered_tickets":
             # Filtered tickets fetched - update UI directly
             tickets = event.worker.result
             if tickets is not None:
                 self._on_filtered_tickets_loaded(tickets)
 
-        elif event.worker.name in ("_refresh_all_tickets", "_refresh_all_tickets_async"):
+        elif event.worker.name == "_refresh_all_tickets":
             # Manual refresh complete - update cache and UI
             tickets = event.worker.result
             if tickets:
                 self._on_refresh_complete(tickets)
 
-    def _load_all_tickets(self) -> list:
-        """Load all tickets in background thread (sync fallback)."""
-        _log.debug("Loading all tickets in background (sync)...")
+    async def _load_all_tickets(self) -> list:
+        """Load all tickets in the background, for local filter changes."""
+        _log.debug("Loading all tickets in background...")
         try:
-            all_tickets = self._client.get_tickets(query="")
-            return list(all_tickets)
+            return list(await self._client.get_tickets(query=""))
         except Exception as e:
             _log.error(f"Failed to load all tickets: {e}")
             return []
 
-    async def _load_all_tickets_async(self) -> list:
-        """Load all tickets in background using async client."""
-        _log.debug("Loading all tickets in background (async)...")
-        try:
-            client = self._async_caching_client or self._async_client
-            if not client:
-                _log.warning("No async client available")
-                return []
-
-            all_tickets = await client.get_tickets(query="")
-            return list(all_tickets)
-        except Exception as e:
-            _log.error(f"Failed to load all tickets (async): {e}")
-            return []
-
-    def _fetch_filtered_tickets(self) -> list:
-        """Fetch tickets with current filter from server (sync fallback)."""
-        _log.info(
-            f"_fetch_filtered_tickets called (sync), iteration_filter={self._iteration_filter}"
-        )
+    async def _fetch_filtered_tickets(self) -> list:
+        """Fetch tickets matching the current filter from the server."""
+        _log.info(f"_fetch_filtered_tickets called, iteration_filter={self._iteration_filter}")
         try:
             query = self._build_iteration_query()
             _log.info(f"Fetching tickets with query: {query}")
-            tickets = list(self._client.get_tickets(query=query))
+            tickets = list(await self._client.get_tickets(query=query))
             _log.info(f"Got {len(tickets)} tickets from API")
             return tickets
         except Exception as e:
             _log.error(f"Failed to fetch filtered tickets: {e}")
-            return []
-
-    async def _fetch_filtered_tickets_async(self) -> list:
-        """Fetch tickets with current filter using async client."""
-        _log.info(
-            f"_fetch_filtered_tickets_async called, iteration_filter={self._iteration_filter}"
-        )
-        try:
-            client = self._async_caching_client or self._async_client
-            if not client:
-                _log.warning("No async client available")
-                return []
-
-            query = self._build_iteration_query()
-            _log.info(f"Fetching tickets (async) with query: {query}")
-            tickets = await client.get_tickets(query=query)
-            _log.info(f"Got {len(tickets)} tickets from async API")
-            return list(tickets)
-        except Exception as e:
-            _log.error(f"Failed to fetch filtered tickets (async): {e}")
             return []
 
     def _build_iteration_query(self) -> str:
@@ -664,20 +565,20 @@ class RallyTUI(App[None]):
                 callback=self._handle_attachments_result,
             )
 
-    def _handle_attachments_result(self, result: AttachmentsResult | None) -> None:
+    async def _handle_attachments_result(self, result: AttachmentsResult | None) -> None:
         """Handle the result from AttachmentsScreen."""
         if result is None:
             _log.debug("Attachments screen closed")
             return
 
         if result.action == "download":
-            self._download_attachment(result)
+            await self._download_attachment(result)
         elif result.action == "download_embedded":
-            self._download_embedded_image(result)
+            await self._download_embedded_image(result)
         elif result.action == "upload":
-            self._upload_attachment(result)
+            await self._upload_attachment(result)
 
-    def _download_attachment(self, result: AttachmentsResult) -> None:
+    async def _download_attachment(self, result: AttachmentsResult) -> None:
         """Download an attachment to the user's home directory."""
         if not result.attachment:
             return
@@ -694,7 +595,9 @@ class RallyTUI(App[None]):
         _log.info(f"Downloading {result.attachment.name} to {dest_path}")
 
         try:
-            success = self._client.download_attachment(result.ticket, result.attachment, dest_path)
+            success = await self._client.download_attachment(
+                result.ticket, result.attachment, dest_path
+            )
             if success:
                 self.notify(f"Downloaded: {dest_path}", timeout=5)
                 _log.info(f"Download successful: {dest_path}")
@@ -705,7 +608,7 @@ class RallyTUI(App[None]):
             _log.exception(f"Error downloading attachment: {e}")
             self.notify("Download failed", severity="error", timeout=5)
 
-    def _download_embedded_image(self, result: AttachmentsResult) -> None:
+    async def _download_embedded_image(self, result: AttachmentsResult) -> None:
         """Download an embedded image to the user's home directory."""
         if not result.embedded_image:
             return
@@ -726,7 +629,9 @@ class RallyTUI(App[None]):
         _log.info(f"Downloading embedded image to {dest_path}")
 
         try:
-            success = self._client.download_embedded_image(result.embedded_image.url, dest_path)
+            success = await self._client.download_embedded_image(
+                result.embedded_image.url, dest_path
+            )
             if success:
                 self.notify(f"Downloaded: {dest_path}", timeout=5)
                 _log.info(f"Download successful: {dest_path}")
@@ -737,7 +642,7 @@ class RallyTUI(App[None]):
             _log.exception(f"Error downloading embedded image: {e}")
             self.notify("Download failed", severity="error", timeout=5)
 
-    def _upload_attachment(self, result: AttachmentsResult) -> None:
+    async def _upload_attachment(self, result: AttachmentsResult) -> None:
         """Upload a file as an attachment to a ticket."""
         if not result.file_path:
             return
@@ -755,7 +660,7 @@ class RallyTUI(App[None]):
         _log.info(f"Uploading {file_path} to {result.ticket.formatted_id}")
 
         try:
-            attachment = self._client.upload_attachment(result.ticket, file_path)
+            attachment = await self._client.upload_attachment(result.ticket, file_path)
             if attachment:
                 self.notify(f"Uploaded: {attachment.name}", timeout=5)
                 _log.info(f"Upload successful: {attachment.name}")
@@ -802,7 +707,7 @@ class RallyTUI(App[None]):
                 callback=self._handle_points_result,
             )
 
-    def _handle_points_result(self, points: float | None) -> None:
+    async def _handle_points_result(self, points: float | None) -> None:
         """Handle the result from PointsScreen."""
         if points is None:
             _log.debug("Points update cancelled")
@@ -816,7 +721,7 @@ class RallyTUI(App[None]):
         _log.info(f"Updating points for {ticket_id} to {points}")
 
         try:
-            updated = self._client.update_points(detail.ticket, points)
+            updated = await self._client.update_points(detail.ticket, points)
             if updated:
                 # Update the detail panel with new ticket data
                 detail.ticket = updated
@@ -843,7 +748,7 @@ class RallyTUI(App[None]):
                 callback=self._handle_state_result,
             )
 
-    def _handle_state_result(self, state: str | None) -> None:
+    async def _handle_state_result(self, state: str | None) -> None:
         """Handle the result from StateScreen.
 
         If transitioning to "In-Progress" and ticket has no parent,
@@ -862,7 +767,7 @@ class RallyTUI(App[None]):
             _log.info(f"Ticket {detail.ticket.formatted_id} needs parent before In-Progress")
             # Store the pending state and show parent selection screen
             self._pending_state = state
-            parent_options = self._build_parent_options()
+            parent_options = await self._build_parent_options()
 
             # If no parent options configured, notify user and still show screen
             # (they can use custom ID input)
@@ -880,15 +785,15 @@ class RallyTUI(App[None]):
             )
             return
 
-        self._update_ticket_state(detail.ticket, state)
+        await self._update_ticket_state(detail.ticket, state)
 
-    def _build_parent_options(self) -> list[ParentOption]:
+    async def _build_parent_options(self) -> list[ParentOption]:
         """Build list of ParentOption from user settings and client data."""
         parent_ids = self._user_settings.parent_options
         options: list[ParentOption] = []
 
         for parent_id in parent_ids:
-            feature = self._client.get_feature(parent_id)
+            feature = await self._client.get_feature(parent_id)
             if feature:
                 options.append(ParentOption(feature[0], feature[1]))
             else:
@@ -904,7 +809,7 @@ class RallyTUI(App[None]):
 
         return options
 
-    def _handle_parent_result(self, parent_id: str | None) -> None:
+    async def _handle_parent_result(self, parent_id: str | None) -> None:
         """Handle the result from ParentScreen.
 
         If a parent was selected, sets the parent and then updates the state.
@@ -924,7 +829,7 @@ class RallyTUI(App[None]):
 
         try:
             # Set the parent
-            updated = self._client.set_parent(detail.ticket, parent_id)
+            updated = await self._client.set_parent(detail.ticket, parent_id)
             if updated:
                 # Update detail and list with parent set
                 detail.ticket = updated
@@ -937,7 +842,7 @@ class RallyTUI(App[None]):
                 if self._pending_state:
                     pending = self._pending_state
                     self._pending_state = None
-                    self._update_ticket_state(updated, pending)
+                    await self._update_ticket_state(updated, pending)
             else:
                 _log.error(f"Failed to set parent for {ticket_id}")
                 self.notify("Failed to set parent", severity="error", timeout=5)
@@ -947,13 +852,13 @@ class RallyTUI(App[None]):
             self.notify("Failed to set parent", severity="error", timeout=5)
             self._pending_state = None
 
-    def _update_ticket_state(self, ticket: Ticket, state: str) -> None:
+    async def _update_ticket_state(self, ticket: Ticket, state: str) -> None:
         """Update a ticket's state and refresh the UI."""
         ticket_id = ticket.formatted_id
         _log.info(f"Updating state for {ticket_id} to {state}")
 
         try:
-            updated = self._client.update_state(ticket, state)
+            updated = await self._client.update_state(ticket, state)
             if updated:
                 # Update the detail panel with new ticket data
                 detail = self.query_one(TicketDetail)
@@ -985,9 +890,9 @@ class RallyTUI(App[None]):
             owners = self._cache_manager.get_iteration_owners(iteration)
 
         # Push owner selection screen
-        def on_owner_selected(owner: Owner | None) -> None:
+        async def on_owner_selected(owner: Owner | None) -> None:
             if owner:
-                self._perform_assignment(selected, owner)
+                await self._perform_assignment(selected, owner)
 
         self.push_screen(
             OwnerSelectionScreen(
@@ -998,30 +903,30 @@ class RallyTUI(App[None]):
             callback=on_owner_selected,
         )
 
-    def _perform_assignment(self, ticket: Ticket, owner: Owner) -> None:
+    async def _perform_assignment(self, ticket: Ticket, owner: Owner) -> None:
         """Perform the actual ticket assignment."""
         # Check if owner needs API resolution (TEMP: prefix)
         if owner.object_id.startswith("TEMP:"):
             # Need to resolve owner via API first
-            self._resolve_and_assign(ticket, owner.display_name)
+            await self._resolve_and_assign(ticket, owner.display_name)
         else:
-            self._assign_ticket(ticket, owner)
+            await self._assign_ticket(ticket, owner)
 
-    def _resolve_and_assign(self, ticket: Ticket, owner_name: str) -> None:
+    async def _resolve_and_assign(self, ticket: Ticket, owner_name: str) -> None:
         """Resolve owner name to Owner object and assign."""
         try:
-            users = self._client.get_users(display_names=[owner_name])
+            users = await self._client.get_users(display_names=[owner_name])
             if users:
-                self._assign_ticket(ticket, users[0])
+                await self._assign_ticket(ticket, users[0])
             else:
                 self.notify(f"Owner '{owner_name}' not found in Rally", severity="error")
         except Exception as e:
             self.notify(f"Failed to find owner: {e}", severity="error")
 
-    def _assign_ticket(self, ticket: Ticket, owner: Owner) -> None:
+    async def _assign_ticket(self, ticket: Ticket, owner: Owner) -> None:
         """Assign ticket to owner and update UI."""
         try:
-            updated = self._client.assign_owner(ticket, owner)
+            updated = await self._client.assign_owner(ticket, owner)
             if updated:
                 # Update ticket in list
                 ticket_list = self.query_one("#ticket-list", TicketList)
@@ -1046,7 +951,7 @@ class RallyTUI(App[None]):
             callback=self._handle_quick_ticket_result,
         )
 
-    def _handle_quick_ticket_result(self, data: QuickTicketData | None) -> None:
+    async def _handle_quick_ticket_result(self, data: QuickTicketData | None) -> None:
         """Handle the result from QuickTicketScreen."""
         if data is None:
             _log.debug("Quick ticket creation cancelled")
@@ -1055,7 +960,7 @@ class RallyTUI(App[None]):
         _log.info(f"Creating {data.ticket_type}: {data.title}")
 
         try:
-            created = self._client.create_ticket(
+            created = await self._client.create_ticket(
                 title=data.title,
                 ticket_type=data.ticket_type,
                 description=data.description,
@@ -1080,9 +985,9 @@ class RallyTUI(App[None]):
             _log.exception(f"Error creating ticket: {e}")
             self.notify("Failed to create ticket", severity="error", timeout=5)
 
-    def action_iteration_filter(self) -> None:
+    async def action_iteration_filter(self) -> None:
         """Open the iteration filter screen."""
-        iterations = self._client.get_iterations()
+        iterations = await self._client.get_iterations()
         self.push_screen(
             IterationScreen(
                 iterations, current_filter=self._iteration_filter, user_settings=self._user_settings
@@ -1214,49 +1119,20 @@ class RallyTUI(App[None]):
         _log.info("Refreshing ticket cache...")
         status_bar = self.query_one(StatusBar)
         status_bar.set_loading(True)
-        if self._use_async:
-            self.run_worker(self._refresh_all_tickets_async(), exclusive=True)
-        else:
-            self.run_worker(self._refresh_all_tickets, thread=True, exclusive=True)
+        self.run_worker(self._refresh_all_tickets(), exclusive=True)
 
-    def _refresh_all_tickets(self) -> list:
-        """Fetch fresh tickets from the server (sync fallback).
-
-        Uses CachingRallyClient's refresh_cache if available,
-        otherwise falls back to direct get_tickets call.
-        """
-        _log.debug("Fetching fresh tickets from server (sync)...")
+    async def _refresh_all_tickets(self) -> list:
+        """Fetch fresh tickets from the server, bypassing the cache."""
+        _log.debug("Fetching fresh tickets from server...")
         try:
-            if self._caching_client:
-                # Use caching client's refresh method (updates cache)
-                tickets = self._caching_client.refresh_cache()
+            if self._async_caching_client:
+                # Use the caching client's refresh method (updates cache)
+                tickets = await self._async_caching_client.refresh_cache()
             else:
-                # Fall back to direct fetch
-                tickets = self._client.get_tickets(query="")
+                tickets = await self._client.get_tickets(query="")
             return list(tickets)
         except Exception as e:
             _log.error(f"Failed to refresh tickets: {e}")
-            return []
-
-    async def _refresh_all_tickets_async(self) -> list:
-        """Fetch fresh tickets from the server using async client.
-
-        Uses AsyncCachingRallyClient's refresh_cache if available.
-        """
-        _log.debug("Fetching fresh tickets from server (async)...")
-        try:
-            if self._async_caching_client:
-                # Use async caching client's refresh method
-                tickets = await self._async_caching_client.refresh_cache()
-            elif self._async_client:
-                # Fall back to direct async fetch
-                tickets = await self._async_client.get_tickets(query="")
-            else:
-                _log.warning("No async client available")
-                return []
-            return list(tickets)
-        except Exception as e:
-            _log.error(f"Failed to refresh tickets (async): {e}")
             return []
 
     def _on_refresh_complete(self, tickets: list) -> None:
@@ -1271,14 +1147,11 @@ class RallyTUI(App[None]):
         _log.info(f"Refresh complete: {len(tickets)} tickets")
 
     def _on_cache_status_change(self, status: CacheStatus, age_minutes: int | None) -> None:
-        """Handle cache status changes from CachingRallyClient.
+        """Handle cache status changes from AsyncCachingRallyClient.
 
         Maps CacheStatus to CacheStatusDisplay and updates the status bar.
-        Uses call_from_thread when called from a worker thread.
+        Async callbacks run on the main event loop, so update directly.
         """
-        import threading
-
-        # Map CacheStatus to CacheStatusDisplay
         status_map = {
             CacheStatus.LIVE: CacheStatusDisplay.LIVE,
             CacheStatus.CACHED: CacheStatusDisplay.CACHED,
@@ -1288,33 +1161,6 @@ class RallyTUI(App[None]):
 
         display_status = status_map.get(status)
         if display_status:
-            # Check if we're on the main thread to avoid call_from_thread error in tests
-            if threading.current_thread() is threading.main_thread():
-                # Already on main thread, call directly
-                self._update_status_bar_cache(display_status, age_minutes)
-            else:
-                # Use call_from_thread to safely update UI from worker thread
-                self.call_from_thread(self._update_status_bar_cache, display_status, age_minutes)
-
-    def _on_async_cache_status_change(
-        self, status: AsyncCacheStatus, age_minutes: int | None
-    ) -> None:
-        """Handle cache status changes from AsyncCachingRallyClient.
-
-        Maps AsyncCacheStatus to CacheStatusDisplay and updates the status bar.
-        Since async operations run on the main event loop, we don't need call_from_thread.
-        """
-        # Map AsyncCacheStatus to CacheStatusDisplay
-        status_map = {
-            AsyncCacheStatus.LIVE: CacheStatusDisplay.LIVE,
-            AsyncCacheStatus.CACHED: CacheStatusDisplay.CACHED,
-            AsyncCacheStatus.REFRESHING: CacheStatusDisplay.REFRESHING,
-            AsyncCacheStatus.OFFLINE: CacheStatusDisplay.OFFLINE,
-        }
-
-        display_status = status_map.get(status)
-        if display_status:
-            # Async callbacks are on the main thread, call directly
             self._update_status_bar_cache(display_status, age_minutes)
 
     def _update_status_bar_cache(self, status: CacheStatusDisplay, age_minutes: int | None) -> None:
@@ -1338,7 +1184,7 @@ class RallyTUI(App[None]):
             callback=self._handle_bulk_action_result,
         )
 
-    def _handle_bulk_action_result(self, action: BulkAction | None) -> None:
+    async def _handle_bulk_action_result(self, action: BulkAction | None) -> None:
         """Handle the selected bulk action."""
         if action is None:
             _log.debug("Bulk action cancelled")
@@ -1354,11 +1200,11 @@ class RallyTUI(App[None]):
         _log.info(f"Bulk action {action.value} on {len(selected)} tickets")
 
         if action == BulkAction.SET_PARENT:
-            self._bulk_set_parent(selected)
+            await self._bulk_set_parent(selected)
         elif action == BulkAction.SET_STATE:
             self._bulk_set_state(selected)
         elif action == BulkAction.SET_ITERATION:
-            self._bulk_set_iteration(selected)
+            await self._bulk_set_iteration(selected)
         elif action == BulkAction.SET_POINTS:
             self._bulk_set_points(selected)
         elif action == BulkAction.SET_OWNER:
@@ -1402,7 +1248,7 @@ class RallyTUI(App[None]):
             callback=lambda owner: self._execute_bulk_owner(tickets, owner),
         )
 
-    def _execute_bulk_owner(self, tickets: list[Ticket], owner: Owner | None) -> None:
+    async def _execute_bulk_owner(self, tickets: list[Ticket], owner: Owner | None) -> None:
         """Execute bulk owner assignment."""
         if owner is None:
             _log.debug("Bulk owner assignment cancelled")
@@ -1413,7 +1259,7 @@ class RallyTUI(App[None]):
             owner_name = owner.display_name
             self.notify(f"Resolving owner '{owner_name}'...", timeout=2)
             try:
-                users = self._client.get_users(display_names=[owner_name])
+                users = await self._client.get_users(display_names=[owner_name])
                 if users:
                     owner = users[0]
                 else:
@@ -1425,7 +1271,7 @@ class RallyTUI(App[None]):
 
         self.notify(f"Assigning {len(tickets)} tickets to {owner.display_name}...", timeout=4)
 
-        result = self._client.bulk_assign_owner(tickets, owner)
+        result = await self._client.bulk_assign_owner(tickets, owner)
         self._handle_bulk_result(result, "owner")
 
         # Update owner cache
@@ -1435,14 +1281,14 @@ class RallyTUI(App[None]):
             cached.add(owner)
             self._cache_manager.set_iteration_owners(iteration, cached)
 
-    def _bulk_set_parent(self, tickets: list[Ticket]) -> None:
+    async def _bulk_set_parent(self, tickets: list[Ticket]) -> None:
         """Set parent on multiple tickets."""
         # Get parent options from settings
         parent_ids = self._user_settings.parent_options
         parent_options: list[ParentOption] = []
 
         for pid in parent_ids:
-            feature = self._client.get_feature(pid)
+            feature = await self._client.get_feature(pid)
             if feature:
                 parent_options.append(ParentOption(formatted_id=feature[0], name=feature[1]))
 
@@ -1452,7 +1298,7 @@ class RallyTUI(App[None]):
             callback=lambda parent_id: self._execute_bulk_parent(tickets, parent_id),
         )
 
-    def _execute_bulk_parent(self, tickets: list[Ticket], parent_id: str | None) -> None:
+    async def _execute_bulk_parent(self, tickets: list[Ticket], parent_id: str | None) -> None:
         """Execute bulk parent assignment."""
         if parent_id is None:
             _log.debug("Bulk parent cancelled")
@@ -1460,7 +1306,7 @@ class RallyTUI(App[None]):
 
         self.notify(f"Setting parent {parent_id} on {len(tickets)} tickets...", timeout=4)
 
-        result = self._client.bulk_set_parent(tickets, parent_id)
+        result = await self._client.bulk_set_parent(tickets, parent_id)
         self._handle_bulk_result(result, "parent")
 
     def _bulk_set_state(self, tickets: list[Ticket]) -> None:
@@ -1471,7 +1317,7 @@ class RallyTUI(App[None]):
             callback=lambda state: self._execute_bulk_state(tickets, state),
         )
 
-    def _execute_bulk_state(self, tickets: list[Ticket], state: str | None) -> None:
+    async def _execute_bulk_state(self, tickets: list[Ticket], state: str | None) -> None:
         """Execute bulk state update."""
         if state is None:
             _log.debug("Bulk state cancelled")
@@ -1490,18 +1336,18 @@ class RallyTUI(App[None]):
 
         self.notify(f"Setting state to {state} on {len(tickets)} tickets...", timeout=4)
 
-        result = self._client.bulk_update_state(tickets, state)
+        result = await self._client.bulk_update_state(tickets, state)
         self._handle_bulk_result(result, "state")
 
-    def _bulk_set_iteration(self, tickets: list[Ticket]) -> None:
+    async def _bulk_set_iteration(self, tickets: list[Ticket]) -> None:
         """Set iteration on multiple tickets."""
-        iterations = self._client.get_iterations()
+        iterations = await self._client.get_iterations()
         self.push_screen(
             IterationScreen(iterations, current_filter=None, user_settings=self._user_settings),
             callback=lambda iter_name: self._execute_bulk_iteration(tickets, iter_name),
         )
 
-    def _execute_bulk_iteration(self, tickets: list[Ticket], iteration: str | None) -> None:
+    async def _execute_bulk_iteration(self, tickets: list[Ticket], iteration: str | None) -> None:
         """Execute bulk iteration update."""
         if iteration is None:
             _log.debug("Bulk iteration cancelled")
@@ -1516,7 +1362,7 @@ class RallyTUI(App[None]):
         iter_name = iteration or "Backlog"
         self.notify(f"Moving {len(tickets)} tickets to {iter_name}...", timeout=4)
 
-        result = self._client.bulk_set_iteration(tickets, iteration)
+        result = await self._client.bulk_set_iteration(tickets, iteration)
         self._handle_bulk_result(result, "iteration")
 
     def _bulk_set_points(self, tickets: list[Ticket]) -> None:
@@ -1527,7 +1373,7 @@ class RallyTUI(App[None]):
             callback=lambda points: self._execute_bulk_points(tickets, points),
         )
 
-    def _execute_bulk_points(self, tickets: list[Ticket], points: float | None) -> None:
+    async def _execute_bulk_points(self, tickets: list[Ticket], points: float | None) -> None:
         """Execute bulk points update."""
         if points is None:
             _log.debug("Bulk points cancelled")
@@ -1535,7 +1381,7 @@ class RallyTUI(App[None]):
 
         self.notify(f"Setting {points} points on {len(tickets)} tickets...", timeout=4)
 
-        result = self._client.bulk_update_points(tickets, points)
+        result = await self._client.bulk_update_points(tickets, points)
         self._handle_bulk_result(result, "points")
 
     def _handle_bulk_result(self, result: BulkResult, operation: str) -> None:
@@ -1621,17 +1467,7 @@ class RallyTUI(App[None]):
             _log.info(f"Starting worker to fetch tickets for: {current_filter}")
             status_bar = self.query_one(StatusBar)
             status_bar.set_loading(True)
-            if self._use_async:
-                self.run_worker(
-                    self._fetch_filtered_tickets_async(),
-                    name="_fetch_filtered_tickets_async",
-                )
-            else:
-                self.run_worker(
-                    self._fetch_filtered_tickets,
-                    thread=True,
-                    name="_fetch_filtered_tickets",
-                )
+            self.run_worker(self._fetch_filtered_tickets(), name="_fetch_filtered_tickets")
             return
 
         # For offline mode, filter locally
