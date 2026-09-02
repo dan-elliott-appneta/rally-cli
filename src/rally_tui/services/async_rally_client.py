@@ -235,9 +235,9 @@ class AsyncRallyClient:
         if results:
             self._workspace = results[0].get("Name", "")
 
-        # A numeric Project ObjectID needs resolving to a Name; every query
-        # filter elsewhere assumes self._project is a Name.
-        if self._project and self._project.isdigit():
+        # A Project ObjectID (alphanumeric, no spaces) needs resolving to a
+        # Name; every query filter elsewhere assumes self._project is a Name.
+        if self._project and self._project.isalnum():
             resolved = await self._resolve_project_name_by_id(self._project)
             if resolved:
                 self._project = resolved
@@ -256,7 +256,7 @@ class AsyncRallyClient:
         """Resolve a Rally Project ObjectID to its Name.
 
         Args:
-            object_id: The project's numeric ObjectID (digits only).
+            object_id: The project's ObjectID (alphanumeric, no spaces).
 
         Returns:
             The project's Name, or None if not found.
@@ -264,7 +264,7 @@ class AsyncRallyClient:
         try:
             response = await self._get(
                 "/project",
-                params={"fetch": "Name", "query": f"(ObjectID = {object_id})", "pagesize": 1},
+                params={"fetch": "Name", "query": f'(ObjectID = "{object_id}")', "pagesize": 1},
             )
             results, _ = parse_query_result(response)
             if results:
