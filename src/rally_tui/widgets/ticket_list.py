@@ -229,6 +229,7 @@ class TicketListItem(ListItem):
             yield Label(
                 self.ticket.display_text,
                 classes=f"ticket-text {type_class}",
+                markup=False,
             )
 
     def set_selected(self, selected: bool) -> None:
@@ -291,6 +292,7 @@ class WideTicketListItem(ListItem):
             yield Label(
                 self.ticket.display_text,
                 classes=f"ticket-text-wide {type_class}",
+                markup=False,
             )
             yield Label(
                 owner_str,
