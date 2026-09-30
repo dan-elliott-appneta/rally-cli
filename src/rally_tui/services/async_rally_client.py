@@ -920,7 +920,7 @@ class AsyncRallyClient:
                             "/portfolioitem/feature",
                             params={
                                 "fetch": "ObjectID",
-                                "query": f'((FormattedID = "{sanitized_parent}"))',
+                                "query": f'(FormattedID = "{sanitized_parent}")',
                                 "projectScopeUp": "true",
                                 "projectScopeDown": "true",
                             },
@@ -1602,7 +1602,7 @@ class AsyncRallyClient:
                 "/portfolioitem/feature",
                 params={
                     "fetch": "FormattedID,Name",
-                    "query": f'((FormattedID = "{sanitized_id}"))',
+                    "query": f'(FormattedID = "{sanitized_id}")',
                     "projectScopeUp": "true",
                     "projectScopeDown": "true",
                 },
@@ -1760,7 +1760,7 @@ class AsyncRallyClient:
                 "/portfolioitem/feature",
                 params={
                     "fetch": "ObjectID",
-                    "query": f'((FormattedID = "{sanitized_parent_id}"))',
+                    "query": f'(FormattedID = "{sanitized_parent_id}")',
                     "projectScopeUp": "true",
                     "projectScopeDown": "true",
                 },
