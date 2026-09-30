@@ -114,6 +114,7 @@ class RallyClientProtocol(Protocol):
         description: str = "",
         points: float | None = None,
         backlog: bool = False,
+        no_owner: bool = False,
     ) -> Ticket | None:
         """Create a new ticket in Rally.
 

@@ -372,6 +372,7 @@ class MockRallyClient:
         description: str = "",
         points: float | None = None,
         backlog: bool = False,
+        no_owner: bool = False,
     ) -> Ticket | None:
         """Create a new ticket.
 
@@ -381,6 +382,7 @@ class MockRallyClient:
             description: Optional ticket description.
             points: Optional story points to set on create.
             backlog: If True, do not assign to current iteration (leave in backlog).
+            no_owner: If True, leave the ticket unassigned instead of owned by the current user.
 
         Returns:
             The created Ticket.
@@ -405,7 +407,7 @@ class MockRallyClient:
             name=title,
             ticket_type=internal_type,  # type: ignore[arg-type]
             state="Defined",
-            owner=self._current_user,
+            owner=None if no_owner else self._current_user,
             description=description,
             iteration=iteration,
             points=stored_points,
