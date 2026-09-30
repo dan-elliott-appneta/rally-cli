@@ -111,6 +111,12 @@ class TestTicketsUpdate:
         result = runner.invoke(cli, ["tickets", "update", "--help"])
         assert "--no-iteration" in result.output
 
+    def test_update_no_owner_flag(self):
+        """--no-owner flag should appear in update help output."""
+        runner = CliRunner()
+        result = runner.invoke(cli, ["tickets", "update", "--help"])
+        assert "--no-owner" in result.output
+
     def test_update_description_file_nonexistent(self):
         """--description-file with non-existent path causes Click to reject with exit 2."""
         runner = CliRunner(env={"RALLY_APIKEY": "test_key"})
@@ -290,6 +296,7 @@ class TestBackwardCompatibility:
         assert "--points" in result.output
         assert "--type" in result.output
         assert "--backlog" in result.output
+        assert "--no-owner" in result.output
 
     def test_comment_command_still_works(self):
         """'rally-cli comment --help' should still work unaffected."""

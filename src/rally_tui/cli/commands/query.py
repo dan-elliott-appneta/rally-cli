@@ -246,6 +246,12 @@ def _tickets_list(
     default=False,
     help="Put the ticket in the backlog (do not assign to current iteration).",
 )
+@click.option(
+    "--no-owner",
+    is_flag=True,
+    default=False,
+    help="Leave the ticket unassigned (default: current user).",
+)
 @pass_context
 def tickets_create(
     ctx: CLIContext,
@@ -254,6 +260,7 @@ def tickets_create(
     points: float | None,
     ticket_type: str,
     backlog: bool,
+    no_owner: bool,
 ) -> None:
     """Create a new ticket in Rally.
 
@@ -267,6 +274,7 @@ def tickets_create(
         rally-cli tickets create "Ticket Name" --description "Brief description" --points 1
         rally-cli tickets create "Bug in login" --type Defect --description "Repro steps..."
         rally-cli tickets create "Future idea" --backlog
+        rally-cli tickets create "Unassigned work" --no-owner
     """
     require_apikey(ctx)
 
@@ -286,6 +294,7 @@ def tickets_create(
                 description=description,
                 points=points,
                 backlog=backlog,
+                no_owner=no_owner,
             )
 
     created = asyncio.run(_do_create())
@@ -368,6 +377,7 @@ def tickets_show(ctx: CLIContext, ticket_id: str, sub_format: str | None) -> Non
     " values may vary by workspace.",
 )
 @click.option("--owner", "new_owner", default=None, help="Owner display name.")
+@click.option("--no-owner", is_flag=True, default=False, help="Remove the owner (unassign).")
 @click.option("--iteration", default=None, help="Iteration name.")
 @click.option(
     "--no-iteration", is_flag=True, default=False, help="Remove from iteration (backlog)."
@@ -439,6 +449,7 @@ def tickets_update(
     sub_format: str | None,
     state: str | None,
     new_owner: str | None,
+    no_owner: bool,
     iteration: str | None,
     no_iteration: bool,
     points: float | None,
@@ -512,7 +523,10 @@ def tickets_update(
         # which is project-scoped and not what most tickets need updated.
         fields["ScheduleState"] = state
         changes["state"] = state
-    if new_owner is not None:
+    if no_owner:
+        fields["owner"] = None
+        changes["owner"] = "unassigned"
+    elif new_owner is not None:
         fields["owner"] = new_owner
         changes["owner"] = new_owner
     if no_iteration:

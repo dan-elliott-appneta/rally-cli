@@ -875,6 +875,10 @@ class AsyncRallyClient:
                         )
                     rally_data["FlowState"] = f"/flowstate/{flow_states[0].get('ObjectID')}"
 
+                elif key == "owner" and value is None:
+                    # None unassigns the ticket
+                    rally_data["Owner"] = None
+
                 elif key == "owner":
                     # Look up Owner by display name
                     sanitized_owner = self._sanitize_query_value(str(value))
@@ -1365,6 +1369,7 @@ class AsyncRallyClient:
         description: str = "",
         points: float | None = None,
         backlog: bool = False,
+        no_owner: bool = False,
     ) -> Ticket | None:
         """Create a new ticket in Rally.
 
@@ -1374,6 +1379,7 @@ class AsyncRallyClient:
             description: Optional ticket description.
             points: Optional story points (PlanEstimate) to set on create.
             backlog: If True, do not assign to current iteration (leave in backlog).
+            no_owner: If True, leave the ticket unassigned instead of owned by the current user.
 
         Returns:
             The created Ticket, or None on failure.
@@ -1404,7 +1410,7 @@ class AsyncRallyClient:
                     ticket_data["Iteration"] = f"/iteration/{object_id}"
 
             # Add current user as owner
-            if self._current_user:
+            if self._current_user and not no_owner:
                 user_response = await self._get(
                     "/user",
                     params={
