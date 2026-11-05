@@ -167,7 +167,8 @@ rally-cli tickets create NAME [OPTIONS]
 |--------|-------------|
 | `--description TEXT` | Ticket description |
 | `--points FLOAT` | Story points to set |
-| `--type [UserStory\|Defect]` | Ticket type (default: UserStory) |
+| `--type [UserStory\|Defect\|Task]` | Ticket type (default: UserStory) |
+| `--parent TEXT` | Parent User Story ID. Required for `--type Task`, rejected otherwise |
 | `--backlog` | Put in backlog (skip iteration assignment) |
 
 #### Examples
@@ -179,6 +180,9 @@ rally-cli tickets create "Implement login page" --description "OAuth2 flow" --po
 # Create a defect
 rally-cli tickets create "Fix null pointer in auth" --type Defect --points 1
 
+# Create a task under a user story (iteration comes from the story)
+rally-cli tickets create "Investigate alert" --type Task --parent US12345
+
 # Create a backlog item (no iteration)
 rally-cli tickets create "Future: dark mode support" --backlog
 
@@ -189,6 +193,8 @@ rally-cli --format json tickets create "My Story" --points 2
 New tickets are automatically:
 - Assigned to the current user
 - Added to the current iteration (unless `--backlog` is specified)
+
+Tasks are the exception: they take their iteration from the parent story, and `--points` and `--backlog` are rejected.
 
 ---
 

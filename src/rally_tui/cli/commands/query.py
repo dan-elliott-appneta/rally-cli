@@ -63,6 +63,7 @@ def _validate_date(ctx: click.Context, param: click.Parameter, value: str | None
 CREATE_TYPE_MAP = {
     "userstory": "HierarchicalRequirement",
     "defect": "Defect",
+    "task": "Task",
 }
 
 
@@ -236,9 +237,14 @@ def _tickets_list(
 @click.option(
     "--type",
     "ticket_type",
-    type=click.Choice(["UserStory", "Defect"], case_sensitive=False),
+    type=click.Choice(["UserStory", "Defect", "Task"], case_sensitive=False),
     default="UserStory",
     help="Ticket type (default: UserStory).",
+)
+@click.option(
+    "--parent",
+    default=None,
+    help="Parent User Story ID (required for --type Task).",
 )
 @click.option(
     "--backlog",
@@ -259,14 +265,16 @@ def tickets_create(
     description: str,
     points: float | None,
     ticket_type: str,
+    parent: str | None,
     backlog: bool,
     no_owner: bool,
 ) -> None:
     """Create a new ticket in Rally.
 
-    Creates a User Story or Defect with the current user as owner and
+    Creates a User Story, Defect or Task with the current user as owner and
     current iteration, if available. Use --backlog to leave the ticket
-    in the backlog for planning.
+    in the backlog for planning. A Task needs --parent (its User Story)
+    and takes its iteration from that story.
 
     Examples:
 
@@ -275,8 +283,17 @@ def tickets_create(
         rally-cli tickets create "Bug in login" --type Defect --description "Repro steps..."
         rally-cli tickets create "Future idea" --backlog
         rally-cli tickets create "Unassigned work" --no-owner
+        rally-cli tickets create "Investigate alert" --type Task --parent US12345
     """
     require_apikey(ctx)
+
+    is_task = ticket_type.lower() == "task"
+    if is_task and not parent:
+        raise click.UsageError("--parent is required for --type Task.")
+    if parent and not is_task:
+        raise click.UsageError("--parent is only supported for --type Task.")
+    if is_task and (points is not None or backlog):
+        raise click.UsageError("--points and --backlog do not apply to --type Task.")
 
     entity_type = CREATE_TYPE_MAP.get(ticket_type.lower(), "HierarchicalRequirement")
     config = RallyConfig(
@@ -295,6 +312,7 @@ def tickets_create(
                 points=points,
                 backlog=backlog,
                 no_owner=no_owner,
+                parent=parent,
             )
 
     created = asyncio.run(_do_create())
