@@ -239,6 +239,7 @@ class MockRallyClient:
         self._next_discussion_id = 300000  # For generating new discussion IDs
         self._next_story_id = 9000  # For generating new User Story IDs
         self._next_defect_id = 9000  # For generating new Defect IDs
+        self._next_task_id = 9000  # For generating new Task IDs
         self._next_attachment_id = 9000  # For generating new Attachment IDs
         self._next_tag_id = 9000  # For generating new Tag IDs
 
@@ -373,22 +374,34 @@ class MockRallyClient:
         points: float | None = None,
         backlog: bool = False,
         no_owner: bool = False,
+        parent: str | None = None,
     ) -> Ticket | None:
         """Create a new ticket.
 
         Args:
             title: The ticket title/name.
-            ticket_type: The entity type ("HierarchicalRequirement" or "Defect").
+            ticket_type: The entity type ("HierarchicalRequirement", "Defect" or "Task").
             description: Optional ticket description.
             points: Optional story points to set on create.
             backlog: If True, do not assign to current iteration (leave in backlog).
             no_owner: If True, leave the ticket unassigned instead of owned by the current user.
+            parent: Formatted ID of the parent User Story. Required for a Task, ignored otherwise.
 
         Returns:
             The created Ticket.
         """
+        iteration = None if backlog else self._current_iteration
+
         # Generate formatted ID based on type
-        if ticket_type == "HierarchicalRequirement":
+        if ticket_type == "Task":
+            parent_ticket = next((t for t in self._tickets if t.formatted_id == parent), None)
+            if parent_ticket is None:
+                return None
+            formatted_id = f"TA{self._next_task_id}"
+            self._next_task_id += 1
+            internal_type = "Task"
+            iteration = parent_ticket.iteration  # a Task takes its parent story's iteration
+        elif ticket_type == "HierarchicalRequirement":
             formatted_id = f"US{self._next_story_id}"
             self._next_story_id += 1
             internal_type = "UserStory"
@@ -401,7 +414,6 @@ class MockRallyClient:
         stored_points = None
         if points is not None:
             stored_points = int(points) if points == int(points) else points
-        iteration = None if backlog else self._current_iteration
         ticket = Ticket(
             formatted_id=formatted_id,
             name=title,

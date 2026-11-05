@@ -115,6 +115,7 @@ class RallyClientProtocol(Protocol):
         points: float | None = None,
         backlog: bool = False,
         no_owner: bool = False,
+        parent: str | None = None,
     ) -> Ticket | None:
         """Create a new ticket in Rally.
 
@@ -123,10 +124,12 @@ class RallyClientProtocol(Protocol):
 
         Args:
             title: The ticket title/name.
-            ticket_type: The entity type ("HierarchicalRequirement" or "Defect").
+            ticket_type: The entity type ("HierarchicalRequirement", "Defect" or "Task").
             description: Optional ticket description.
             points: Optional story points (PlanEstimate) to set on create.
             backlog: If True, do not assign to current iteration (leave in backlog).
+            no_owner: If True, leave the ticket unassigned instead of owned by the current user.
+            parent: Formatted ID of the parent User Story. Required for a Task, ignored otherwise.
 
         Returns:
             The created Ticket, or None on failure.

@@ -1370,16 +1370,18 @@ class AsyncRallyClient:
         points: float | None = None,
         backlog: bool = False,
         no_owner: bool = False,
+        parent: str | None = None,
     ) -> Ticket | None:
         """Create a new ticket in Rally.
 
         Args:
             title: The ticket title/name.
-            ticket_type: The entity type ("HierarchicalRequirement" or "Defect").
+            ticket_type: The entity type ("HierarchicalRequirement", "Defect" or "Task").
             description: Optional ticket description.
             points: Optional story points (PlanEstimate) to set on create.
             backlog: If True, do not assign to current iteration (leave in backlog).
             no_owner: If True, leave the ticket unassigned instead of owned by the current user.
+            parent: Formatted ID of the parent User Story. Required for a Task, ignored otherwise.
 
         Returns:
             The created Ticket, or None on failure.
@@ -1394,8 +1396,31 @@ class AsyncRallyClient:
             if points is not None:
                 ticket_data["PlanEstimate"] = points
 
-            # Add current iteration if available (unless backlog)
-            if not backlog and self._current_iteration:
+            if ticket_type == "Task":
+                if not parent:
+                    _log.error("A Task needs a parent User Story")
+                    return None
+                sanitized_parent = self._sanitize_query_value(parent)
+                story_response = await self._get(
+                    "/hierarchicalrequirement",
+                    params={
+                        "fetch": "ObjectID",
+                        "query": f'(FormattedID = "{sanitized_parent}")',
+                        "projectScopeUp": "true",
+                        "projectScopeDown": "true",
+                        "pagesize": 1,
+                    },
+                )
+                story_results, _ = parse_query_result(story_response)
+                if not story_results:
+                    _log.error(f"Parent User Story not found: {parent}")
+                    return None
+                ticket_data["WorkProduct"] = (
+                    f"/hierarchicalrequirement/{story_results[0].get('ObjectID')}"
+                )
+
+            # A Task takes its iteration from its parent story
+            if ticket_type != "Task" and not backlog and self._current_iteration:
                 iter_response = await self._get(
                     "/iteration",
                     params={
